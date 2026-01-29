@@ -285,8 +285,8 @@
         <!-- Login Form (shown if not authenticated) -->
         <div id="login-section" class="login-form" style="display: none;">
             <h2>Admin Login</h2>
-            <p style="color: #ffffff80; margin-bottom: 20px;">Enter your Cognito JWT token to access reports.</p>
-            <input type="password" id="token-input" placeholder="Paste your auth token...">
+            <p style="color: #ffffff80; margin-bottom: 20px;">Enter admin password to access reports.</p>
+            <input type="password" id="token-input" placeholder="Admin password...">
             <button onclick="login()">Login</button>
         </div>
         
@@ -373,13 +373,13 @@
             try {
                 const response = await fetch(`${API_BASE}/reports/list`, {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'X-Admin-Password': authToken,
                         'Content-Type': 'application/json'
                     }
                 });
                 
-                if (response.status === 403) {
-                    showError('Access denied. You are not authorized as an admin.');
+                if (response.status === 401) {
+                    showError('Invalid password.');
                     localStorage.removeItem('dsco_admin_token');
                     setTimeout(showLogin, 2000);
                     return;
@@ -499,7 +499,7 @@
                 const response = await fetch(`${API_BASE}/reports/action`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'X-Admin-Password': authToken,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
