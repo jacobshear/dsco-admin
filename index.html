@@ -4,39 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DSCO Admin - Reports</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a1a2e;
             color: #fff;
             min-height: 100vh;
         }
-        
+
         .header {
             background: #16213e;
             padding: 20px;
             border-bottom: 1px solid #ffffff20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        
+
         .header h1 {
             font-size: 1.5rem;
             letter-spacing: 0.2em;
         }
-        
+
         .header span {
             color: #e53e3e;
             font-size: 0.9rem;
             margin-left: 10px;
         }
-        
+
+        .header .logout-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #ffffff30;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .header .logout-btn:hover {
+            background: #e53e3e;
+            border-color: #e53e3e;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-        
+
         .login-form {
             max-width: 400px;
             margin: 100px auto;
@@ -44,11 +63,11 @@
             background: #16213e;
             border-radius: 12px;
         }
-        
+
         .login-form h2 {
             margin-bottom: 20px;
         }
-        
+
         .login-form input {
             width: 100%;
             padding: 12px;
@@ -59,7 +78,7 @@
             color: #fff;
             font-size: 16px;
         }
-        
+
         .login-form button {
             width: 100%;
             padding: 14px;
@@ -70,18 +89,30 @@
             font-size: 16px;
             cursor: pointer;
         }
-        
+
         .login-form button:hover {
             background: #2c5aa0;
         }
-        
+
+        .login-form button:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+        }
+
+        .login-error {
+            color: #fc8181;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: none;
+        }
+
         .filters {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
-        
+
         .filters button {
             padding: 8px 16px;
             border: 1px solid #ffffff30;
@@ -91,101 +122,101 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        
+
         .filters button:hover,
         .filters button.active {
             background: #3182ce;
             border-color: #3182ce;
         }
-        
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             margin-bottom: 30px;
         }
-        
+
         .stat-card {
             background: #16213e;
             padding: 20px;
             border-radius: 12px;
             text-align: center;
         }
-        
+
         .stat-card .number {
             font-size: 2rem;
             font-weight: bold;
             color: #3182ce;
         }
-        
+
         .stat-card .label {
             color: #ffffff80;
             font-size: 0.85rem;
             margin-top: 5px;
         }
-        
+
         .stat-card.pending .number { color: #f6ad55; }
         .stat-card.actioned .number { color: #68d391; }
-        
+
         .reports-list {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
-        
+
         .report-card {
             background: #16213e;
             border-radius: 12px;
             padding: 20px;
             border-left: 4px solid #f6ad55;
         }
-        
+
         .report-card.actioned {
             border-left-color: #68d391;
             opacity: 0.7;
         }
-        
+
         .report-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 15px;
         }
-        
+
         .report-reason {
             font-weight: 600;
             font-size: 1.1rem;
         }
-        
+
         .report-time {
             color: #ffffff60;
             font-size: 0.85rem;
         }
-        
+
         .report-users {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 15px;
         }
-        
+
         .user-info label {
             color: #ffffff60;
             font-size: 0.8rem;
             display: block;
             margin-bottom: 5px;
         }
-        
+
         .user-info .username {
             font-weight: 500;
         }
-        
+
         .user-info .user-id {
             font-family: monospace;
             font-size: 0.75rem;
             color: #ffffff60;
         }
-        
+
         .report-details {
             background: #1a1a2e;
             padding: 12px;
@@ -193,17 +224,17 @@
             margin-bottom: 15px;
             color: #ffffffcc;
         }
-        
+
         .report-details:empty {
             display: none;
         }
-        
+
         .report-actions {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
-        
+
         .report-actions button {
             padding: 8px 16px;
             border: none;
@@ -212,43 +243,43 @@
             font-size: 0.9rem;
             transition: all 0.2s;
         }
-        
+
         .btn-dismiss {
             background: #4a5568;
             color: #fff;
         }
-        
+
         .btn-reviewed {
             background: #3182ce;
             color: #fff;
         }
-        
+
         .btn-warn {
             background: #f6ad55;
             color: #1a1a2e;
         }
-        
+
         .btn-suspend {
             background: #fc8181;
             color: #1a1a2e;
         }
-        
+
         .btn-ban {
             background: #e53e3e;
             color: #fff;
         }
-        
+
         .report-actions button:hover {
             transform: translateY(-1px);
             filter: brightness(1.1);
         }
-        
+
         .loading {
             text-align: center;
             padding: 40px;
             color: #ffffff60;
         }
-        
+
         .error {
             background: #e53e3e20;
             border: 1px solid #e53e3e;
@@ -257,18 +288,18 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
-        
+
         .empty {
             text-align: center;
             padding: 60px 20px;
             color: #ffffff60;
         }
-        
+
         .empty-icon {
             font-size: 3rem;
             margin-bottom: 15px;
         }
-        
+
         @media (max-width: 600px) {
             .report-users {
                 grid-template-columns: 1fr;
@@ -279,17 +310,29 @@
 <body>
     <div class="header">
         <h1>DSCO <span>Admin</span></h1>
+        <button class="logout-btn" id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
     </div>
-    
+
     <div class="container">
-        <!-- Login Form (shown if not authenticated) -->
+        <!-- Login Form -->
         <div id="login-section" class="login-form" style="display: none;">
             <h2>Admin Login</h2>
-            <p style="color: #ffffff80; margin-bottom: 20px;">Enter admin password to access reports.</p>
-            <input type="password" id="token-input" placeholder="Admin password...">
-            <button onclick="login()">Login</button>
+            <p style="color: #ffffff80; margin-bottom: 20px;">Sign in with your Cognito admin account.</p>
+            <div id="login-error" class="login-error"></div>
+            <input type="email" id="email-input" placeholder="Email address">
+            <input type="password" id="password-input" placeholder="Password">
+            <button id="login-btn" onclick="login()">Sign In</button>
         </div>
-        
+
+        <!-- New Password Required (first-time login) -->
+        <div id="new-password-section" class="login-form" style="display: none;">
+            <h2>Set New Password</h2>
+            <p style="color: #ffffff80; margin-bottom: 20px;">Your account requires a new password.</p>
+            <div id="new-pw-error" class="login-error"></div>
+            <input type="password" id="new-password-input" placeholder="New password (8+ chars, uppercase, lowercase, number)">
+            <button id="new-pw-btn" onclick="completeNewPassword()">Set Password & Sign In</button>
+        </div>
+
         <!-- Reports Dashboard -->
         <div id="dashboard-section" style="display: none;">
             <div class="stats">
@@ -306,28 +349,39 @@
                     <div class="label">Actioned</div>
                 </div>
             </div>
-            
+
             <div class="filters">
                 <button class="active" onclick="filterReports('all')">All</button>
                 <button onclick="filterReports('pending')">Pending</button>
                 <button onclick="filterReports('actioned')">Actioned</button>
                 <button onclick="loadReports()" style="margin-left: auto;">↻ Refresh</button>
             </div>
-            
+
             <div id="error-message" class="error" style="display: none;"></div>
-            
+
             <div id="reports-container" class="reports-list">
                 <div class="loading">Loading reports...</div>
             </div>
         </div>
     </div>
-    
+
     <script>
+        // --- Cognito Configuration ---
+        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
+        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
         const API_BASE = 'https://dw2bwldvsf.execute-api.us-west-1.amazonaws.com/dev';
-        let authToken = localStorage.getItem('dsco_admin_token') || '';
+
+        const poolData = {
+            UserPoolId: COGNITO_USER_POOL_ID,
+            ClientId: COGNITO_CLIENT_ID,
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        let cognitoUser = null;  // Set during login or session restore
+        let idToken = '';        // JWT sent as Authorization header
         let allReports = [];
         let currentFilter = 'all';
-        
+
         const REASON_LABELS = {
             'harassment': 'Harassment or bullying',
             'spam': 'Spam or scam',
@@ -336,101 +390,231 @@
             'impersonation': 'Impersonation',
             'other': 'Other'
         };
-        
+
+        // --- Auth ---
+
         function init() {
-            if (authToken) {
-                showDashboard();
-                loadReports();
+            // Check for existing valid session
+            cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.getSession((err, session) => {
+                    if (err || !session || !session.isValid()) {
+                        showLogin();
+                        return;
+                    }
+                    idToken = session.getIdToken().getJwtToken();
+                    showDashboard();
+                    loadReports();
+                });
             } else {
                 showLogin();
             }
         }
-        
+
         function showLogin() {
             document.getElementById('login-section').style.display = 'block';
+            document.getElementById('new-password-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
         }
-        
+
         function showDashboard() {
             document.getElementById('login-section').style.display = 'none';
+            document.getElementById('new-password-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'block';
         }
-        
+
         function login() {
-            authToken = document.getElementById('token-input').value.trim();
-            if (authToken) {
-                localStorage.setItem('dsco_admin_token', authToken);
-                showDashboard();
-                loadReports();
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                errorEl.style.display = 'block';
+                return;
             }
+
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: email,
+                Password: password,
+            });
+
+            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool,
+            });
+
+            cognitoUser.authenticateUser(authDetails, {
+                onSuccess: (result) => {
+                    idToken = result.getIdToken().getJwtToken();
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    showDashboard();
+                    loadReports();
+                },
+                onFailure: (err) => {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    errorEl.textContent = err.message || 'Authentication failed.';
+                    errorEl.style.display = 'block';
+                },
+                newPasswordRequired: (userAttributes) => {
+                    // First-time login — Cognito requires a new password
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('new-password-section').style.display = 'block';
+                },
+            });
         }
-        
+
+        function completeNewPassword() {
+            const newPassword = document.getElementById('new-password-input').value;
+            const errorEl = document.getElementById('new-pw-error');
+            const btn = document.getElementById('new-pw-btn');
+
+            if (!newPassword || newPassword.length < 8) {
+                errorEl.textContent = 'Password must be at least 8 characters.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Setting password...';
+
+            cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
+                onSuccess: (result) => {
+                    idToken = result.getIdToken().getJwtToken();
+                    btn.disabled = false;
+                    btn.textContent = 'Set Password & Sign In';
+                    showDashboard();
+                    loadReports();
+                },
+                onFailure: (err) => {
+                    btn.disabled = false;
+                    btn.textContent = 'Set Password & Sign In';
+                    errorEl.textContent = err.message || 'Failed to set password.';
+                    errorEl.style.display = 'block';
+                },
+            });
+        }
+
+        function logout() {
+            if (cognitoUser) {
+                cognitoUser.signOut();
+            }
+            cognitoUser = null;
+            idToken = '';
+            allReports = [];
+            showLogin();
+        }
+
+        /** Get a valid ID token, refreshing if expired. */
+        function getValidToken() {
+            return new Promise((resolve, reject) => {
+                if (!cognitoUser) {
+                    reject(new Error('Not authenticated'));
+                    return;
+                }
+                cognitoUser.getSession((err, session) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (!session.isValid()) {
+                        reject(new Error('Session expired'));
+                        return;
+                    }
+                    resolve(session.getIdToken().getJwtToken());
+                });
+            });
+        }
+
+        // --- Reports ---
+
         async function loadReports() {
             const container = document.getElementById('reports-container');
             container.innerHTML = '<div class="loading">Loading reports...</div>';
             hideError();
-            
+
             try {
+                const token = await getValidToken();
                 const response = await fetch(`${API_BASE}/reports/list`, {
                     headers: {
-                        'X-Admin-Password': authToken,
+                        'Authorization': token,
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (response.status === 401) {
-                    showError('Invalid password.');
-                    localStorage.removeItem('dsco_admin_token');
-                    setTimeout(showLogin, 2000);
+                    showError('Session expired. Please log in again.');
+                    setTimeout(logout, 2000);
                     return;
                 }
-                
+
+                if (response.status === 403) {
+                    showError('Access denied. Your account is not authorized as admin.');
+                    setTimeout(logout, 3000);
+                    return;
+                }
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 allReports = data.reports || [];
                 updateStats();
                 renderReports();
-                
+
             } catch (error) {
                 console.error('Error loading reports:', error);
-                showError('Failed to load reports. Check your connection and token.');
+                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
+                    logout();
+                } else {
+                    showError('Failed to load reports. Check your connection.');
+                }
             }
         }
-        
+
         function updateStats() {
             const pending = allReports.filter(r => r.status === 'pending').length;
             const actioned = allReports.filter(r => r.status === 'actioned').length;
-            
+
             document.getElementById('total-count').textContent = allReports.length;
             document.getElementById('pending-count').textContent = pending;
             document.getElementById('actioned-count').textContent = actioned;
         }
-        
+
         function filterReports(filter) {
             currentFilter = filter;
-            
-            // Update button states
+
             document.querySelectorAll('.filters button').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
-            
+
             renderReports();
         }
-        
+
         function renderReports() {
             const container = document.getElementById('reports-container');
-            
+
             let filtered = allReports;
             if (currentFilter === 'pending') {
                 filtered = allReports.filter(r => r.status === 'pending');
             } else if (currentFilter === 'actioned') {
                 filtered = allReports.filter(r => r.status === 'actioned');
             }
-            
+
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="empty">
@@ -440,14 +624,14 @@
                 `;
                 return;
             }
-            
+
             container.innerHTML = filtered.map(report => `
                 <div class="report-card ${report.status === 'actioned' ? 'actioned' : ''}" id="report-${report.report_id}">
                     <div class="report-header">
                         <div class="report-reason">${REASON_LABELS[report.reason] || report.reason}</div>
                         <div class="report-time">${formatTime(report.created_at)}</div>
                     </div>
-                    
+
                     <div class="report-users">
                         <div class="user-info">
                             <label>Reporter</label>
@@ -460,9 +644,9 @@
                             <div class="user-id">${report.reported_id}</div>
                         </div>
                     </div>
-                    
+
                     ${report.details ? `<div class="report-details">${escapeHtml(report.details)}</div>` : ''}
-                    
+
                     ${report.status === 'pending' ? `
                         <div class="report-actions">
                             <button class="btn-dismiss" onclick="takeAction('${report.report_id}', 'dismissed')">Dismiss</button>
@@ -477,7 +661,7 @@
                 </div>
             `).join('');
         }
-        
+
         async function takeAction(reportId, action) {
             const actionLabels = {
                 'dismissed': 'dismiss this report',
@@ -486,20 +670,21 @@
                 'suspended': 'suspend this user',
                 'banned': 'permanently ban this user'
             };
-            
+
             if (!confirm(`Are you sure you want to ${actionLabels[action]}?`)) {
                 return;
             }
-            
-            const notes = action !== 'dismissed' && action !== 'reviewed' 
-                ? prompt('Add notes (optional):') 
+
+            const notes = action !== 'dismissed' && action !== 'reviewed'
+                ? prompt('Add notes (optional):')
                 : '';
-            
+
             try {
+                const token = await getValidToken();
                 const response = await fetch(`${API_BASE}/reports/action`, {
                     method: 'POST',
                     headers: {
-                        'X-Admin-Password': authToken,
+                        'Authorization': token,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -508,43 +693,58 @@
                         admin_notes: notes || ''
                     })
                 });
-                
+
+                if (response.status === 401) {
+                    showError('Session expired. Please log in again.');
+                    setTimeout(logout, 2000);
+                    return;
+                }
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
-                
-                // Refresh the list
+
                 loadReports();
-                
+
             } catch (error) {
                 console.error('Error taking action:', error);
                 showError('Failed to process action. Please try again.');
             }
         }
-        
+
         function formatTime(isoString) {
             if (!isoString) return 'Unknown';
             const date = new Date(isoString);
             return date.toLocaleString();
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         function showError(message) {
             const el = document.getElementById('error-message');
             el.textContent = message;
             el.style.display = 'block';
         }
-        
+
         function hideError() {
             document.getElementById('error-message').style.display = 'none';
         }
-        
-        // Initialize on load
+
+        // Handle Enter key on login form
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (document.getElementById('login-section').style.display !== 'none') {
+                    login();
+                } else if (document.getElementById('new-password-section').style.display !== 'none') {
+                    completeNewPassword();
+                }
+            }
+        });
+
         init();
     </script>
 </body>
