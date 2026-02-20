@@ -35,7 +35,12 @@
             margin-left: 10px;
         }
 
-        .header .logout-btn {
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-actions button {
             padding: 8px 16px;
             background: transparent;
             border: 1px solid #ffffff30;
@@ -45,9 +50,21 @@
             font-size: 0.85rem;
         }
 
-        .header .logout-btn:hover {
+        .header-actions .logout-btn:hover {
             background: #e53e3e;
             border-color: #e53e3e;
+        }
+
+        .header-actions .changepw-btn:hover {
+            background: #3182ce;
+            border-color: #3182ce;
+        }
+
+        .success-msg {
+            color: #68d391;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: none;
         }
 
         .container {
@@ -310,7 +327,10 @@
 <body>
     <div class="header">
         <h1>DSCO <span>Admin</span></h1>
-        <button class="logout-btn" id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
+        <div class="header-actions" id="header-actions" style="display: none;">
+            <button class="changepw-btn" onclick="showChangePassword()">Change Password</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
     </div>
 
     <div class="container">
@@ -331,6 +351,19 @@
             <div id="new-pw-error" class="login-error"></div>
             <input type="password" id="new-password-input" placeholder="New password (8+ chars, uppercase, lowercase, number)">
             <button id="new-pw-btn" onclick="completeNewPassword()">Set Password & Sign In</button>
+        </div>
+
+        <!-- Change Password -->
+        <div id="change-password-section" class="login-form" style="display: none;">
+            <h2>Change Password</h2>
+            <p style="color: #ffffff80; margin-bottom: 20px;">Enter your current and new password.</p>
+            <div id="changepw-error" class="login-error"></div>
+            <div id="changepw-success" class="success-msg"></div>
+            <input type="password" id="current-password-input" placeholder="Current password">
+            <input type="password" id="new-password-input-change" placeholder="New password (8+ chars)">
+            <input type="password" id="confirm-password-input" placeholder="Confirm new password">
+            <button id="changepw-btn" onclick="changePassword()">Change Password</button>
+            <button onclick="showDashboard(); loadReports();" style="background: transparent; border: 1px solid #ffffff30; margin-top: 10px;">Cancel</button>
         </div>
 
         <!-- Reports Dashboard -->
@@ -411,18 +444,34 @@
             }
         }
 
-        function showLogin() {
-            document.getElementById('login-section').style.display = 'block';
+        function hideAllSections() {
+            document.getElementById('login-section').style.display = 'none';
             document.getElementById('new-password-section').style.display = 'none';
+            document.getElementById('change-password-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('logout-btn').style.display = 'none';
+            document.getElementById('header-actions').style.display = 'none';
+        }
+
+        function showLogin() {
+            hideAllSections();
+            document.getElementById('login-section').style.display = 'block';
         }
 
         function showDashboard() {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('new-password-section').style.display = 'none';
+            hideAllSections();
             document.getElementById('dashboard-section').style.display = 'block';
-            document.getElementById('logout-btn').style.display = 'block';
+            document.getElementById('header-actions').style.display = 'flex';
+        }
+
+        function showChangePassword() {
+            hideAllSections();
+            document.getElementById('change-password-section').style.display = 'block';
+            document.getElementById('header-actions').style.display = 'flex';
+            document.getElementById('changepw-error').style.display = 'none';
+            document.getElementById('changepw-success').style.display = 'none';
+            document.getElementById('current-password-input').value = '';
+            document.getElementById('new-password-input-change').value = '';
+            document.getElementById('confirm-password-input').value = '';
         }
 
         function login() {
@@ -504,6 +553,59 @@
                     errorEl.textContent = err.message || 'Failed to set password.';
                     errorEl.style.display = 'block';
                 },
+            });
+        }
+
+        function changePassword() {
+            const currentPw = document.getElementById('current-password-input').value;
+            const newPw = document.getElementById('new-password-input-change').value;
+            const confirmPw = document.getElementById('confirm-password-input').value;
+            const errorEl = document.getElementById('changepw-error');
+            const successEl = document.getElementById('changepw-success');
+            const btn = document.getElementById('changepw-btn');
+
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            if (!currentPw || !newPw) {
+                errorEl.textContent = 'Please fill in all fields.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (newPw.length < 8) {
+                errorEl.textContent = 'New password must be at least 8 characters.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (newPw !== confirmPw) {
+                errorEl.textContent = 'New passwords do not match.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Changing...';
+
+            cognitoUser.changePassword(currentPw, newPw, (err, result) => {
+                btn.disabled = false;
+                btn.textContent = 'Change Password';
+
+                if (err) {
+                    errorEl.textContent = err.message || 'Failed to change password.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                successEl.textContent = 'Password changed successfully.';
+                successEl.style.display = 'block';
+                document.getElementById('current-password-input').value = '';
+                document.getElementById('new-password-input-change').value = '';
+                document.getElementById('confirm-password-input').value = '';
+
+                setTimeout(() => {
+                    showDashboard();
+                    loadReports();
+                }, 1500);
             });
         }
 
