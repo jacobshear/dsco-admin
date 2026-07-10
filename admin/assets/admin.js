@@ -153,13 +153,38 @@ const AdminShell = (() => {
         window.location.reload();
     }
 
+    /**
+     * Force-refresh the Cognito session so group membership changes
+     * (super_admin add/remove) land in a new ID token. getSession() alone
+     * reuses a still-valid pre-group token for hours.
+     */
+    function refreshSession(user, session) {
+        return new Promise((resolve, reject) => {
+            const refreshToken = session.getRefreshToken();
+            if (!refreshToken) return resolve(session);
+            user.refreshSession(refreshToken, (err, newSession) => {
+                if (err || !newSession) {
+                    // Fall back to existing session rather than kicking to login
+                    console.warn('DSCO admin: refreshSession failed, using existing session', err);
+                    return resolve(session);
+                }
+                resolve(newSession);
+            });
+        });
+    }
+
     function getValidToken() {
         return new Promise((resolve, reject) => {
             const user = userPool.getCurrentUser();
             if (!user) return reject(new Error('Not signed in'));
-            user.getSession((err, session) => {
+            user.getSession(async (err, session) => {
                 if (err || !session || !session.isValid()) return reject(err || new Error('Session expired'));
-                resolve(session.getIdToken().getJwtToken());
+                try {
+                    const fresh = await refreshSession(user, session);
+                    resolve(fresh.getIdToken().getJwtToken());
+                } catch (e) {
+                    reject(e);
+                }
             });
         });
     }
@@ -196,7 +221,7 @@ const AdminShell = (() => {
     /** POST to an API service. api('realtime', '/admin/config/get', {...}) */
     async function api(service, path, body) {
         const token = await getValidToken();
-        // Match other admin pages + Flutter: Cognito authorizer expects Bearer.
+        // Cognito User Pool authorizer expects the *ID* token (access token → 401).
         const response = await fetch(`${API[service]}${path}`, {
             method: 'POST',
             headers: {
@@ -208,10 +233,13 @@ const AdminShell = (() => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             const msg = data.error || data.message || `${service}${path} failed (${response.status})`;
-            if (response.status === 403 || /admin access required/i.test(msg)) {
+            if (/admin access required/i.test(msg)) {
+                const payload = decodeJwtPayload(token) || {};
+                const groups = payload['cognito:groups'] || [];
+                const email = payload.email || payload['cognito:username'] || '?';
                 throw new Error(
-                    'Admin access required — your account is not in a Cognito admin group ' +
-                    '(super_admin / admin / moderator). Sign out, then sign back in after being added.'
+                    `${msg} (signed in as ${email}; token groups: ${JSON.stringify(groups)}. ` +
+                    'Sign out and back in if you were just added to super_admin.)'
                 );
             }
             throw new Error(msg);
@@ -224,12 +252,20 @@ const AdminShell = (() => {
         renderShell(active, title);
         const user = userPool.getCurrentUser();
         if (!user) return showLogin();
-        user.getSession((err, session) => {
+        user.getSession(async (err, session) => {
             if (err || !session || !session.isValid()) return showLogin();
+            try {
+                // Always mint a fresh ID token so Cognito group changes apply.
+                session = await refreshSession(user, session);
+            } catch (_) { /* keep session */ }
             const role = roleFromToken(session.getIdToken().getJwtToken());
             if (!role) {
-                // Still show the shell so they can sign out; pages will surface 403s.
-                console.warn('DSCO admin: JWT has no admin Cognito group. Sign out/in after group assignment.');
+                const payload = decodeJwtPayload(session.getIdToken().getJwtToken()) || {};
+                console.warn(
+                    'DSCO admin: no admin group on ID token',
+                    payload.email || payload['cognito:username'],
+                    payload['cognito:groups']
+                );
             }
             showApp();
         });
