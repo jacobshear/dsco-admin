@@ -1,0 +1,579 @@
+/* DSCO public site — the disco stage, ported from the app's DiscoStage widget.
+   Discipline: the room is #0A0A0C, every light is white-alpha, and the only
+   color off-hero is the disco ball itself — plus the product map scenes, which
+   intentionally show real avatar color so the product reads as real. */
+
+:root {
+    --room: #0A0A0C;
+    --ink: #FFFFFF;
+    --ink-90: rgba(255, 255, 255, 0.90);
+    --ink-70: rgba(255, 255, 255, 0.70);
+    --ink-50: rgba(255, 255, 255, 0.50);
+    --ink-30: rgba(255, 255, 255, 0.30);
+    --ink-22: rgba(255, 255, 255, 0.22);
+    --ink-12: rgba(255, 255, 255, 0.12);
+    --ink-06: rgba(255, 255, 255, 0.06);
+    --map-deep: #12151c;
+    --map-land: #1a1f2a;
+    --map-road: rgba(255, 255, 255, 0.07);
+    --map-road-hi: rgba(255, 255, 255, 0.12);
+    --map-water: #15202e;
+    --map-park: #1a2820;
+    --display: 'Unbounded', sans-serif;
+    /* App auth wordmark: GoogleFonts.bebasNeue (unified_auth_screen) */
+    --brand: 'Bebas Neue', sans-serif;
+    --body: 'Bricolage Grotesque', sans-serif;
+    --pill: 999px;
+    --measure: 640px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: var(--body);
+    background: var(--room);
+    color: var(--ink-90);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+::selection { background: rgba(255, 255, 255, 0.9); color: #0A0A0C; }
+
+a { color: inherit; }
+
+img { max-width: 100%; height: auto; }
+
+/* ---- Pills (DiscoPillButton) ---- */
+.pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 52px;
+    padding: 0 28px;
+    border-radius: var(--pill);
+    font-family: var(--body);
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.12s ease-out, background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+.pill-btn:active { transform: scale(0.97); }
+.pill-btn.solid { background: var(--ink); color: #000; border: none; }
+.pill-btn.solid:hover { background: var(--ink-90); }
+.pill-btn.quiet { background: transparent; color: var(--ink); border: 1px solid var(--ink-30); }
+.pill-btn.quiet:hover { border-color: var(--ink-50); background: var(--ink-06); }
+.pill-btn.svg, .pill-btn svg { flex-shrink: 0; }
+
+/* ---- Wordmark (auth-screen Bebas Neue) ---- */
+.wordmark {
+    font-family: var(--brand);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    line-height: 1;
+    -webkit-text-stroke: 0.015em currentColor;
+    paint-order: stroke fill;
+}
+
+
+/* ---- Top bar for subpages ---- */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px clamp(20px, 5vw, 48px);
+    background: linear-gradient(to bottom, rgba(10, 10, 12, 0.92), rgba(10, 10, 12, 0.75) 70%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.topbar .wordmark { font-size: 1.4rem; }
+.topbar nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.topbar nav a {
+    font-size: 0.85rem;
+    color: var(--ink-50);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: var(--pill);
+    transition: color 0.2s, background 0.2s;
+}
+.topbar nav a:hover { color: var(--ink); background: var(--ink-06); }
+.topbar nav a.active { color: var(--ink); }
+
+/* ---- Footer ---- */
+.site-footer {
+    position: relative;
+    padding: 56px clamp(20px, 5vw, 48px) 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    text-align: center;
+}
+.site-footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(720px, 86%);
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 138, 128, 0.35),
+        rgba(255, 255, 255, 0.4),
+        rgba(128, 203, 255, 0.35),
+        transparent);
+}
+.site-footer .wordmark { font-size: 1.25rem; color: var(--ink-50); }
+.site-footer nav { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; }
+.site-footer nav a {
+    font-size: 0.85rem;
+    color: var(--ink-50);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.site-footer nav a:hover { color: var(--ink); }
+.site-footer .fineprint { font-size: 0.75rem; color: var(--ink-30); }
+
+/* ---- Legal / prose pages ---- */
+.prose-page {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: clamp(40px, 8vh, 80px) 24px 96px;
+}
+.prose-page h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+    color: var(--ink);
+}
+.prose-page .updated {
+    font-size: 0.85rem;
+    color: var(--ink-30);
+    margin-bottom: 44px;
+}
+.prose-page h2 {
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin: 40px 0 12px;
+}
+.prose-page p, .prose-page li { font-size: 0.98rem; color: var(--ink-70); margin-bottom: 12px; }
+.prose-page ul { padding-left: 22px; }
+.prose-page strong { color: var(--ink-90); }
+.prose-page a { color: var(--ink); text-underline-offset: 3px; }
+.prose-page .lede { font-size: 1.08rem; color: var(--ink-90); }
+
+/* ---- Phone frame + map scenes ---- */
+.phone {
+    position: relative;
+    width: min(320px, 78vw);
+    aspect-ratio: 9 / 17.5;
+    border-radius: 40px;
+    padding: 11px;
+    background: linear-gradient(160deg, #2a2a30 0%, #141418 40%, #0c0c10 100%);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 30px 80px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+.phone::before {
+    /* Dynamic Island */
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 86px;
+    height: 22px;
+    border-radius: 20px;
+    background: #050506;
+    z-index: 5;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.phone-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 28px;
+    overflow: hidden;
+    background: var(--map-deep);
+}
+
+/* Stylized dark map (Mapbox-dark inspired, no tile API needed) */
+.map-canvas {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(120% 80% at 70% 20%, rgba(60, 90, 140, 0.12), transparent 55%),
+        radial-gradient(80% 60% at 20% 80%, rgba(40, 90, 60, 0.1), transparent 50%),
+        linear-gradient(180deg, #141820 0%, #10141c 100%);
+}
+/* Road grid */
+.map-canvas::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    background-image:
+        linear-gradient(var(--map-road) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, var(--map-road) 1.5px, transparent 1.5px),
+        linear-gradient(var(--map-road-hi) 2px, transparent 2px),
+        linear-gradient(90deg, var(--map-road-hi) 2px, transparent 2px);
+    background-size:
+        28px 28px,
+        28px 28px,
+        112px 112px,
+        112px 112px;
+    background-position: 12px 8px, 12px 8px, 0 0, 0 0;
+    transform: rotate(-8deg) scale(1.15);
+    opacity: 0.9;
+}
+/* Water + park blobs */
+.map-canvas::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 42% 28% at 18% 72%, var(--map-water) 0%, transparent 70%),
+        radial-gradient(ellipse 36% 24% at 78% 30%, var(--map-park) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 20% at 55% 88%, rgba(21, 32, 46, 0.85) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Soft vignette over the map */
+.map-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(70% 60% at 50% 45%, transparent 40%, rgba(0, 0, 0, 0.45) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Chrome overlay: search pill + bottom nav silhouette */
+.map-chrome {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+}
+.map-search {
+    position: absolute;
+    top: 48px;
+    left: 14px;
+    right: 14px;
+    height: 36px;
+    border-radius: 999px;
+    background: rgba(18, 18, 22, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+}
+.map-search .dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff8a80, #80cbff);
+    flex-shrink: 0;
+}
+.map-nav {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+    height: 48px;
+    border-radius: 999px;
+    background: rgba(18, 18, 22, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 10px;
+}
+.map-nav span {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.12);
+}
+.map-nav span.on { background: rgba(255, 255, 255, 0.85); }
+
+/* Map actors: pucks, pins, bubbles, boundaries */
+.map-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+}
+
+.puck {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    transform: translate(-50%, -85%);
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
+}
+.puck img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+.puck.sm { width: 56px; height: 56px; }
+.puck.lg { width: 88px; height: 88px; }
+
+/* Soft ground shadow under puck */
+.puck::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    width: 38%;
+    height: 6px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45), transparent 70%);
+}
+
+/* Story ring */
+.puck.story::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    background: conic-gradient(from 200deg, #ff6b9d, #ffd166, #6bcbff, #ff6b9d);
+    z-index: -1;
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+    opacity: 0.95;
+}
+
+.nametag {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 2px);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: rgba(12, 12, 16, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 3px 8px;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    z-index: 3;
+}
+
+.bubble {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 10px;
+    font-weight: 600;
+    color: #0a0a0c;
+    background: #fff;
+    padding: 5px 10px;
+    border-radius: 12px 12px 12px 4px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    z-index: 3;
+}
+.bubble::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    bottom: -5px;
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    transform: rotate(45deg);
+    border-radius: 1px;
+}
+
+.pin-marker {
+    position: absolute;
+    width: 52px;
+    height: 66px;
+    transform: translate(-50%, -90%);
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
+    z-index: 2;
+}
+.pin-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.pin-card {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    min-width: 128px;
+    max-width: 160px;
+    background: rgba(16, 16, 20, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 10px 12px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    z-index: 3;
+}
+.pin-card .when {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 3px;
+}
+.pin-card .title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.25;
+}
+.pin-card .meta {
+    margin-top: 4px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.boundary {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(110, 200, 255, 0.55);
+    background: radial-gradient(circle, rgba(110, 200, 255, 0.14), rgba(110, 200, 255, 0.03) 70%, transparent);
+    box-shadow: 0 0 24px rgba(110, 200, 255, 0.15);
+    transform: translate(-50%, -50%);
+}
+
+.vis-pill {
+    position: absolute;
+    left: 50%;
+    bottom: 78px;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(16, 16, 20, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+.vis-pill i {
+    font-style: normal;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.45);
+}
+.vis-pill i.on {
+    background: rgba(255, 255, 255, 0.92);
+    color: #0a0a0c;
+}
+
+/* Subtle ambient motion on map actors */
+@keyframes float-y {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -3px; }
+}
+@keyframes pulse-ring {
+    0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.04); }
+}
+.puck.float { animation: float-y 3.6s ease-in-out infinite; }
+.puck.float.d1 { animation-delay: 0.4s; }
+.puck.float.d2 { animation-delay: 0.9s; }
+.boundary.pulse { animation: pulse-ring 4s ease-in-out infinite; }
+
+/* ---- How-it-works product rows ---- */
+.product-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(240px, 0.95fr);
+    gap: clamp(32px, 6vw, 72px);
+    align-items: center;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: clamp(40px, 8vh, 72px) 0;
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.7s cubic-bezier(0.33, 1, 0.68, 1), transform 0.7s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.product-row.lit { opacity: 1; transform: none; }
+.product-row.reverse { grid-template-columns: minmax(240px, 0.95fr) minmax(0, 1.05fr); }
+.product-row.reverse .product-copy { order: 2; }
+.product-row.reverse .product-visual { order: 1; }
+
+.product-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-copy .step {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-30);
+    margin-bottom: 14px;
+}
+.product-copy h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    color: var(--ink);
+    margin-bottom: 14px;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+.product-copy p {
+    color: var(--ink-70);
+    font-size: 1.02rem;
+    max-width: 440px;
+}
+
+@media (max-width: 780px) {
+    .product-row,
+    .product-row.reverse {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        text-align: center;
+    }
+    .product-row.reverse .product-copy,
+    .product-row.reverse .product-visual {
+        order: unset;
+    }
+    .product-copy p { margin: 0 auto; }
+    .product-visual { order: -1; }
+    .phone { width: min(260px, 78vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    .puck.float, .boundary.pulse { animation: none; }
+}

@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Content Moderation</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 20px;
+            border-bottom: 1px solid #ffffff20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .header-nav a {
+            color: #ffffff80;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: #fff;
+            background: #ffffff10;
+        }
+
+        .header-nav a.active {
+            color: #fff;
+            background: #3182ce;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-actions button {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #ffffff30;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .header-actions .logout-btn:hover {
+            background: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: #16213e;
+            border-radius: 12px;
+        }
+
+        .login-form h2 { margin-bottom: 20px; }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 14px;
+            background: #3182ce;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .login-form button:hover { background: #2c5aa0; }
+        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
+
+        .login-error {
+            color: #fc8181;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #16213e;
+            padding: 6px;
+            border-radius: 8px;
+            width: fit-content;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #ffffff80;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .tab:hover {
+            color: #fff;
+            background: #ffffff10;
+        }
+
+        .tab.active {
+            background: #3182ce;
+            color: #fff;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .content-card {
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #ffffff10;
+        }
+
+        .content-card-header {
+            padding: 16px;
+            border-bottom: 1px solid #ffffff10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .content-type-badge.story { background: #805ad520; color: #b794f4; }
+        .content-type-badge.pin { background: #3182ce20; color: #63b3ed; }
+        .content-type-badge.message { background: #38a16920; color: #68d391; }
+
+        .report-count {
+            font-size: 0.8rem;
+            color: #fc8181;
+        }
+
+        .content-preview {
+            padding: 16px;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f1729;
+        }
+
+        .content-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+        }
+
+        .content-preview .text-preview {
+            color: #ffffff80;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .content-preview .no-preview {
+            color: #ffffff40;
+            font-size: 0.9rem;
+        }
+
+        .content-meta {
+            padding: 16px;
+            border-top: 1px solid #ffffff10;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .meta-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .meta-label {
+            color: #ffffff60;
+        }
+
+        .meta-value {
+            color: #fff;
+        }
+
+        .meta-value.user-link {
+            color: #63b3ed;
+            text-decoration: none;
+        }
+
+        .meta-value.user-link:hover {
+            text-decoration: underline;
+        }
+
+        .content-actions {
+            padding: 16px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #ffffff10;
+        }
+
+        .content-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .btn-view {
+            background: #ffffff10;
+            color: #fff;
+        }
+
+        .btn-view:hover {
+            background: #ffffff20;
+        }
+
+        .btn-remove {
+            background: #e53e3e;
+            color: #fff;
+        }
+
+        .btn-remove:hover {
+            background: #c53030;
+        }
+
+        .btn-dismiss {
+            background: #38a169;
+            color: #fff;
+        }
+
+        .btn-dismiss:hover {
+            background: #2f855a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #ffffff60;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ffffff60;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .error-message {
+            background: #e53e3e20;
+            border: 1px solid #e53e3e;
+            color: #fc8181;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #38a16920;
+            border: 1px solid #38a169;
+            color: #68d391;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* Remove Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #ffffff80;
+        }
+
+        .modal select,
+        .modal textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .modal select option {
+            background: #1a1a2e;
+        }
+
+        .modal textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .modal-actions .btn-cancel {
+            background: #ffffff10;
+            color: #fff;
+        }
+
+        .modal-actions .btn-confirm {
+            background: #e53e3e;
+            color: #fff;
+        }
+
+        .modal-actions .btn-confirm:hover {
+            background: #c53030;
+        }
+
+        .modal-actions .btn-confirm:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+        }
+
+        /* Preview Modal */
+        .preview-modal-content {
+            max-width: 700px;
+        }
+
+        .preview-modal-content .preview-area {
+            background: #0f1729;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .preview-modal-content .preview-area img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+        }
+
+        .preview-modal-content .preview-area video {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+        }
+
+        .preview-modal-content .message-bubble {
+            background: #3182ce;
+            padding: 12px 16px;
+            border-radius: 16px;
+            display: inline-block;
+            max-width: 80%;
+            text-align: left;
+        }
+
+        .report-list {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #ffffff10;
+        }
+
+        .report-item {
+            background: #0f1729;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .report-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .report-reason {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .report-time {
+            font-size: 0.75rem;
+            color: #ffffff60;
+        }
+
+        .report-details {
+            font-size: 0.85rem;
+            color: #ffffff80;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
+        <div class="header-nav">
+            <a href="index.html">Overview</a>
+            <a href="reports.html">Reports</a>
+            <a href="users.html">Users</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="content.html" class="active">Content</a>
+            <a href="audit.html">Audit</a>
+            <a href="transparency.html">Transparency</a>
+            <a href="levers.html">Levers</a>
+            <a href="costs.html">Costs</a>
+            <a href="crashes.html">Crashes</a>
+        </div>
+        <div class="header-actions" id="header-actions" style="display: none;">
+            <button class="logout-btn" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="login-section" style="display: none;">
+        <div class="login-form">
+            <h2>Admin Sign In</h2>
+            <div class="login-error" id="login-error"></div>
+            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
+            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+            <button id="login-btn" onclick="login()">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" style="display: none;">
+        <div class="container">
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+
+            <div class="tabs">
+                <button class="tab active" data-type="all" onclick="switchTab('all')">All</button>
+                <button class="tab" data-type="story" onclick="switchTab('story')">Stories</button>
+                <button class="tab" data-type="pin" onclick="switchTab('pin')">Pins</button>
+                <button class="tab" data-type="message" onclick="switchTab('message')">Messages</button>
+            </div>
+
+            <div class="content-grid" id="content-grid">
+                <div class="loading">Loading reported content...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Content Modal -->
+    <div class="modal" id="remove-modal">
+        <div class="modal-content">
+            <h3>
+                Remove Content
+                <button class="close-btn" onclick="closeRemoveModal()">&times;</button>
+            </h3>
+            <p style="margin-bottom: 16px; color: #ffffff80;">
+                This will permanently remove the content and notify the owner.
+            </p>
+            <label>Reason Code</label>
+            <select id="remove-reason-code">
+                <option value="">Select reason...</option>
+                <option value="HARASSMENT">Harassment</option>
+                <option value="HATE_SPEECH">Hate Speech</option>
+                <option value="SEXUAL_CONTENT">Sexual Content</option>
+                <option value="MINOR_SAFETY">Minor Safety</option>
+                <option value="SPAM">Spam</option>
+                <option value="IMPERSONATION">Impersonation</option>
+                <option value="SELF_HARM">Self-Harm</option>
+                <option value="VIOLENCE">Violence</option>
+                <option value="ILLEGAL_CONTENT">Illegal Content</option>
+                <option value="PRIVACY_VIOLATION">Privacy Violation</option>
+                <option value="OTHER">Other</option>
+            </select>
+            <label>Additional Notes (optional)</label>
+            <textarea id="remove-notes" placeholder="Explain the removal decision..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeRemoveModal()">Cancel</button>
+                <button class="btn-confirm" id="confirm-remove-btn" onclick="confirmRemove()">Remove Content</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal" id="preview-modal">
+        <div class="modal-content preview-modal-content">
+            <h3>
+                <span id="preview-title">Content Preview</span>
+                <button class="close-btn" onclick="closePreviewModal()">&times;</button>
+            </h3>
+            <div class="preview-area" id="preview-area">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div id="preview-meta"></div>
+            <div class="report-list" id="report-list">
+                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #ffffff80;">Reports</h4>
+                <!-- Reports loaded dynamically -->
+            </div>
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button class="btn-dismiss" onclick="dismissReports()">Dismiss Reports</button>
+                <button class="btn-remove" onclick="showRemoveFromPreview()">Remove Content</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
+        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
+        const API_BASE = 'https://api.dsco.dev/realtime';
+        const SOCIAL_API_BASE = 'https://api.dsco.dev/social';
+
+        const poolData = {
+            UserPoolId: COGNITO_USER_POOL_ID,
+            ClientId: COGNITO_CLIENT_ID,
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        let cognitoUser = null;
+        let idToken = '';
+        let currentTab = 'all';
+        let reportedContent = [];
+        let selectedContent = null;
+
+        const REASON_LABELS = {
+            'HARASSMENT': 'Harassment',
+            'HATE_SPEECH': 'Hate Speech',
+            'SEXUAL_CONTENT': 'Sexual Content',
+            'MINOR_SAFETY': 'Minor Safety',
+            'SPAM': 'Spam',
+            'IMPERSONATION': 'Impersonation',
+            'SELF_HARM': 'Self-Harm',
+            'VIOLENCE': 'Violence',
+            'ILLEGAL_CONTENT': 'Illegal Content',
+            'PRIVACY_VIOLATION': 'Privacy Violation',
+            'OTHER': 'Other'
+        };
+
+        // --- Auth ---
+
+        function init() {
+            cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.getSession((err, session) => {
+                    if (err || !session || !session.isValid()) {
+                        showLogin();
+                        return;
+                    }
+                    idToken = session.getIdToken().getJwtToken();
+                    showDashboard();
+                    loadReportedContent();
+                });
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('header-actions').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+            document.getElementById('header-actions').style.display = 'flex';
+        }
+
+        function login() {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: email,
+                Password: password,
+            });
+
+            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool,
+            });
+
+            cognitoUser.authenticateUser(authDetails, {
+                onSuccess: (result) => {
+                    idToken = result.getIdToken().getJwtToken();
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    showDashboard();
+                    loadReportedContent();
+                },
+                onFailure: (err) => {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    errorEl.textContent = err.message || 'Authentication failed.';
+                    errorEl.style.display = 'block';
+                },
+            });
+        }
+
+        function logout() {
+            if (cognitoUser) cognitoUser.signOut();
+            cognitoUser = null;
+            idToken = '';
+            showLogin();
+        }
+
+        function getValidToken() {
+            return new Promise((resolve, reject) => {
+                if (!cognitoUser) {
+                    reject(new Error('Not authenticated'));
+                    return;
+                }
+                cognitoUser.getSession((err, session) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (!session.isValid()) {
+                        reject(new Error('Session expired'));
+                        return;
+                    }
+                    resolve(session.getIdToken().getJwtToken());
+                });
+            });
+        }
+
+        // --- Content Management ---
+
+        async function loadReportedContent() {
+            const grid = document.getElementById('content-grid');
+            grid.innerHTML = '<div class="loading">Loading reported content...</div>';
+            hideError();
+            hideSuccess();
+
+            try {
+                const token = await getValidToken();
+
+                // Get reports that have content (not just user reports)
+                const response = await fetch(`${SOCIAL_API_BASE}/reports/list`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: 'pending',
+                        has_content: true
+                    })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    showError('Access denied. Please check your permissions.');
+                    setTimeout(logout, 2000);
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                reportedContent = data.reports || data.items || [];
+
+                // Group reports by content
+                reportedContent = groupReportsByContent(reportedContent);
+
+                renderContent();
+
+            } catch (error) {
+                console.error('Error loading content:', error);
+                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
+                    logout();
+                } else {
+                    showError('Failed to load reported content.');
+                    grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load content</p></div>';
+                }
+            }
+        }
+
+        function groupReportsByContent(reports) {
+            const grouped = {};
+
+            for (const report of reports) {
+                // Only include reports with content_type and content_id
+                if (!report.content_type || !report.content_id) continue;
+
+                const key = `${report.content_type}:${report.content_id}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        content_type: report.content_type,
+                        content_id: report.content_id,
+                        content_owner_id: report.reported_user_id || report.target_id,
+                        content_preview_url: report.content_preview_url,
+                        content_text: report.content_text,
+                        reports: []
+                    };
+                }
+                grouped[key].reports.push(report);
+            }
+
+            return Object.values(grouped).sort((a, b) => b.reports.length - a.reports.length);
+        }
+
+        function switchTab(type) {
+            currentTab = type;
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.type === type);
+            });
+            renderContent();
+        }
+
+        function renderContent() {
+            const grid = document.getElementById('content-grid');
+
+            let filtered = reportedContent;
+            if (currentTab !== 'all') {
+                filtered = reportedContent.filter(c => c.content_type === currentTab);
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">✨</div>
+                        <p>No reported content to review</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map((content, idx) => `
+                <div class="content-card" data-index="${idx}">
+                    <div class="content-card-header">
+                        <span class="content-type-badge ${content.content_type}">${content.content_type}</span>
+                        <span class="report-count">${content.reports.length} report${content.reports.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="content-preview">
+                        ${getPreviewHtml(content)}
+                    </div>
+                    <div class="content-meta">
+                        <div class="meta-row">
+                            <span class="meta-label">Content ID</span>
+                            <span class="meta-value" style="font-family:monospace;font-size:0.8rem;">${content.content_id.substring(0, 16)}...</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Owner</span>
+                            <a href="users.html?id=${content.content_owner_id}" class="meta-value user-link">${content.content_owner_id?.substring(0, 16) || 'Unknown'}...</a>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Top reason</span>
+                            <span class="meta-value">${getTopReason(content.reports)}</span>
+                        </div>
+                    </div>
+                    <div class="content-actions">
+                        <button class="btn-view" onclick="showPreview(${idx})">View Details</button>
+                        <button class="btn-remove" onclick="showRemoveModal(${idx})">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPreviewHtml(content) {
+            if (content.content_preview_url) {
+                if (content.content_type === 'story') {
+                    return `<img src="${content.content_preview_url}" alt="Story preview" onerror="this.parentElement.innerHTML='<span class=\\'no-preview\\'>Preview unavailable</span>'">`;
+                }
+                return `<img src="${content.content_preview_url}" alt="Content preview" onerror="this.parentElement.innerHTML='<span class=\\'no-preview\\'>Preview unavailable</span>'">`;
+            }
+
+            if (content.content_text) {
+                const truncated = content.content_text.length > 100
+                    ? content.content_text.substring(0, 100) + '...'
+                    : content.content_text;
+                return `<div class="text-preview">"${truncated}"</div>`;
+            }
+
+            return '<span class="no-preview">No preview available</span>';
+        }
+
+        function getTopReason(reports) {
+            const counts = {};
+            for (const report of reports) {
+                const reason = report.reason_code || report.reason || 'UNKNOWN';
+                counts[reason] = (counts[reason] || 0) + 1;
+            }
+            const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+            return REASON_LABELS[top[0]] || top[0];
+        }
+
+        function showPreview(idx) {
+            const content = getFilteredContent()[idx];
+            if (!content) return;
+
+            selectedContent = content;
+
+            document.getElementById('preview-title').textContent =
+                `${content.content_type.charAt(0).toUpperCase() + content.content_type.slice(1)} Preview`;
+
+            const previewArea = document.getElementById('preview-area');
+            if (content.content_preview_url) {
+                if (content.content_type === 'story' && content.content_preview_url.includes('.mp4')) {
+                    previewArea.innerHTML = `<video src="${content.content_preview_url}" controls></video>`;
+                } else {
+                    previewArea.innerHTML = `<img src="${content.content_preview_url}" alt="Preview" onerror="this.outerHTML='<span class=\\'no-preview\\'>Preview unavailable</span>'">`;
+                }
+            } else if (content.content_text) {
+                previewArea.innerHTML = `<div class="message-bubble">${escapeHtml(content.content_text)}</div>`;
+            } else {
+                previewArea.innerHTML = '<span class="no-preview">No preview available</span>';
+            }
+
+            document.getElementById('preview-meta').innerHTML = `
+                <div class="meta-row">
+                    <span class="meta-label">Content ID</span>
+                    <span class="meta-value" style="font-family:monospace;">${content.content_id}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Content Owner</span>
+                    <a href="users.html?id=${content.content_owner_id}" class="meta-value user-link">${content.content_owner_id}</a>
+                </div>
+            `;
+
+            const reportList = document.getElementById('report-list');
+            reportList.innerHTML = `
+                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #ffffff80;">Reports (${content.reports.length})</h4>
+                ${content.reports.map(report => `
+                    <div class="report-item">
+                        <div class="report-header">
+                            <span class="report-reason">${REASON_LABELS[report.reason_code || report.reason] || report.reason_code || report.reason}</span>
+                            <span class="report-time">${formatTime(report.created_at)}</span>
+                        </div>
+                        ${report.details ? `<div class="report-details">${escapeHtml(report.details)}</div>` : ''}
+                    </div>
+                `).join('')}
+            `;
+
+            document.getElementById('preview-modal').classList.add('active');
+        }
+
+        function closePreviewModal() {
+            document.getElementById('preview-modal').classList.remove('active');
+            selectedContent = null;
+        }
+
+        function showRemoveFromPreview() {
+            closePreviewModal();
+            if (selectedContent) {
+                const idx = getFilteredContent().findIndex(c =>
+                    c.content_type === selectedContent.content_type &&
+                    c.content_id === selectedContent.content_id
+                );
+                if (idx >= 0) showRemoveModal(idx);
+            }
+        }
+
+        function getFilteredContent() {
+            if (currentTab === 'all') return reportedContent;
+            return reportedContent.filter(c => c.content_type === currentTab);
+        }
+
+        function showRemoveModal(idx) {
+            const content = getFilteredContent()[idx];
+            if (!content) return;
+
+            selectedContent = content;
+            document.getElementById('remove-reason-code').value = '';
+            document.getElementById('remove-notes').value = '';
+            document.getElementById('remove-modal').classList.add('active');
+        }
+
+        function closeRemoveModal() {
+            document.getElementById('remove-modal').classList.remove('active');
+        }
+
+        async function confirmRemove() {
+            if (!selectedContent) return;
+
+            const reasonCode = document.getElementById('remove-reason-code').value;
+            const notes = document.getElementById('remove-notes').value.trim();
+
+            if (!reasonCode) {
+                alert('Please select a reason code.');
+                return;
+            }
+
+            const btn = document.getElementById('confirm-remove-btn');
+            btn.disabled = true;
+            btn.textContent = 'Removing...';
+
+            try {
+                const token = await getValidToken();
+
+                const response = await fetch(`${API_BASE}/admin/content/remove`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content_type: selectedContent.content_type,
+                        content_id: selectedContent.content_id,
+                        reason_code: reasonCode,
+                        reason_text: notes,
+                        report_ids: selectedContent.reports.map(r => r.report_id || r.id).filter(Boolean)
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${response.status}`);
+                }
+
+                showSuccess('Content removed successfully.');
+                closeRemoveModal();
+
+                // Remove from local state
+                reportedContent = reportedContent.filter(c =>
+                    !(c.content_type === selectedContent.content_type && c.content_id === selectedContent.content_id)
+                );
+                selectedContent = null;
+                renderContent();
+
+            } catch (error) {
+                console.error('Error removing content:', error);
+                showError(`Failed to remove content: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Remove Content';
+            }
+        }
+
+        async function dismissReports() {
+            if (!selectedContent) return;
+
+            if (!confirm('Dismiss all reports for this content? The content will remain visible.')) {
+                return;
+            }
+
+            try {
+                const token = await getValidToken();
+
+                // Mark each report as dismissed
+                for (const report of selectedContent.reports) {
+                    const reportId = report.report_id || report.id;
+                    if (!reportId) continue;
+
+                    await fetch(`${SOCIAL_API_BASE}/reports/action`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            report_id: reportId,
+                            action: 'dismissed'
+                        })
+                    });
+                }
+
+                showSuccess('Reports dismissed.');
+                closePreviewModal();
+
+                // Remove from local state
+                reportedContent = reportedContent.filter(c =>
+                    !(c.content_type === selectedContent.content_type && c.content_id === selectedContent.content_id)
+                );
+                selectedContent = null;
+                renderContent();
+
+            } catch (error) {
+                console.error('Error dismissing reports:', error);
+                showError(`Failed to dismiss reports: ${error.message}`);
+            }
+        }
+
+        // --- Utilities ---
+
+        function formatTime(isoString) {
+            if (!isoString) return 'Unknown';
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('success-message');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(hideSuccess, 3000);
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // --- Event Listeners ---
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeRemoveModal();
+                closePreviewModal();
+            }
+            if (e.key === 'Enter' && document.getElementById('login-section').style.display !== 'none') {
+                login();
+            }
+        });
+
+        document.getElementById('remove-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'remove-modal') closeRemoveModal();
+        });
+
+        document.getElementById('preview-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'preview-modal') closePreviewModal();
+        });
+
+        init();
+    </script>
+</body>
+</html>

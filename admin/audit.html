@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Audit Log</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 20px;
+            border-bottom: 1px solid #ffffff20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .header-nav a {
+            color: #ffffff80;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: #fff;
+            background: #ffffff10;
+        }
+
+        .header-nav a.active {
+            color: #fff;
+            background: #3182ce;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-actions button {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #ffffff30;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .header-actions .logout-btn:hover {
+            background: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: #16213e;
+            border-radius: 12px;
+        }
+
+        .login-form h2 { margin-bottom: 20px; }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 14px;
+            background: #3182ce;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .login-form button:hover { background: #2c5aa0; }
+        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
+
+        .login-error {
+            color: #fc8181;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            color: #ffffff60;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .filter-group select option {
+            background: #1a1a2e;
+        }
+
+        .filters button {
+            padding: 8px 16px;
+            background: #3182ce;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            height: 36px;
+        }
+
+        .filters button:hover { background: #2c5aa0; }
+
+        .filters button.secondary {
+            background: transparent;
+            border: 1px solid #ffffff30;
+        }
+
+        .filters button.secondary:hover {
+            background: #ffffff10;
+        }
+
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .audit-table th,
+        .audit-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #ffffff10;
+        }
+
+        .audit-table th {
+            background: #0f1729;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffffff80;
+        }
+
+        .audit-table tr:hover {
+            background: #ffffff05;
+        }
+
+        .audit-table .action-type {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .action-type.warned { background: #f6ad5520; color: #f6ad55; }
+        .action-type.suspended { background: #ed893620; color: #ed8936; }
+        .action-type.banned { background: #e53e3e20; color: #e53e3e; }
+        .action-type.reversed { background: #68d39120; color: #68d391; }
+        .action-type.content_removed { background: #805ad520; color: #b794f4; }
+
+        .audit-table .reason-code {
+            font-size: 0.85rem;
+            color: #ffffff80;
+        }
+
+        .audit-table .user-link {
+            color: #63b3ed;
+            text-decoration: none;
+        }
+
+        .audit-table .user-link:hover {
+            text-decoration: underline;
+        }
+
+        .audit-table .timestamp {
+            font-size: 0.85rem;
+            color: #ffffff60;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            background: #16213e;
+            border: 1px solid #ffffff30;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #3182ce;
+            border-color: #3182ce;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ffffff60;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ffffff60;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .error-message {
+            background: #e53e3e20;
+            border: 1px solid #e53e3e;
+            color: #fc8181;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .detail-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .detail-modal.active {
+            display: flex;
+        }
+
+        .detail-modal-content {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .detail-modal h3 {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-modal .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .detail-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #ffffff10;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            width: 140px;
+            color: #ffffff60;
+            font-size: 0.85rem;
+        }
+
+        .detail-value {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
+        <div class="header-nav">
+            <a href="index.html">Overview</a>
+            <a href="reports.html">Reports</a>
+            <a href="users.html">Users</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="content.html">Content</a>
+            <a href="audit.html" class="active">Audit</a>
+            <a href="transparency.html">Transparency</a>
+            <a href="levers.html">Levers</a>
+            <a href="costs.html">Costs</a>
+            <a href="crashes.html">Crashes</a>
+        </div>
+        <div class="header-actions" id="header-actions" style="display: none;">
+            <button class="logout-btn" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="login-section" style="display: none;">
+        <div class="login-form">
+            <h2>Admin Sign In</h2>
+            <div class="login-error" id="login-error"></div>
+            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
+            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+            <button id="login-btn" onclick="login()">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" style="display: none;">
+        <div class="container">
+            <div class="error-message" id="error-message"></div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Target User ID</label>
+                    <input type="text" id="filter-target" placeholder="USER#...">
+                </div>
+                <div class="filter-group">
+                    <label>Actor (Admin) ID</label>
+                    <input type="text" id="filter-actor" placeholder="USER#...">
+                </div>
+                <div class="filter-group">
+                    <label>Action Type</label>
+                    <select id="filter-type">
+                        <option value="">All</option>
+                        <option value="warned">Warned</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="banned">Banned</option>
+                        <option value="reversed">Reversed</option>
+                        <option value="content_removed">Content Removed</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>From Date</label>
+                    <input type="date" id="filter-from">
+                </div>
+                <div class="filter-group">
+                    <label>To Date</label>
+                    <input type="date" id="filter-to">
+                </div>
+                <button onclick="applyFilters()">Search</button>
+                <button class="secondary" onclick="clearFilters()">Clear</button>
+            </div>
+
+            <table class="audit-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Reason</th>
+                        <th>Actor</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="audit-body">
+                    <tr><td colspan="6" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="detail-modal" id="detail-modal">
+        <div class="detail-modal-content">
+            <h3>
+                Action Details
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </h3>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
+        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
+        const API_BASE = 'https://api.dsco.dev/realtime';
+
+        const poolData = {
+            UserPoolId: COGNITO_USER_POOL_ID,
+            ClientId: COGNITO_CLIENT_ID,
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        let cognitoUser = null;
+        let idToken = '';
+        let currentPage = null;
+        let hasMore = false;
+
+        const REASON_LABELS = {
+            'HARASSMENT': 'Harassment',
+            'HATE_SPEECH': 'Hate Speech',
+            'SEXUAL_CONTENT': 'Sexual Content',
+            'MINOR_SAFETY': 'Minor Safety',
+            'SPAM': 'Spam',
+            'IMPERSONATION': 'Impersonation',
+            'SELF_HARM': 'Self-Harm',
+            'VIOLENCE': 'Violence',
+            'ILLEGAL_CONTENT': 'Illegal Content',
+            'PRIVACY_VIOLATION': 'Privacy Violation',
+            'OTHER': 'Other'
+        };
+
+        // --- Auth ---
+
+        function init() {
+            cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.getSession((err, session) => {
+                    if (err || !session || !session.isValid()) {
+                        showLogin();
+                        return;
+                    }
+                    idToken = session.getIdToken().getJwtToken();
+                    showDashboard();
+                    loadAuditLog();
+                });
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('header-actions').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+            document.getElementById('header-actions').style.display = 'flex';
+        }
+
+        function login() {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: email,
+                Password: password,
+            });
+
+            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool,
+            });
+
+            cognitoUser.authenticateUser(authDetails, {
+                onSuccess: (result) => {
+                    idToken = result.getIdToken().getJwtToken();
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    showDashboard();
+                    loadAuditLog();
+                },
+                onFailure: (err) => {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    errorEl.textContent = err.message || 'Authentication failed.';
+                    errorEl.style.display = 'block';
+                },
+            });
+        }
+
+        function logout() {
+            if (cognitoUser) cognitoUser.signOut();
+            cognitoUser = null;
+            idToken = '';
+            showLogin();
+        }
+
+        function getValidToken() {
+            return new Promise((resolve, reject) => {
+                if (!cognitoUser) {
+                    reject(new Error('Not authenticated'));
+                    return;
+                }
+                cognitoUser.getSession((err, session) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (!session.isValid()) {
+                        reject(new Error('Session expired'));
+                        return;
+                    }
+                    resolve(session.getIdToken().getJwtToken());
+                });
+            });
+        }
+
+        // --- Audit Log ---
+
+        async function loadAuditLog(lastKey = null) {
+            const tbody = document.getElementById('audit-body');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading audit log...</td></tr>';
+            hideError();
+
+            const targetId = document.getElementById('filter-target').value.trim();
+            const actorId = document.getElementById('filter-actor').value.trim();
+            const actionType = document.getElementById('filter-type').value;
+            const fromDate = document.getElementById('filter-from').value;
+            const toDate = document.getElementById('filter-to').value;
+
+            // Backend requires at least one filter
+            if (!targetId && !actorId && !actionType) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            <div class="empty-icon">🔍</div>
+                            <p>Enter a filter to search the audit log</p>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            const requestBody = {};
+            if (targetId) requestBody.target_id = targetId;
+            if (actorId) requestBody.actor_id = actorId;
+            if (actionType) requestBody.action_type = actionType;
+            if (fromDate) requestBody.start_date = fromDate;
+            if (toDate) requestBody.end_date = toDate;
+            if (lastKey) requestBody.last_key = lastKey;
+
+            try {
+                const token = await getValidToken();
+                const response = await fetch(`${API_BASE}/admin/audit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    showError('Access denied. Please check your permissions.');
+                    setTimeout(logout, 2000);
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const actions = data.items || [];
+                currentPage = lastKey;
+                hasMore = !!data.last_key;
+
+                renderAuditLog(actions, data.last_key);
+
+            } catch (error) {
+                console.error('Error loading audit log:', error);
+                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
+                    logout();
+                } else {
+                    showError('Failed to load audit log.');
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty">Failed to load</td></tr>';
+                }
+            }
+        }
+
+        function renderAuditLog(actions, lastKey) {
+            const tbody = document.getElementById('audit-body');
+
+            if (actions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            <div class="empty-icon">📋</div>
+                            <p>No audit records found</p>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = actions.map(action => `
+                <tr>
+                    <td class="timestamp">${formatTime(action.created_at)}</td>
+                    <td>
+                        <span class="action-type ${action.action_type}">${action.action_type}</span>
+                        ${action.target_type !== 'user' ? `<br><small style="color:#ffffff60">${action.target_type}</small>` : ''}
+                    </td>
+                    <td>
+                        <a href="users.html?id=${action.target_id}" class="user-link">${action.target_id.substring(0, 20)}...</a>
+                    </td>
+                    <td class="reason-code">${REASON_LABELS[action.reason_code] || action.reason_code || '-'}</td>
+                    <td>${action.actor_role || 'admin'}</td>
+                    <td>
+                        <button onclick="showDetail('${action.action_id}')" style="background:none;border:none;color:#63b3ed;cursor:pointer;">View</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Pagination
+            const paginationHtml = `
+                <button onclick="loadAuditLog(null)" ${!currentPage ? 'disabled' : ''}>First</button>
+                <button onclick="loadAuditLog(${lastKey ? `'${JSON.stringify(lastKey)}'` : 'null'})" ${!hasMore ? 'disabled' : ''}>Next</button>
+            `;
+            document.getElementById('pagination').innerHTML = paginationHtml;
+
+            // Store actions for detail view
+            window.auditActions = actions;
+        }
+
+        function applyFilters() {
+            loadAuditLog(null);
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-target').value = '';
+            document.getElementById('filter-actor').value = '';
+            document.getElementById('filter-type').value = '';
+            document.getElementById('filter-from').value = '';
+            document.getElementById('filter-to').value = '';
+            loadAuditLog(null);
+        }
+
+        function showDetail(actionId) {
+            const action = window.auditActions?.find(a => a.action_id === actionId);
+            if (!action) return;
+
+            const modal = document.getElementById('detail-modal');
+            const body = document.getElementById('modal-body');
+
+            body.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">Action ID</div>
+                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.action_id}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Timestamp</div>
+                    <div class="detail-value">${formatTime(action.created_at)}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Action Type</div>
+                    <div class="detail-value"><span class="action-type ${action.action_type}">${action.action_type}</span></div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Target Type</div>
+                    <div class="detail-value">${action.target_type}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Target ID</div>
+                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.target_id}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Reason Code</div>
+                    <div class="detail-value">${REASON_LABELS[action.reason_code] || action.reason_code || '-'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Reason Text</div>
+                    <div class="detail-value">${action.reason_text || '-'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Actor ID</div>
+                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.actor_id || '-'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Actor Role</div>
+                    <div class="detail-value">${action.actor_role || '-'}</div>
+                </div>
+                ${action.expires_at ? `
+                <div class="detail-row">
+                    <div class="detail-label">Expires At</div>
+                    <div class="detail-value">${formatTime(action.expires_at)}</div>
+                </div>
+                ` : ''}
+                ${action.source_report_id ? `
+                <div class="detail-row">
+                    <div class="detail-label">Source Report</div>
+                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.source_report_id}</div>
+                </div>
+                ` : ''}
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+        }
+
+        // Close modal on escape or click outside
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Enter' && document.getElementById('login-section').style.display !== 'none') {
+                login();
+            }
+        });
+
+        document.getElementById('detail-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'detail-modal') closeModal();
+        });
+
+        function formatTime(isoString) {
+            if (!isoString) return 'Unknown';
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        init();
+    </script>
+</body>
+</html>

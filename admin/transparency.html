@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Transparency Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 20px;
+            border-bottom: 1px solid #ffffff20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .header-nav a {
+            color: #ffffff80;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: #fff;
+            background: #ffffff10;
+        }
+
+        .header-nav a.active {
+            color: #fff;
+            background: #3182ce;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-actions button {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #ffffff30;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .header-actions .logout-btn:hover {
+            background: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: #16213e;
+            border-radius: 12px;
+        }
+
+        .login-form h2 { margin-bottom: 20px; }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 14px;
+            background: #3182ce;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .login-form button:hover { background: #2c5aa0; }
+        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
+
+        .login-error {
+            color: #fc8181;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .date-range {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .date-range label {
+            font-size: 0.85rem;
+            color: #ffffff80;
+        }
+
+        .date-range input {
+            padding: 8px 12px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .date-range button {
+            padding: 8px 16px;
+            background: #3182ce;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .date-range button:hover { background: #2c5aa0; }
+
+        .quick-ranges {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .quick-ranges button {
+            padding: 6px 12px;
+            background: #16213e;
+            border: 1px solid #ffffff20;
+            color: #ffffff80;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .quick-ranges button:hover {
+            background: #ffffff10;
+            color: #fff;
+        }
+
+        .quick-ranges button.active {
+            background: #3182ce;
+            border-color: #3182ce;
+            color: #fff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #ffffff10;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.85rem;
+            color: #ffffff60;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-card .stat-sub {
+            font-size: 0.8rem;
+            color: #ffffff40;
+            margin-top: 4px;
+        }
+
+        .section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #ffffff10;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-header h3 {
+            font-size: 1.1rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #ffffff10;
+        }
+
+        .data-table th {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffffff80;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table .number {
+            text-align: right;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+
+        .data-table .percent {
+            text-align: right;
+            color: #ffffff60;
+            font-size: 0.85rem;
+        }
+
+        .bar-container {
+            height: 8px;
+            background: #0f1729;
+            border-radius: 4px;
+            overflow: hidden;
+            min-width: 100px;
+        }
+
+        .bar {
+            height: 100%;
+            background: #3182ce;
+            border-radius: 4px;
+        }
+
+        .export-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .export-actions button {
+            padding: 12px 24px;
+            background: #38a169;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-actions button:hover {
+            background: #2f855a;
+        }
+
+        .export-actions button.secondary {
+            background: #16213e;
+            border: 1px solid #ffffff30;
+        }
+
+        .export-actions button.secondary:hover {
+            background: #ffffff10;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #ffffff60;
+        }
+
+        .error-message {
+            background: #e53e3e20;
+            border: 1px solid #e53e3e;
+            color: #fc8181;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .dsa-notice {
+            background: #3182ce20;
+            border: 1px solid #3182ce;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .dsa-notice h4 {
+            color: #63b3ed;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .dsa-notice p {
+            font-size: 0.85rem;
+            color: #ffffff80;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
+        <div class="header-nav">
+            <a href="index.html">Overview</a>
+            <a href="reports.html">Reports</a>
+            <a href="users.html">Users</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="content.html">Content</a>
+            <a href="audit.html">Audit</a>
+            <a href="transparency.html" class="active">Transparency</a>
+            <a href="levers.html">Levers</a>
+            <a href="costs.html">Costs</a>
+            <a href="crashes.html">Crashes</a>
+        </div>
+        <div class="header-actions" id="header-actions" style="display: none;">
+            <button class="logout-btn" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="login-section" style="display: none;">
+        <div class="login-form">
+            <h2>Admin Sign In</h2>
+            <div class="login-error" id="login-error"></div>
+            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
+            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+            <button id="login-btn" onclick="login()">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" style="display: none;">
+        <div class="container">
+            <div class="error-message" id="error-message"></div>
+
+            <div class="dsa-notice">
+                <h4>DSA Transparency Reporting</h4>
+                <p>This report provides aggregated moderation statistics required under the Digital Services Act (DSA).
+                   Export quarterly data for regulatory compliance and public transparency reports.</p>
+            </div>
+
+            <div class="page-header">
+                <h2>Transparency Report</h2>
+                <div class="date-range">
+                    <label>From</label>
+                    <input type="date" id="date-from">
+                    <label>To</label>
+                    <input type="date" id="date-to">
+                    <button onclick="loadData()">Generate</button>
+                </div>
+            </div>
+
+            <div class="quick-ranges">
+                <button onclick="setRange('q1')" data-range="q1">Q1 2026</button>
+                <button onclick="setRange('q2')" data-range="q2">Q2 2026</button>
+                <button onclick="setRange('q3')" data-range="q3">Q3 2026</button>
+                <button onclick="setRange('q4')" data-range="q4">Q4 2026</button>
+                <button onclick="setRange('ytd')" data-range="ytd">Year to Date</button>
+                <button onclick="setRange('30d')" data-range="30d" class="active">Last 30 Days</button>
+            </div>
+
+            <div id="report-content">
+                <div class="loading">Select a date range to generate report...</div>
+            </div>
+
+            <div class="export-actions" id="export-actions" style="display: none;">
+                <button onclick="exportCSV()">
+                    <span>📊</span> Export CSV
+                </button>
+                <button class="secondary" onclick="exportJSON()">
+                    <span>📄</span> Export JSON
+                </button>
+                <button class="secondary" onclick="printReport()">
+                    <span>🖨️</span> Print Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
+        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
+        const API_BASE = 'https://api.dsco.dev/realtime';
+
+        const poolData = {
+            UserPoolId: COGNITO_USER_POOL_ID,
+            ClientId: COGNITO_CLIENT_ID,
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        let cognitoUser = null;
+        let idToken = '';
+        let reportData = null;
+
+        const REASON_LABELS = {
+            'HARASSMENT': 'Harassment',
+            'HATE_SPEECH': 'Hate Speech',
+            'SEXUAL_CONTENT': 'Sexual Content',
+            'MINOR_SAFETY': 'Minor Safety',
+            'SPAM': 'Spam',
+            'IMPERSONATION': 'Impersonation',
+            'SELF_HARM': 'Self-Harm',
+            'VIOLENCE': 'Violence',
+            'ILLEGAL_CONTENT': 'Illegal Content',
+            'PRIVACY_VIOLATION': 'Privacy Violation',
+            'OTHER': 'Other'
+        };
+
+        const ACTION_LABELS = {
+            'warned': 'Warning Issued',
+            'suspended': 'Account Suspended',
+            'banned': 'Account Banned',
+            'content_removed': 'Content Removed',
+            'reversed': 'Action Reversed'
+        };
+
+        // --- Auth ---
+
+        function init() {
+            // Set default date range to last 30 days
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            document.getElementById('date-to').value = today.toISOString().split('T')[0];
+            document.getElementById('date-from').value = thirtyDaysAgo.toISOString().split('T')[0];
+
+            cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.getSession((err, session) => {
+                    if (err || !session || !session.isValid()) {
+                        showLogin();
+                        return;
+                    }
+                    idToken = session.getIdToken().getJwtToken();
+                    showDashboard();
+                    loadData();
+                });
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('header-actions').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+            document.getElementById('header-actions').style.display = 'flex';
+        }
+
+        function login() {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: email,
+                Password: password,
+            });
+
+            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool,
+            });
+
+            cognitoUser.authenticateUser(authDetails, {
+                onSuccess: (result) => {
+                    idToken = result.getIdToken().getJwtToken();
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    showDashboard();
+                    loadData();
+                },
+                onFailure: (err) => {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    errorEl.textContent = err.message || 'Authentication failed.';
+                    errorEl.style.display = 'block';
+                },
+            });
+        }
+
+        function logout() {
+            if (cognitoUser) cognitoUser.signOut();
+            cognitoUser = null;
+            idToken = '';
+            showLogin();
+        }
+
+        function getValidToken() {
+            return new Promise((resolve, reject) => {
+                if (!cognitoUser) {
+                    reject(new Error('Not authenticated'));
+                    return;
+                }
+                cognitoUser.getSession((err, session) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (!session.isValid()) {
+                        reject(new Error('Session expired'));
+                        return;
+                    }
+                    resolve(session.getIdToken().getJwtToken());
+                });
+            });
+        }
+
+        // --- Date Ranges ---
+
+        function setRange(range) {
+            const today = new Date();
+            let from, to;
+
+            document.querySelectorAll('.quick-ranges button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.range === range);
+            });
+
+            switch (range) {
+                case 'q1':
+                    from = new Date(2026, 0, 1);
+                    to = new Date(2026, 2, 31);
+                    break;
+                case 'q2':
+                    from = new Date(2026, 3, 1);
+                    to = new Date(2026, 5, 30);
+                    break;
+                case 'q3':
+                    from = new Date(2026, 6, 1);
+                    to = new Date(2026, 8, 30);
+                    break;
+                case 'q4':
+                    from = new Date(2026, 9, 1);
+                    to = new Date(2026, 11, 31);
+                    break;
+                case 'ytd':
+                    from = new Date(2026, 0, 1);
+                    to = today;
+                    break;
+                case '30d':
+                default:
+                    from = new Date(today);
+                    from.setDate(from.getDate() - 30);
+                    to = today;
+                    break;
+            }
+
+            document.getElementById('date-from').value = from.toISOString().split('T')[0];
+            document.getElementById('date-to').value = to.toISOString().split('T')[0];
+            loadData();
+        }
+
+        // --- Data Loading ---
+
+        async function loadData() {
+            const content = document.getElementById('report-content');
+            content.innerHTML = '<div class="loading">Loading transparency data...</div>';
+            document.getElementById('export-actions').style.display = 'none';
+            hideError();
+
+            const fromDate = document.getElementById('date-from').value;
+            const toDate = document.getElementById('date-to').value;
+
+            if (!fromDate || !toDate) {
+                content.innerHTML = '<div class="loading">Please select a date range.</div>';
+                return;
+            }
+
+            try {
+                const token = await getValidToken();
+
+                const response = await fetch(`${API_BASE}/admin/transparency/export`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        start_date: fromDate,
+                        end_date: toDate
+                    })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    showError('Access denied. Please check your permissions.');
+                    setTimeout(logout, 2000);
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${response.status}`);
+                }
+
+                reportData = await response.json();
+                renderReport(reportData);
+                document.getElementById('export-actions').style.display = 'flex';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
+                    logout();
+                } else {
+                    showError('Failed to load transparency data.');
+                    content.innerHTML = '<div class="loading">Failed to load data</div>';
+                }
+            }
+        }
+
+        function renderReport(data) {
+            const content = document.getElementById('report-content');
+
+            const totalActions = data.total_actions || 0;
+            const totalReports = data.total_reports || 0;
+            const totalAppeals = data.total_appeals || 0;
+            const appealsApproved = data.appeals_approved || 0;
+
+            const actionsByType = data.actions_by_type || {};
+            const actionsByReason = data.actions_by_reason || {};
+            const reportsByReason = data.reports_by_reason || {};
+            const contentRemoved = data.content_removed || {};
+
+            const maxActionCount = Math.max(...Object.values(actionsByType), 1);
+            const maxReasonCount = Math.max(...Object.values(actionsByReason), 1);
+
+            content.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Moderation Actions</div>
+                        <div class="stat-value">${totalActions.toLocaleString()}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Reports Received</div>
+                        <div class="stat-value">${totalReports.toLocaleString()}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Appeals Submitted</div>
+                        <div class="stat-value">${totalAppeals.toLocaleString()}</div>
+                        <div class="stat-sub">${appealsApproved} approved (${totalAppeals ? Math.round(appealsApproved / totalAppeals * 100) : 0}%)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg. Response Time</div>
+                        <div class="stat-value">${data.avg_response_hours || '< 24'}h</div>
+                        <div class="stat-sub">Report to action</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Actions by Type</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Action Type</th>
+                                <th style="width: 200px;"></th>
+                                <th style="text-align: right;">Count</th>
+                                <th style="text-align: right;">% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(actionsByType).sort((a, b) => b[1] - a[1]).map(([type, count]) => `
+                                <tr>
+                                    <td>${ACTION_LABELS[type] || type}</td>
+                                    <td>
+                                        <div class="bar-container">
+                                            <div class="bar" style="width: ${(count / maxActionCount * 100)}%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="number">${count.toLocaleString()}</td>
+                                    <td class="percent">${totalActions ? (count / totalActions * 100).toFixed(1) : 0}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Actions by Reason Code</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Reason Code</th>
+                                <th style="width: 200px;"></th>
+                                <th style="text-align: right;">Count</th>
+                                <th style="text-align: right;">% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(actionsByReason).sort((a, b) => b[1] - a[1]).map(([reason, count]) => `
+                                <tr>
+                                    <td>${REASON_LABELS[reason] || reason}</td>
+                                    <td>
+                                        <div class="bar-container">
+                                            <div class="bar" style="width: ${(count / maxReasonCount * 100)}%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="number">${count.toLocaleString()}</td>
+                                    <td class="percent">${totalActions ? (count / totalActions * 100).toFixed(1) : 0}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Content Removed by Type</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Content Type</th>
+                                <th style="text-align: right;">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(contentRemoved).length > 0
+                                ? Object.entries(contentRemoved).map(([type, count]) => `
+                                    <tr>
+                                        <td>${type.charAt(0).toUpperCase() + type.slice(1)}s</td>
+                                        <td class="number">${count.toLocaleString()}</td>
+                                    </tr>
+                                `).join('')
+                                : '<tr><td colspan="2" style="text-align: center; color: #ffffff60;">No content removed in this period</td></tr>'
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h3>Appeals Overview</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th style="text-align: right;">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Appeals Submitted</td>
+                                <td class="number">${totalAppeals.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>Appeals Approved</td>
+                                <td class="number">${appealsApproved.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>Appeals Denied</td>
+                                <td class="number">${(data.appeals_denied || 0).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>Appeals Pending</td>
+                                <td class="number">${(data.appeals_pending || 0).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>Approval Rate</td>
+                                <td class="number">${totalAppeals ? Math.round(appealsApproved / totalAppeals * 100) : 0}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // --- Export ---
+
+        function exportCSV() {
+            if (!reportData) return;
+
+            const fromDate = document.getElementById('date-from').value;
+            const toDate = document.getElementById('date-to').value;
+
+            let csv = 'DSCO Transparency Report\n';
+            csv += `Period: ${fromDate} to ${toDate}\n`;
+            csv += `Generated: ${new Date().toISOString()}\n\n`;
+
+            csv += 'Summary Statistics\n';
+            csv += `Total Moderation Actions,${reportData.total_actions || 0}\n`;
+            csv += `Total Reports Received,${reportData.total_reports || 0}\n`;
+            csv += `Total Appeals Submitted,${reportData.total_appeals || 0}\n`;
+            csv += `Appeals Approved,${reportData.appeals_approved || 0}\n`;
+            csv += `Appeals Denied,${reportData.appeals_denied || 0}\n\n`;
+
+            csv += 'Actions by Type\n';
+            csv += 'Action Type,Count\n';
+            for (const [type, count] of Object.entries(reportData.actions_by_type || {})) {
+                csv += `${ACTION_LABELS[type] || type},${count}\n`;
+            }
+            csv += '\n';
+
+            csv += 'Actions by Reason Code\n';
+            csv += 'Reason Code,Count\n';
+            for (const [reason, count] of Object.entries(reportData.actions_by_reason || {})) {
+                csv += `${REASON_LABELS[reason] || reason},${count}\n`;
+            }
+            csv += '\n';
+
+            csv += 'Content Removed by Type\n';
+            csv += 'Content Type,Count\n';
+            for (const [type, count] of Object.entries(reportData.content_removed || {})) {
+                csv += `${type},${count}\n`;
+            }
+
+            downloadFile(csv, `dsco-transparency-${fromDate}-${toDate}.csv`, 'text/csv');
+        }
+
+        function exportJSON() {
+            if (!reportData) return;
+
+            const fromDate = document.getElementById('date-from').value;
+            const toDate = document.getElementById('date-to').value;
+
+            const exportData = {
+                report_period: {
+                    start_date: fromDate,
+                    end_date: toDate
+                },
+                generated_at: new Date().toISOString(),
+                platform: 'DSCO',
+                ...reportData
+            };
+
+            downloadFile(
+                JSON.stringify(exportData, null, 2),
+                `dsco-transparency-${fromDate}-${toDate}.json`,
+                'application/json'
+            );
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        // --- Utilities ---
+
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // --- Event Listeners ---
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('login-section').style.display !== 'none') {
+                login();
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>

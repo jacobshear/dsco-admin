@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Users</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 20px;
+            border-bottom: 1px solid #ffffff20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .header-nav a {
+            color: #ffffff80;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: #fff;
+            background: #ffffff10;
+        }
+
+        .header-nav a.active {
+            color: #fff;
+            background: #3182ce;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-actions button {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #ffffff30;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .header-actions .logout-btn:hover {
+            background: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: #16213e;
+            border-radius: 12px;
+        }
+
+        .login-form h2 { margin-bottom: 20px; }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 14px;
+            background: #3182ce;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .login-form button:hover { background: #2c5aa0; }
+        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
+
+        .login-error {
+            color: #fc8181;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .search-section {
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid #ffffff30;
+            border-radius: 10px;
+            background: #16213e;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .search-box input::placeholder {
+            color: #ffffff50;
+        }
+
+        .search-box button {
+            padding: 14px 24px;
+            background: #3182ce;
+            border: none;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .search-box button:hover {
+            background: #2c5aa0;
+        }
+
+        .user-card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ffffff10;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #3182ce;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .user-details h2 {
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .user-details .username {
+            color: #63b3ed;
+            font-size: 0.95rem;
+        }
+
+        .user-details .user-id {
+            color: #ffffff50;
+            font-size: 0.8rem;
+            font-family: monospace;
+            margin-top: 4px;
+        }
+
+        .user-status {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-badge.verified { background: #68d39120; color: #68d391; }
+        .status-badge.warned { background: #f6ad5520; color: #f6ad55; }
+        .status-badge.suspended { background: #ed893620; color: #ed8936; }
+        .status-badge.banned { background: #e53e3e20; color: #e53e3e; }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .user-actions button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .user-actions .btn-warn {
+            background: #f6ad55;
+            color: #1a1a2e;
+        }
+
+        .user-actions .btn-suspend {
+            background: #ed8936;
+            color: #fff;
+        }
+
+        .user-actions .btn-ban {
+            background: #e53e3e;
+            color: #fff;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffffff50;
+            margin-bottom: 12px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px;
+            background: #0f1729;
+            border-radius: 8px;
+        }
+
+        .history-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .history-icon.warned { background: #f6ad5520; }
+        .history-icon.suspended { background: #ed893620; }
+        .history-icon.banned { background: #e53e3e20; }
+        .history-icon.reversed { background: #68d39120; }
+        .history-icon.content_removed { background: #805ad520; }
+
+        .history-content {
+            flex: 1;
+        }
+
+        .history-content .action-type {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .history-content .reason {
+            color: #ffffff80;
+            font-size: 0.9rem;
+        }
+
+        .history-content .meta {
+            font-size: 0.8rem;
+            color: #ffffff50;
+            margin-top: 6px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ffffff60;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ffffff60;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .error-message {
+            background: #e53e3e20;
+            border: 1px solid #e53e3e;
+            color: #fc8181;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .action-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .action-modal.active {
+            display: flex;
+        }
+
+        .action-modal-content {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .action-modal h3 {
+            margin-bottom: 16px;
+        }
+
+        .action-modal select,
+        .action-modal input,
+        .action-modal textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ffffff30;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .action-modal select option {
+            background: #1a1a2e;
+        }
+
+        .action-modal textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .action-modal .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .action-modal button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .action-modal .btn-cancel {
+            background: transparent;
+            border: 1px solid #ffffff30;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
+        <div class="header-nav">
+            <a href="index.html">Overview</a>
+            <a href="reports.html">Reports</a>
+            <a href="users.html" class="active">Users</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="content.html">Content</a>
+            <a href="audit.html">Audit</a>
+            <a href="transparency.html">Transparency</a>
+            <a href="levers.html">Levers</a>
+            <a href="costs.html">Costs</a>
+            <a href="crashes.html">Crashes</a>
+        </div>
+        <div class="header-actions" id="header-actions" style="display: none;">
+            <button class="logout-btn" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="login-section" style="display: none;">
+        <div class="login-form">
+            <h2>Admin Sign In</h2>
+            <div class="login-error" id="login-error"></div>
+            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
+            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+            <button id="login-btn" onclick="login()">Sign In</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" style="display: none;">
+        <div class="container">
+            <div class="error-message" id="error-message"></div>
+
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Enter user ID or username...">
+                    <button onclick="searchUser()">Search User</button>
+                </div>
+            </div>
+
+            <div id="user-container">
+                <div class="empty">
+                    <div class="empty-icon">🔍</div>
+                    <p>Search for a user by ID or username</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Modal -->
+    <div class="action-modal" id="action-modal">
+        <div class="action-modal-content">
+            <h3 id="action-modal-title">Take Action</h3>
+            <select id="action-type">
+                <option value="warned">Warn User</option>
+                <option value="suspended">Suspend User</option>
+                <option value="banned">Ban User</option>
+            </select>
+            <select id="reason-code">
+                <option value="">Select reason...</option>
+                <option value="HARASSMENT">Harassment</option>
+                <option value="HATE_SPEECH">Hate Speech</option>
+                <option value="SEXUAL_CONTENT">Sexual Content</option>
+                <option value="MINOR_SAFETY">Minor Safety</option>
+                <option value="SPAM">Spam</option>
+                <option value="IMPERSONATION">Impersonation</option>
+                <option value="SELF_HARM">Self-Harm</option>
+                <option value="VIOLENCE">Violence</option>
+                <option value="ILLEGAL_CONTENT">Illegal Content</option>
+                <option value="PRIVACY_VIOLATION">Privacy Violation</option>
+                <option value="OTHER">Other</option>
+            </select>
+            <input type="number" id="duration-hours" placeholder="Duration (hours, optional for suspension)">
+            <textarea id="reason-text" placeholder="Explain the reason for this action..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeActionModal()">Cancel</button>
+                <button id="action-confirm-btn" onclick="confirmAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
+        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
+        const API_BASE = 'https://api.dsco.dev/realtime';
+        const CORE_API_BASE = 'https://api.dsco.dev/core';
+
+        const poolData = {
+            UserPoolId: COGNITO_USER_POOL_ID,
+            ClientId: COGNITO_CLIENT_ID,
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        let cognitoUser = null;
+        let idToken = '';
+        let currentUserId = null;
+        let currentUser = null;
+
+        const REASON_LABELS = {
+            'HARASSMENT': 'Harassment',
+            'HATE_SPEECH': 'Hate Speech',
+            'SEXUAL_CONTENT': 'Sexual Content',
+            'MINOR_SAFETY': 'Minor Safety',
+            'SPAM': 'Spam',
+            'IMPERSONATION': 'Impersonation',
+            'SELF_HARM': 'Self-Harm',
+            'VIOLENCE': 'Violence',
+            'ILLEGAL_CONTENT': 'Illegal Content',
+            'PRIVACY_VIOLATION': 'Privacy Violation',
+            'OTHER': 'Other'
+        };
+
+        // --- Auth ---
+
+        function init() {
+            // Check URL params for user ID
+            const params = new URLSearchParams(window.location.search);
+            const userId = params.get('id');
+
+            cognitoUser = userPool.getCurrentUser();
+            if (cognitoUser) {
+                cognitoUser.getSession((err, session) => {
+                    if (err || !session || !session.isValid()) {
+                        showLogin();
+                        return;
+                    }
+                    idToken = session.getIdToken().getJwtToken();
+                    showDashboard();
+                    if (userId) {
+                        document.getElementById('search-input').value = userId;
+                        searchUser();
+                    }
+                });
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('header-actions').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+            document.getElementById('header-actions').style.display = 'flex';
+        }
+
+        function login() {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: email,
+                Password: password,
+            });
+
+            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: email,
+                Pool: userPool,
+            });
+
+            cognitoUser.authenticateUser(authDetails, {
+                onSuccess: (result) => {
+                    idToken = result.getIdToken().getJwtToken();
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    showDashboard();
+                },
+                onFailure: (err) => {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                    errorEl.textContent = err.message || 'Authentication failed.';
+                    errorEl.style.display = 'block';
+                },
+            });
+        }
+
+        function logout() {
+            if (cognitoUser) cognitoUser.signOut();
+            cognitoUser = null;
+            idToken = '';
+            showLogin();
+        }
+
+        function getValidToken() {
+            return new Promise((resolve, reject) => {
+                if (!cognitoUser) {
+                    reject(new Error('Not authenticated'));
+                    return;
+                }
+                cognitoUser.getSession((err, session) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (!session.isValid()) {
+                        reject(new Error('Session expired'));
+                        return;
+                    }
+                    resolve(session.getIdToken().getJwtToken());
+                });
+            });
+        }
+
+        // --- User Search ---
+
+        async function searchUser() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) {
+                showError('Please enter a user ID or username');
+                return;
+            }
+
+            const container = document.getElementById('user-container');
+            container.innerHTML = '<div class="loading">Searching...</div>';
+            hideError();
+
+            try {
+                const token = await getValidToken();
+
+                // Get user history (which includes user info)
+                const response = await fetch(`${API_BASE}/admin/users/history`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_id: query })
+                });
+
+                if (response.status === 404) {
+                    container.innerHTML = `
+                        <div class="empty">
+                            <div class="empty-icon">👤</div>
+                            <p>User not found</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (response.status === 401 || response.status === 403) {
+                    showError('Access denied. Please check your permissions.');
+                    setTimeout(logout, 2000);
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentUserId = query;
+                currentUser = data.user || {};
+                renderUser(data);
+
+            } catch (error) {
+                console.error('Error searching user:', error);
+                showError('Failed to search user.');
+                container.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">⚠️</div>
+                        <p>Error loading user</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderUser(data) {
+            const container = document.getElementById('user-container');
+            const user = data.user || {};
+            const history = data.actions || [];
+            const appeals = data.appeals || [];
+
+            const status = user.account_status || 'verified';
+            const initials = (user.screen_name || user.username || 'U').substring(0, 2).toUpperCase();
+
+            container.innerHTML = `
+                <div class="user-card">
+                    <div class="user-header">
+                        <div class="user-info">
+                            <div class="user-avatar">${initials}</div>
+                            <div class="user-details">
+                                <h2>${escapeHtml(user.screen_name || 'Unknown')}</h2>
+                                <div class="username">@${escapeHtml(user.username || 'unknown')}</div>
+                                <div class="user-id">${currentUserId}</div>
+                            </div>
+                        </div>
+                        <div class="user-status">
+                            <span class="status-badge ${status}">${status}</span>
+                            <div class="user-actions">
+                                <button class="btn-warn" onclick="showActionModal('warned')">Warn</button>
+                                <button class="btn-suspend" onclick="showActionModal('suspended')">Suspend</button>
+                                <button class="btn-ban" onclick="showActionModal('banned')">Ban</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Moderation History (${history.length})</div>
+                    ${history.length > 0 ? `
+                        <div class="history-list">
+                            ${history.map(action => `
+                                <div class="history-item">
+                                    <div class="history-icon ${action.action_type}">${getActionIcon(action.action_type)}</div>
+                                    <div class="history-content">
+                                        <div class="action-type">${action.action_type}</div>
+                                        <div class="reason">${REASON_LABELS[action.reason_code] || action.reason_code || '-'}: ${escapeHtml(action.reason_text || '')}</div>
+                                        <div class="meta">
+                                            ${formatTime(action.created_at)} · by ${action.actor_role || 'admin'}
+                                            ${action.expires_at ? ` · expires ${formatTime(action.expires_at)}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="empty" style="padding: 20px;"><p>No moderation history</p></div>'}
+
+                    ${appeals.length > 0 ? `
+                        <div class="section-title" style="margin-top: 24px;">Appeals (${appeals.length})</div>
+                        <div class="history-list">
+                            ${appeals.map(appeal => `
+                                <div class="history-item">
+                                    <div class="history-icon ${appeal.status === 'approved' ? 'reversed' : appeal.status === 'denied' ? 'banned' : 'warned'}">📝</div>
+                                    <div class="history-content">
+                                        <div class="action-type">Appeal ${appeal.status}</div>
+                                        <div class="reason">${escapeHtml(appeal.reason || appeal.statement || '')}</div>
+                                        <div class="meta">${formatTime(appeal.created_at)}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function getActionIcon(actionType) {
+            const icons = {
+                'warned': '⚠️',
+                'suspended': '⏸️',
+                'banned': '🔨',
+                'reversed': '↩️',
+                'content_removed': '🗑️'
+            };
+            return icons[actionType] || '📋';
+        }
+
+        function showActionModal(actionType) {
+            document.getElementById('action-type').value = actionType;
+            document.getElementById('reason-code').value = '';
+            document.getElementById('duration-hours').value = '';
+            document.getElementById('reason-text').value = '';
+
+            const btn = document.getElementById('action-confirm-btn');
+            if (actionType === 'warned') {
+                btn.style.background = '#f6ad55';
+                btn.style.color = '#1a1a2e';
+            } else if (actionType === 'suspended') {
+                btn.style.background = '#ed8936';
+                btn.style.color = '#fff';
+            } else {
+                btn.style.background = '#e53e3e';
+                btn.style.color = '#fff';
+            }
+
+            document.getElementById('action-modal').classList.add('active');
+        }
+
+        function closeActionModal() {
+            document.getElementById('action-modal').classList.remove('active');
+        }
+
+        async function confirmAction() {
+            const actionType = document.getElementById('action-type').value;
+            const reasonCode = document.getElementById('reason-code').value;
+            const durationHours = document.getElementById('duration-hours').value;
+            const reasonText = document.getElementById('reason-text').value.trim();
+
+            if (!reasonCode) {
+                showError('Please select a reason code');
+                return;
+            }
+
+            if (!reasonText) {
+                showError('Please provide a reason explanation');
+                return;
+            }
+
+            const btn = document.getElementById('action-confirm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                const token = await getValidToken();
+                const response = await fetch(`${API_BASE}/admin/moderation/action`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_type: 'user',
+                        target_id: currentUserId,
+                        action_type: actionType,
+                        reason_code: reasonCode,
+                        reason_text: reasonText,
+                        duration_hours: durationHours ? parseInt(durationHours) : null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${response.status}`);
+                }
+
+                closeActionModal();
+                searchUser(); // Refresh the user view
+
+            } catch (error) {
+                console.error('Error taking action:', error);
+                showError(`Failed to take action: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Confirm';
+            }
+        }
+
+        function formatTime(isoString) {
+            if (!isoString) return 'Unknown';
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // Handle Enter key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeActionModal();
+            if (e.key === 'Enter') {
+                if (document.getElementById('login-section').style.display !== 'none') {
+                    login();
+                } else if (document.getElementById('action-modal').classList.contains('active')) {
+                    // Don't search on enter in modal
+                } else {
+                    searchUser();
+                }
+            }
+        });
+
+        document.getElementById('action-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'action-modal') closeActionModal();
+        });
+
+        init();
+    </script>
+</body>
+</html>

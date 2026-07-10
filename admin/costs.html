@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Costs</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+    <div class="container">
+        <div class="error-banner" id="error"></div>
+
+        <div class="card-grid">
+            <div class="card"><div class="label">AWS month to date</div><div class="value" id="mtd">—</div><div class="sub" id="fetched-at"></div></div>
+            <div class="card"><div class="label">Forecast (month end)</div><div class="value" id="forecast">—</div></div>
+            <div class="card"><div class="label">Yesterday</div><div class="value" id="yesterday">—</div></div>
+            <div class="card">
+                <div class="label">Cache</div>
+                <div class="sub" style="margin-top:0" id="cache-state">—</div>
+                <button class="btn ghost" style="margin-top:10px" id="refresh">Refresh live</button>
+                <div class="sub">Each live fetch costs ~$0.03 in Cost Explorer API calls</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Daily AWS spend<span class="hint">last 30 days, unblended</span></h2>
+            <div class="bar-chart" id="daily-chart"><div class="loading">Loading…</div></div>
+        </div>
+
+        <div class="section">
+            <h2>Month to date by service</h2>
+            <table>
+                <thead><tr><th>Service</th><th class="num">Amount</th></tr></thead>
+                <tbody id="service-rows"><tr><td colspan="2" class="muted">Loading…</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Mapbox</h2>
+            <div id="mapbox-body" class="muted">Loading…</div>
+        </div>
+    </div>
+
+    <script src="assets/admin.js"></script>
+    <script>
+        function showError(message) {
+            const el = document.getElementById('error');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        const fmtMoney = a => a == null ? '—' : '$' + Number(a).toFixed(2);
+
+        function render(data) {
+            document.getElementById('mtd').textContent = fmtMoney(data.aws?.month_to_date?.total);
+            document.getElementById('forecast').textContent = fmtMoney(data.aws?.forecast_month_end);
+            document.getElementById('fetched-at').textContent =
+                data.fetched_at ? 'as of ' + new Date(data.fetched_at).toLocaleString() : '';
+            document.getElementById('cache-state').textContent = data.cached ? 'cached (6h)' : 'live';
+
+            const daily = data.aws?.daily || [];
+            if (daily.length >= 2) {
+                document.getElementById('yesterday').textContent = fmtMoney(daily[daily.length - 2].amount);
+            }
+            const chartEl = document.getElementById('daily-chart');
+            if (daily.length) {
+                const max = Math.max(...daily.map(d => d.amount), 0.01);
+                chartEl.innerHTML = daily.map(d =>
+                    `<div class="bar" style="height:${Math.max(2, (d.amount / max) * 100)}%">` +
+                    `<div class="tip">${d.date}: ${fmtMoney(d.amount)}</div></div>`
+                ).join('');
+            } else {
+                chartEl.innerHTML = '<div class="loading">No data</div>';
+            }
+
+            const services = data.aws?.month_to_date?.by_service || [];
+            document.getElementById('service-rows').innerHTML = services.length
+                ? services.map(s => `<tr><td>${s.service}</td><td class="num">${fmtMoney(s.amount)}</td></tr>`).join('')
+                : '<tr><td colspan="2" class="muted">No cost data</td></tr>';
+
+            const mapbox = data.mapbox || {};
+            const dashLink = `<a href="${mapbox.dashboard || 'https://console.mapbox.com/account/usage/'}" target="_blank" style="color:#63b3ed">Mapbox usage dashboard →</a>`;
+            if (!mapbox.available) {
+                document.getElementById('mapbox-body').innerHTML =
+                    `<span class="pill warn">unavailable</span> <span class="muted">${mapbox.reason || ''}</span><br><br>${dashLink}`;
+            } else {
+                document.getElementById('mapbox-body').innerHTML =
+                    `<pre style="overflow-x:auto; background:#0d1424; padding:14px; border-radius:8px; font-size:0.8rem">${JSON.stringify(mapbox.usage, null, 2)}</pre><br>${dashLink}`;
+            }
+        }
+
+        function loadPage(refresh) {
+            document.getElementById('error').style.display = 'none';
+            AdminShell.api('realtime', '/admin/metrics/costs', refresh ? { refresh: true } : {})
+                .then(render)
+                .catch(e => showError(e.message));
+        }
+
+        document.addEventListener('click', e => {
+            if (e.target.id === 'refresh') loadPage(true);
+        });
+
+        AdminShell.init({ active: 'costs.html', onReady: () => loadPage(false) });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Levers</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+    <div class="container">
+        <div class="error-banner" id="error"></div>
+        <p class="page-note">Levers live on the CONFIG#APP record and propagate to clients within about a minute (bootstrap caches for 60s). Flipping a lever requires the super_admin role.</p>
+
+        <div class="section">
+            <h2>App config</h2>
+            <div class="lever-row">
+                <div class="lever-info">
+                    <h3>Roam gate <span class="muted" id="roam-updated"></span></h3>
+                    <p>Paywall for the Roam ring. Off: free for everyone. Invite: friend signups earn weeks (1 signup = 1 week). Premium: purchase or invite. While gated, the ring locks to GPS.</p>
+                </div>
+                <div class="seg" id="seg-roam_gate_mode" data-values="off,invite,premium"></div>
+            </div>
+            <div class="lever-row">
+                <div class="lever-info">
+                    <h3>Naming</h3>
+                    <p>Brand naming switch (DSCO trademark contingency). Controls which name clients present after their next bootstrap. Client-side adoption ships separately — flipping this before the app reads it is a no-op.</p>
+                </div>
+                <div class="seg" id="seg-naming_mode" data-values="dsco,borg"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Force upgrade<span class="hint">existing /admin/set_min_version endpoint — queues a push to targets</span></h2>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+                <input type="text" id="min-version" placeholder="Minimum version, e.g. 1.0.155">
+                <label class="muted" style="font-size:0.85rem">
+                    <input type="checkbox" id="broadcast"> broadcast to all users
+                </label>
+                <button class="btn" id="push-version">Queue force upgrade</button>
+                <span class="muted" id="version-result"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/admin.js"></script>
+    <script>
+        let currentLevers = {};
+
+        function showError(message) {
+            const el = document.getElementById('error');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function renderSegments() {
+            document.querySelectorAll('.seg').forEach(seg => {
+                const lever = seg.id.replace('seg-', '');
+                const values = seg.dataset.values.split(',');
+                seg.innerHTML = values.map(value =>
+                    `<button data-value="${value}"${currentLevers[lever] === value ? ' class="active"' : ''}>${value}</button>`
+                ).join('');
+                seg.querySelectorAll('button').forEach(btn => {
+                    btn.addEventListener('click', () => setLever(lever, btn.dataset.value, seg));
+                });
+            });
+        }
+
+        async function setLever(lever, value, seg) {
+            if (currentLevers[lever] === value) return;
+            document.getElementById('error').style.display = 'none';
+            seg.querySelectorAll('button').forEach(b => b.disabled = true);
+            try {
+                const data = await AdminShell.api('realtime', '/admin/config/set', { levers: { [lever]: value } });
+                currentLevers = data.levers || {};
+                document.getElementById('roam-updated').textContent =
+                    data.updated_at ? `· changed ${new Date(data.updated_at).toLocaleString()}` : '';
+            } catch (e) {
+                showError(`${lever}: ${e.message}`);
+            }
+            renderSegments();
+        }
+
+        async function loadPage() {
+            try {
+                const data = await AdminShell.api('realtime', '/admin/config/get');
+                currentLevers = data.levers || {};
+                document.getElementById('roam-updated').textContent =
+                    data.updated_at ? `· changed ${new Date(data.updated_at).toLocaleString()}` : '';
+            } catch (e) {
+                showError('Config: ' + e.message);
+            }
+            renderSegments();
+        }
+
+        document.addEventListener('click', e => {
+            if (e.target.id !== 'push-version') return;
+            const minVersion = document.getElementById('min-version').value.trim();
+            const broadcast = document.getElementById('broadcast').checked;
+            const resultEl = document.getElementById('version-result');
+            if (!minVersion) { resultEl.textContent = 'Enter a version.'; return; }
+            if (!broadcast) { resultEl.textContent = 'Check broadcast (per-user targeting not wired in this UI).'; return; }
+            if (!confirm(`Queue force-upgrade push to ALL users requiring ${minVersion}?`)) return;
+            e.target.disabled = true;
+            AdminShell.api('realtime', '/admin/set_min_version', { min_version: minVersion, broadcast: true })
+                .then(data => { resultEl.textContent = `Queued for ${data.users_queued} users.`; })
+                .catch(err => { resultEl.textContent = err.message; })
+                .finally(() => { e.target.disabled = false; });
+        });
+
+        AdminShell.init({ active: 'levers.html', onReady: loadPage });
+    </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Overview</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+    <div class="container">
+        <div class="error-banner" id="error"></div>
+
+        <div class="card-grid" id="user-cards">
+            <div class="card"><div class="label">Total users</div><div class="value" id="total-users">—</div><div class="sub" id="status-breakdown"></div></div>
+            <div class="card"><div class="label">Online now</div><div class="value" id="online-now">—</div></div>
+            <div class="card"><div class="label">Daily active</div><div class="value" id="dau">—</div><div class="sub" id="wau-mau"></div></div>
+            <div class="card"><div class="label">Signups (7d)</div><div class="value" id="signups-7d">—</div></div>
+            <div class="card"><div class="label">AWS month to date</div><div class="value" id="aws-mtd">—</div><div class="sub" id="aws-forecast"></div></div>
+            <div class="card"><div class="label">Crashes (7d)</div><div class="value" id="crash-count">—</div><div class="sub" id="crash-sub"></div></div>
+        </div>
+
+        <div class="section">
+            <h2>Daily active users<span class="hint">from daily snapshots — history builds up once the snapshot cron has run</span></h2>
+            <div class="bar-chart" id="dau-chart"><div class="loading">Loading…</div></div>
+        </div>
+
+        <div class="section">
+            <h2>Signups by day<span class="hint">last 30 days</span></h2>
+            <div class="bar-chart" id="signup-chart"><div class="loading">Loading…</div></div>
+        </div>
+
+        <div class="section">
+            <h2>Levers<span class="hint">change on the Levers page</span></h2>
+            <table>
+                <thead><tr><th>Lever</th><th>Value</th><th>Last changed</th></tr></thead>
+                <tbody id="lever-rows"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="assets/admin.js"></script>
+    <script>
+        function showError(message) {
+            const el = document.getElementById('error');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function fmtMoney(amount) {
+            return amount == null ? '—' : '$' + Number(amount).toFixed(2);
+        }
+
+        function renderBarChart(elementId, points, labelFn) {
+            const el = document.getElementById(elementId);
+            if (!points.length) {
+                el.innerHTML = '<div class="loading">No data yet</div>';
+                return;
+            }
+            const max = Math.max(...points.map(p => p.value), 1);
+            el.innerHTML = points.map(p =>
+                `<div class="bar" style="height:${Math.max(2, (p.value / max) * 100)}%">` +
+                `<div class="tip">${labelFn(p)}</div></div>`
+            ).join('');
+        }
+
+        function lastNDays(n) {
+            const days = [];
+            for (let i = n - 1; i >= 0; i--) {
+                const d = new Date(Date.now() - i * 86400000);
+                days.push(d.toISOString().slice(0, 10));
+            }
+            return days;
+        }
+
+        async function loadUsers() {
+            const data = await AdminShell.api('realtime', '/admin/metrics/users');
+            const live = data.live;
+            document.getElementById('total-users').textContent = live.total_users;
+            document.getElementById('online-now').textContent = live.online_now;
+            document.getElementById('dau').textContent = live.dau;
+            document.getElementById('wau-mau').textContent = `WAU ${live.wau} · MAU ${live.mau}`;
+
+            const statuses = Object.entries(live.account_status_counts || {})
+                .filter(([status]) => status !== 'active')
+                .map(([status, count]) => `${status}: ${count}`).join(' · ');
+            document.getElementById('status-breakdown').textContent = statuses;
+
+            const signupDays = lastNDays(30);
+            const signups = signupDays.map(day => ({ day, value: live.signups_by_day?.[day] || 0 }));
+            document.getElementById('signups-7d').textContent =
+                signups.slice(-7).reduce((sum, p) => sum + p.value, 0);
+            renderBarChart('signup-chart', signups, p => `${p.day}: ${p.value}`);
+
+            const history = (data.history || []).map(item => ({ day: item.date, value: Number(item.dau || 0) }));
+            history.push({ day: 'today', value: live.dau });
+            renderBarChart('dau-chart', history, p => `${p.day}: ${p.value}`);
+        }
+
+        async function loadCosts() {
+            const data = await AdminShell.api('realtime', '/admin/metrics/costs');
+            document.getElementById('aws-mtd').textContent = fmtMoney(data.aws?.month_to_date?.total);
+            const forecast = data.aws?.forecast_month_end;
+            document.getElementById('aws-forecast').textContent =
+                forecast != null ? `forecast ${fmtMoney(forecast)} by month end` : '';
+        }
+
+        async function loadCrashes() {
+            const data = await AdminShell.api('realtime', '/admin/metrics/crashes', { days: 7 });
+            if (!data.available) {
+                document.getElementById('crash-count').textContent = '—';
+                document.getElementById('crash-sub').innerHTML =
+                    `<span class="pill warn">setup needed</span>`;
+                return;
+            }
+            const issues = data.top_issues?.issues || data.top_issues?.topIssues || [];
+            document.getElementById('crash-count').textContent = issues.length;
+            document.getElementById('crash-sub').textContent = 'distinct top issues';
+        }
+
+        async function loadLevers() {
+            const data = await AdminShell.api('realtime', '/admin/config/get');
+            const rows = Object.entries(data.levers || {}).map(([name, value]) =>
+                `<tr><td>${name}</td><td><span class="pill ok">${value}</span></td>` +
+                `<td class="muted">${data.updated_at ? new Date(data.updated_at).toLocaleString() : '—'}</td></tr>`
+            ).join('');
+            document.getElementById('lever-rows').innerHTML =
+                rows || '<tr><td colspan="3" class="muted">No config found</td></tr>';
+        }
+
+        function loadPage() {
+            loadUsers().catch(e => showError('Users: ' + e.message));
+            loadCosts().catch(e => showError('Costs: ' + e.message));
+            loadCrashes().catch(e => showError('Crashes: ' + e.message));
+            loadLevers().catch(e => showError('Levers: ' + e.message));
+        }
+
+        AdminShell.init({ active: 'index.html', onReady: loadPage });
+    </script>
+</body>
+</html>

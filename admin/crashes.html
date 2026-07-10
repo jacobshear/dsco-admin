@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Crashes</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+    <div class="container">
+        <div class="error-banner" id="error"></div>
+
+        <div class="section">
+            <h2>Crashlytics top issues
+                <span class="hint">iOS app · via Firebase service account</span>
+            </h2>
+            <div style="margin-bottom:14px; display:flex; gap:10px; align-items:center">
+                <div class="seg" id="days-seg">
+                    <button data-days="7" class="active">7d</button>
+                    <button data-days="30">30d</button>
+                    <button data-days="90">90d</button>
+                </div>
+                <a id="console-link" href="https://console.firebase.google.com/project/dsco-683f6/crashlytics" target="_blank" style="color:#63b3ed; font-size:0.85rem">Open Firebase console →</a>
+            </div>
+            <div id="crash-body"><div class="loading">Loading…</div></div>
+        </div>
+    </div>
+
+    <script src="assets/admin.js"></script>
+    <script>
+        let currentDays = 7;
+
+        function showError(message) {
+            const el = document.getElementById('error');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function renderIssues(data) {
+            const body = document.getElementById('crash-body');
+            if (data.console) document.getElementById('console-link').href = data.console;
+
+            if (!data.available) {
+                body.innerHTML =
+                    `<span class="pill warn">unavailable</span>` +
+                    `<p class="muted" style="margin-top:10px">${data.reason || 'Unknown error'}</p>` +
+                    `<p class="muted" style="margin-top:10px">Likely setup: grant the Firebase service account the ` +
+                    `"Firebase Crashlytics Viewer" role in Google Cloud IAM for project dsco-683f6, then retry. ` +
+                    `The Firebase console link above always works.</p>`;
+                return;
+            }
+
+            // The v1alpha report schema is not formally documented — render
+            // whatever list we can find, falling back to raw JSON.
+            const report = data.top_issues || {};
+            const issues = report.issues || report.topIssues || report.groups || null;
+            if (Array.isArray(issues) && issues.length) {
+                const rows = issues.map(issue => {
+                    const title = issue.issue?.title || issue.title || issue.displayName || 'Unknown issue';
+                    const subtitle = issue.issue?.subtitle || issue.subtitle || '';
+                    const events = issue.eventCount || issue.crashCount || issue.count || '—';
+                    const users = issue.impactedUserCount || issue.userCount || '—';
+                    return `<tr><td><strong>${title}</strong><br><span class="muted" style="font-size:0.8rem">${subtitle}</span></td>` +
+                        `<td class="num">${events}</td><td class="num">${users}</td></tr>`;
+                }).join('');
+                body.innerHTML = `<table><thead><tr><th>Issue</th><th class="num">Events</th><th class="num">Users</th></tr></thead><tbody>${rows}</tbody></table>`;
+            } else if (Array.isArray(issues)) {
+                body.innerHTML = '<span class="pill ok">no crashes in this window</span>';
+            } else {
+                body.innerHTML =
+                    `<p class="muted" style="margin-bottom:10px">Unrecognized report shape — raw response:</p>` +
+                    `<pre style="overflow-x:auto; background:#0d1424; padding:14px; border-radius:8px; font-size:0.8rem">${JSON.stringify(report, null, 2)}</pre>`;
+            }
+        }
+
+        function loadPage() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('crash-body').innerHTML = '<div class="loading">Loading…</div>';
+            AdminShell.api('realtime', '/admin/metrics/crashes', { days: currentDays })
+                .then(renderIssues)
+                .catch(e => showError(e.message));
+        }
+
+        document.getElementById('days-seg').addEventListener('click', e => {
+            const button = e.target.closest('button');
+            if (!button) return;
+            currentDays = Number(button.dataset.days);
+            document.querySelectorAll('#days-seg button').forEach(b => b.classList.toggle('active', b === button));
+            loadPage();
+        });
+
+        AdminShell.init({ active: 'crashes.html', onReady: loadPage });
+    </script>
+</body>
+</html>
