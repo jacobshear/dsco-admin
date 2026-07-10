@@ -3,38 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Levers</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Levers — DSCO Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
+    <style>
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .toggle {
+            position: relative;
+            width: 56px;
+            height: 32px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            cursor: pointer;
+            transition: background 0.18s, border-color 0.18s;
+            flex-shrink: 0;
+        }
+        .toggle.on {
+            background: #fff;
+            border-color: #fff;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+            transition: transform 0.18s, background 0.18s;
+        }
+        .toggle.on::after {
+            transform: translateX(24px);
+            background: #0a0a0c;
+        }
+        .toggle:disabled { opacity: 0.45; cursor: wait; }
+        .toggle-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        .toggle-state {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .toggle-state.on { color: #3dd68c; }
+        .toggle-state.off { color: rgba(255, 255, 255, 0.45); }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="error-banner" id="error"></div>
-        <p class="page-note">Levers live on the CONFIG#APP record and propagate to clients within about a minute (bootstrap caches for 60s). Flipping a lever requires the super_admin role.</p>
+        <p class="page-note">
+            Levers live on the server <code>CONFIG#APP</code> record. Clients pick them up on the next bootstrap
+            (Lambda caches ~60s). Flipping requires the <strong>super_admin</strong> role.
+        </p>
 
         <div class="section">
-            <h2>App config</h2>
-            <div class="lever-row">
+            <h2>Paywall</h2>
+            <div class="lever-row" style="border-bottom: none; padding-bottom: 0">
                 <div class="lever-info">
-                    <h3>Roam gate <span class="muted" id="roam-updated"></span></h3>
-                    <p>Paywall for the Roam ring. Off: free for everyone. Invite: friend signups earn weeks (1 signup = 1 week). Premium: purchase or invite. While gated, the ring locks to GPS.</p>
+                    <h3>Roam paywall <span class="muted" id="roam-updated"></span></h3>
+                    <p>
+                        When <strong>on</strong>, users without Roam entitlement are locked to their 1-mile GPS ring;
+                        taps beyond open the paywall (purchase + invite). When <strong>off</strong>, everyone travels freely.
+                    </p>
                 </div>
-                <div class="seg" id="seg-roam_gate_mode" data-values="off,invite,premium"></div>
+                <div class="toggle-meta">
+                    <button type="button" class="toggle" id="paywall-toggle" aria-label="Toggle Roam paywall" aria-pressed="false"></button>
+                    <span class="toggle-state off" id="paywall-state">Off</span>
+                </div>
             </div>
-            <div class="lever-row">
+        </div>
+
+        <div class="section">
+            <h2>Naming</h2>
+            <div class="lever-row" style="border-bottom: none; padding-bottom: 0">
                 <div class="lever-info">
-                    <h3>Naming</h3>
-                    <p>Brand naming switch (DSCO trademark contingency). Controls which name clients present after their next bootstrap. Client-side adoption ships separately — flipping this before the app reads it is a no-op.</p>
+                    <h3>Brand name</h3>
+                    <p>Trademark contingency. Clients adopt after their next bootstrap (if the app reads it).</p>
                 </div>
                 <div class="seg" id="seg-naming_mode" data-values="dsco,borg"></div>
             </div>
         </div>
 
         <div class="section">
-            <h2>Force upgrade<span class="hint">existing /admin/set_min_version endpoint — queues a push to targets</span></h2>
+            <h2>Force upgrade<span class="hint">queues a push to targets</span></h2>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
                 <input type="text" id="min-version" placeholder="Minimum version, e.g. 1.0.155">
                 <label class="muted" style="font-size:0.85rem">
@@ -56,32 +124,60 @@
             el.style.display = 'block';
         }
 
-        function renderSegments() {
-            document.querySelectorAll('.seg').forEach(seg => {
-                const lever = seg.id.replace('seg-', '');
-                const values = seg.dataset.values.split(',');
-                seg.innerHTML = values.map(value =>
-                    `<button data-value="${value}"${currentLevers[lever] === value ? ' class="active"' : ''}>${value}</button>`
-                ).join('');
-                seg.querySelectorAll('button').forEach(btn => {
-                    btn.addEventListener('click', () => setLever(lever, btn.dataset.value, seg));
-                });
+        /** Paywall on = any gated mode (premium / invite / on). Off = free travel. */
+        function isPaywallOn(mode) {
+            return mode === 'premium' || mode === 'invite' || mode === 'on';
+        }
+
+        function renderPaywallToggle() {
+            const on = isPaywallOn(currentLevers.roam_gate_mode);
+            const toggle = document.getElementById('paywall-toggle');
+            const state = document.getElementById('paywall-state');
+            toggle.classList.toggle('on', on);
+            toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+            state.textContent = on ? 'On' : 'Off';
+            state.classList.toggle('on', on);
+            state.classList.toggle('off', !on);
+        }
+
+        function renderNaming() {
+            const seg = document.getElementById('seg-naming_mode');
+            const values = seg.dataset.values.split(',');
+            const current = currentLevers.naming_mode || 'dsco';
+            seg.innerHTML = values.map(value =>
+                `<button data-value="${value}"${current === value ? ' class="active"' : ''}>${value}</button>`
+            ).join('');
+            seg.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => setLever('naming_mode', btn.dataset.value));
             });
         }
 
-        async function setLever(lever, value, seg) {
+        async function setLever(lever, value) {
             if (currentLevers[lever] === value) return;
             document.getElementById('error').style.display = 'none';
-            seg.querySelectorAll('button').forEach(b => b.disabled = true);
+            const toggle = document.getElementById('paywall-toggle');
+            const namingBtns = document.querySelectorAll('#seg-naming_mode button');
+            toggle.disabled = true;
+            namingBtns.forEach(b => b.disabled = true);
             try {
-                const data = await AdminShell.api('realtime', '/admin/config/set', { levers: { [lever]: value } });
+                const data = await AdminShell.api('realtime', '/admin/config/set', {
+                    levers: { [lever]: value },
+                });
                 currentLevers = data.levers || {};
                 document.getElementById('roam-updated').textContent =
                     data.updated_at ? `· changed ${new Date(data.updated_at).toLocaleString()}` : '';
             } catch (e) {
                 showError(`${lever}: ${e.message}`);
             }
-            renderSegments();
+            toggle.disabled = false;
+            renderPaywallToggle();
+            renderNaming();
+        }
+
+        async function togglePaywall() {
+            const nextOn = !isPaywallOn(currentLevers.roam_gate_mode);
+            // On → premium (full paywall with purchase CTA). Off → free for everyone.
+            await setLever('roam_gate_mode', nextOn ? 'premium' : 'off');
         }
 
         async function loadPage() {
@@ -93,8 +189,11 @@
             } catch (e) {
                 showError('Config: ' + e.message);
             }
-            renderSegments();
+            renderPaywallToggle();
+            renderNaming();
         }
+
+        document.getElementById('paywall-toggle').addEventListener('click', togglePaywall);
 
         document.addEventListener('click', e => {
             if (e.target.id !== 'push-version') return;
@@ -111,7 +210,7 @@
                 .finally(() => { e.target.disabled = false; });
         });
 
-        AdminShell.init({ active: 'levers.html', onReady: loadPage });
+        AdminShell.init({ active: 'levers.html', title: 'Levers', onReady: loadPage });
     </script>
 </body>
 </html>
