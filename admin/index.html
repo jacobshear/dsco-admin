@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DSCO Admin - Overview</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
 </head>
@@ -113,12 +116,12 @@
             if (!data.available) {
                 document.getElementById('crash-count').textContent = '—';
                 document.getElementById('crash-sub').innerHTML =
-                    `<span class="pill warn">setup needed</span>`;
+                    `<span class="pill warn">setup needed</span> · <a href="crashes.html" style="color:inherit">finish setup</a>`;
                 return;
             }
-            const issues = data.top_issues?.issues || data.top_issues?.topIssues || [];
-            document.getElementById('crash-count').textContent = issues.length;
-            document.getElementById('crash-sub').textContent = 'distinct top issues';
+            const issues = data.top_issues?.issues || data.top_issues?.topIssues || data.top_issues?.groups || [];
+            document.getElementById('crash-count').textContent = Array.isArray(issues) ? issues.length : '—';
+            document.getElementById('crash-sub').textContent = 'distinct top issues · 7d';
         }
 
         async function loadLevers() {

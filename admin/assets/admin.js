@@ -46,6 +46,9 @@ const AdminShell = (() => {
             `<a href="${href}"${href === active ? ' class="active"' : ''}>${label}</a>`
         ).join('');
 
+        // Page titles are short section labels; brand lives in the wordmark.
+        const pageTitle = title || (NAV_ITEMS.find(([h]) => h === active)?.[1] || 'Admin');
+
         document.body.insertAdjacentHTML('afterbegin', `
             <div class="login-overlay" id="shell-login" style="display:none">
                 <div class="login-box">
@@ -65,7 +68,7 @@ const AdminShell = (() => {
                 </div>
             </div>
             <div class="header" id="shell-header" style="display:none">
-                <h1>${title || 'DSCO ADMIN'}</h1>
+                <h1 title="${pageTitle}">DSCO</h1>
                 <div class="header-nav">${nav}</div>
                 <div class="header-actions">
                     <button id="shell-signout">Sign out</button>

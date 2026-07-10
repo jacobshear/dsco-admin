@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Crashes</title>
+    <title>Crashes — DSCO Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
 </head>
@@ -12,16 +15,16 @@
         <div class="error-banner" id="error"></div>
 
         <div class="section">
-            <h2>Crashlytics top issues
-                <span class="hint">iOS app · via Firebase service account</span>
+            <h2>Crashlytics
+                <span class="hint">iOS · Firebase project dsco-683f6</span>
             </h2>
-            <div style="margin-bottom:14px; display:flex; gap:10px; align-items:center">
+            <div class="toolbar">
                 <div class="seg" id="days-seg">
                     <button data-days="7" class="active">7d</button>
                     <button data-days="30">30d</button>
                     <button data-days="90">90d</button>
                 </div>
-                <a id="console-link" href="https://console.firebase.google.com/project/dsco-683f6/crashlytics" target="_blank" style="color:#63b3ed; font-size:0.85rem">Open Firebase console →</a>
+                <a class="link" id="console-link" href="https://console.firebase.google.com/project/dsco-683f6/crashlytics" target="_blank" rel="noopener">Open Firebase console →</a>
             </div>
             <div id="crash-body"><div class="loading">Loading…</div></div>
         </div>
@@ -37,40 +40,76 @@
             el.style.display = 'block';
         }
 
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+            }[c]));
+        }
+
+        function renderSetup(data) {
+            const steps = data.setup_steps || [];
+            const stepsHtml = steps.map((step, i) => `
+                <li>
+                    <div class="n">${i + 1}</div>
+                    <div>
+                        <div class="t">${esc(step.title)}</div>
+                        <div class="d">${esc(step.detail)}</div>
+                        ${step.url ? `<div style="margin-top:6px"><a href="${esc(step.url)}" target="_blank" rel="noopener">Open →</a></div>` : ''}
+                    </div>
+                </li>
+            `).join('');
+
+            return `
+                <span class="pill warn">setup needed</span>
+                <div class="setup-card">
+                    <h3>Finish Crashlytics monitoring</h3>
+                    <p class="muted" style="margin-bottom:12px; font-size:0.86rem">
+                        ${esc(data.reason || 'Crashlytics API is not reachable yet.')}
+                    </p>
+                    ${data.service_account ? `<p class="muted" style="margin-bottom:14px; font-size:0.8rem">Service account: <code>${esc(data.service_account)}</code></p>` : ''}
+                    <ol class="setup-steps">${stepsHtml}</ol>
+                    <p class="muted" style="margin-top:16px; font-size:0.82rem">
+                        After enabling, wait a minute and refresh this page. The Firebase console always works even before the API is wired.
+                    </p>
+                </div>
+            `;
+        }
+
         function renderIssues(data) {
             const body = document.getElementById('crash-body');
             if (data.console) document.getElementById('console-link').href = data.console;
 
             if (!data.available) {
-                body.innerHTML =
-                    `<span class="pill warn">unavailable</span>` +
-                    `<p class="muted" style="margin-top:10px">${data.reason || 'Unknown error'}</p>` +
-                    `<p class="muted" style="margin-top:10px">Likely setup: grant the Firebase service account the ` +
-                    `"Firebase Crashlytics Viewer" role in Google Cloud IAM for project dsco-683f6, then retry. ` +
-                    `The Firebase console link above always works.</p>`;
+                body.innerHTML = renderSetup(data);
                 return;
             }
 
-            // The v1alpha report schema is not formally documented — render
-            // whatever list we can find, falling back to raw JSON.
             const report = data.top_issues || {};
-            const issues = report.issues || report.topIssues || report.groups || null;
+            const issues = report.issues || report.topIssues || report.groups || report.rows || null;
+
             if (Array.isArray(issues) && issues.length) {
                 const rows = issues.map(issue => {
                     const title = issue.issue?.title || issue.title || issue.displayName || 'Unknown issue';
                     const subtitle = issue.issue?.subtitle || issue.subtitle || '';
                     const events = issue.eventCount || issue.crashCount || issue.count || '—';
                     const users = issue.impactedUserCount || issue.userCount || '—';
-                    return `<tr><td><strong>${title}</strong><br><span class="muted" style="font-size:0.8rem">${subtitle}</span></td>` +
-                        `<td class="num">${events}</td><td class="num">${users}</td></tr>`;
+                    return `<tr>
+                        <td><strong>${esc(title)}</strong><br><span class="muted" style="font-size:0.8rem">${esc(subtitle)}</span></td>
+                        <td class="num">${esc(events)}</td>
+                        <td class="num">${esc(users)}</td>
+                    </tr>`;
                 }).join('');
-                body.innerHTML = `<table><thead><tr><th>Issue</th><th class="num">Events</th><th class="num">Users</th></tr></thead><tbody>${rows}</tbody></table>`;
+                body.innerHTML = `
+                    <table>
+                        <thead><tr><th>Issue</th><th class="num">Events</th><th class="num">Users</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>`;
             } else if (Array.isArray(issues)) {
                 body.innerHTML = '<span class="pill ok">no crashes in this window</span>';
             } else {
                 body.innerHTML =
-                    `<p class="muted" style="margin-bottom:10px">Unrecognized report shape — raw response:</p>` +
-                    `<pre style="overflow-x:auto; background:#0d1424; padding:14px; border-radius:8px; font-size:0.8rem">${JSON.stringify(report, null, 2)}</pre>`;
+                    `<p class="muted" style="margin-bottom:10px">Connected — unrecognized report shape. Raw response:</p>` +
+                    `<pre class="raw">${esc(JSON.stringify(report, null, 2))}</pre>`;
             }
         }
 
@@ -90,7 +129,7 @@
             loadPage();
         });
 
-        AdminShell.init({ active: 'crashes.html', onReady: loadPage });
+        AdminShell.init({ active: 'crashes.html', title: 'Crashes', onReady: loadPage });
     </script>
 </body>
 </html>
