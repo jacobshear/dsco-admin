@@ -111,7 +111,21 @@ const AdminShell = (() => {
         cognitoUser.authenticateUser(
             new AmazonCognitoIdentity.AuthenticationDetails({ Username: email, Password: password }),
             {
-                onSuccess: () => { btn.disabled = false; showApp(); },
+                onSuccess: (session) => {
+                    btn.disabled = false;
+                    const role = roleFromToken(session.getIdToken().getJwtToken());
+                    if (!role) {
+                        const payload = decodeJwtPayload(session.getIdToken().getJwtToken()) || {};
+                        const groups = payload['cognito:groups'] || [];
+                        loginError(
+                            'Signed in, but this account has no admin Cognito group ' +
+                            `(got: ${JSON.stringify(groups) || 'none'}). ` +
+                            'Ask for super_admin, then sign out and back in.'
+                        );
+                        // Still open the shell so Sign out is available
+                    }
+                    showApp();
+                },
                 onFailure: (err) => { btn.disabled = false; loginError(err.message || 'Authentication failed.'); },
                 newPasswordRequired: () => {
                     btn.disabled = false;
