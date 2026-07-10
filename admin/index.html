@@ -43,7 +43,10 @@
     <script>
         function showError(message) {
             const el = document.getElementById('error');
-            el.textContent = message;
+            // Append — overview fires 4 loaders in parallel; last write used to hide the rest.
+            const line = document.createElement('div');
+            line.textContent = message;
+            el.appendChild(line);
             el.style.display = 'block';
         }
 

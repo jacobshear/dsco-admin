@@ -150,16 +150,58 @@ const AdminShell = (() => {
         });
     }
 
+    function decodeJwtPayload(token) {
+        try {
+            const part = token.split('.')[1];
+            const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+            return JSON.parse(json);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    /** Highest admin role from cognito:groups, or null. */
+    function roleFromToken(token) {
+        const payload = decodeJwtPayload(token);
+        if (!payload) return null;
+        let groups = payload['cognito:groups'] || [];
+        if (typeof groups === 'string') groups = groups.split(',').map(g => g.trim());
+        const map = {
+            super_admin: 3, 'super-admin': 3, superadmin: 3,
+            admin: 2,
+            moderator: 1, mod: 1,
+        };
+        let best = null;
+        for (const g of groups) {
+            const r = map[String(g).toLowerCase()];
+            if (r && (best == null || r > best.level)) best = { name: g, level: r };
+        }
+        return best;
+    }
+
     /** POST to an API service. api('realtime', '/admin/config/get', {...}) */
     async function api(service, path, body) {
         const token = await getValidToken();
+        // Match other admin pages + Flutter: Cognito authorizer expects Bearer.
         const response = await fetch(`${API[service]}${path}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': token },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify(body || {}),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `${service}${path} failed (${response.status})`);
+        if (!response.ok) {
+            const msg = data.error || data.message || `${service}${path} failed (${response.status})`;
+            if (response.status === 403 || /admin access required/i.test(msg)) {
+                throw new Error(
+                    'Admin access required — your account is not in a Cognito admin group ' +
+                    '(super_admin / admin / moderator). Sign out, then sign back in after being added.'
+                );
+            }
+            throw new Error(msg);
+        }
         return data;
     }
 
@@ -170,9 +212,14 @@ const AdminShell = (() => {
         if (!user) return showLogin();
         user.getSession((err, session) => {
             if (err || !session || !session.isValid()) return showLogin();
+            const role = roleFromToken(session.getIdToken().getJwtToken());
+            if (!role) {
+                // Still show the shell so they can sign out; pages will surface 403s.
+                console.warn('DSCO admin: JWT has no admin Cognito group. Sign out/in after group assignment.');
+            }
             showApp();
         });
     }
 
-    return { init, api, getValidToken, API };
+    return { init, api, getValidToken, roleFromToken, API };
 })();

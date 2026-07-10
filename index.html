@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DSCO — a map for finding your people</title>
-    <meta name="description" content="DSCO is a live map of your world. See who's nearby, make real friends, and share moments where they actually happened.">
+    <meta name="description" content="DSCO is a live map of your world. See who's nearby, make real friends, drop pins, and share moments where they actually happened.">
     <meta property="og:title" content="DSCO — a map for finding your people">
     <meta property="og:description" content="See who's nearby, make real friends, and share moments where they happened.">
     <meta property="og:type" content="website">
@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@500;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/site.css">
     <style>
         .stage {
@@ -25,7 +25,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding: 0 24px clamp(32px, 6vh, 64px);
+            padding: 0 24px clamp(40px, 8vh, 80px);
             overflow-x: hidden;
         }
 
@@ -65,7 +65,7 @@
 
         .cable {
             width: 1.5px;
-            height: clamp(40px, 10vh, 96px);
+            height: clamp(52px, 12vh, 120px);
             background: var(--ink-22);
             transform-origin: top;
             animation: cable-draw 0.5s cubic-bezier(0.33, 1, 0.68, 1) both;
@@ -74,7 +74,7 @@
 
         .ball {
             position: relative;
-            width: clamp(140px, 20vh, 200px);
+            width: clamp(168px, 24vh, 240px);
             aspect-ratio: 1;
             animation: ball-in 0.5s cubic-bezier(0.33, 1, 0.68, 1) 0.28s both;
         }
@@ -110,9 +110,9 @@
             position: relative;
             flex: 0 0 auto;
             margin-top: auto;
-            padding-top: clamp(12px, 2.5vh, 24px);
+            padding-top: clamp(16px, 3vh, 36px);
             text-align: center;
-            max-width: 560px;
+            max-width: 720px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -125,15 +125,14 @@
         }
         @keyframes rise { to { opacity: 1; transform: none; } }
         .hero > :nth-child(1) { animation-delay: 0.55s; }
-        .hero > :nth-child(2) { animation-delay: 0.68s; }
-        .hero > :nth-child(3) { animation-delay: 0.82s; }
-        .hero > :nth-child(4) { animation-delay: 0.96s; }
-        .hero > :nth-child(5) { animation-delay: 1.1s; }
+        .hero > :nth-child(2) { animation-delay: 0.70s; }
+        .hero > :nth-child(3) { animation-delay: 0.85s; }
+        .hero > :nth-child(4) { animation-delay: 1.00s; }
 
         .hero h1 {
             font-family: var(--brand);
             font-weight: 400;
-            font-size: clamp(5rem, 20vw, 8.5rem);
+            font-size: clamp(5.5rem, 22vw, 9rem);
             letter-spacing: 0.05em;
             margin-left: 0.05em;
             line-height: 0.9;
@@ -149,50 +148,135 @@
         }
 
         .hero .tagline {
-            margin-top: 18px;
-            font-size: clamp(1.05rem, 2.6vw, 1.25rem);
+            margin-top: 24px;
+            font-size: clamp(1.15rem, 2.8vw, 1.4rem);
             font-weight: 400;
             color: var(--ink-70);
-            max-width: 420px;
+            max-width: 520px;
             text-wrap: balance;
+            line-height: 1.5;
         }
 
         .hero .cta-row {
-            margin-top: 28px;
+            margin-top: 36px;
             display: flex;
-            gap: 12px;
+            gap: 14px;
             flex-wrap: wrap;
             justify-content: center;
         }
 
         .appstore-note {
-            margin-top: 12px;
-            font-size: 0.8rem;
+            margin-top: 16px;
+            font-size: 0.9rem;
             color: var(--ink-30);
         }
 
-        .privacy-line {
-            margin-top: 28px;
-            font-size: 0.85rem;
+        /* Below the fold — text only, no mockups */
+        section {
+            position: relative;
+            padding: clamp(80px, 14vh, 140px) clamp(24px, 6vw, 72px);
+        }
+
+        .kicker {
+            font-family: var(--display);
+            font-weight: 500;
+            font-size: 0.78rem;
+            letter-spacing: 0.34em;
+            text-transform: uppercase;
             color: var(--ink-30);
-            max-width: 360px;
+            margin-bottom: 20px;
+        }
+
+        .statement {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: clamp(1.75rem, 5vw, 3rem);
+            line-height: 1.25;
+            letter-spacing: 0.01em;
+            color: var(--ink);
+            max-width: 900px;
             text-wrap: balance;
         }
-        .privacy-line a {
-            color: var(--ink-50);
-            text-underline-offset: 3px;
-        }
-        .privacy-line a:hover { color: var(--ink); }
+        .statement .dim { color: var(--ink-30); }
 
-        .site-footer {
-            margin-top: 0;
-            padding-top: 28px;
-            padding-bottom: 28px;
+        .section-center {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .section-center .statement { margin-left: auto; margin-right: auto; }
+        .section-center .body-copy {
+            color: var(--ink-50);
+            font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+            max-width: 560px;
+            margin: 24px auto 0;
+            line-height: 1.65;
+        }
+
+        .pillars {
+            max-width: 960px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(28px, 4vw, 48px);
+        }
+        .pillars article h3 {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+            color: var(--ink);
+            margin-bottom: 12px;
+        }
+        .pillars article p {
+            color: var(--ink-50);
+            font-size: 1.05rem;
+            line-height: 1.55;
+        }
+
+        .encore {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: clamp(72px, 12vh, 120px);
+        }
+        .encore::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: min(560px, 80vw);
+            height: 120px;
+            background: radial-gradient(50% 100% at 50% 100%, rgba(255, 255, 255, 0.07), transparent 70%);
+            pointer-events: none;
+        }
+        .encore h2 {
+            font-family: var(--display);
+            font-weight: 800;
+            font-size: clamp(2rem, 5.5vw, 3.4rem);
+            letter-spacing: 0.04em;
+            color: var(--ink);
+            margin-bottom: 32px;
+            text-wrap: balance;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(26px);
+            transition: opacity 0.7s cubic-bezier(0.33, 1, 0.68, 1), transform 0.7s cubic-bezier(0.33, 1, 0.68, 1);
+        }
+        .reveal.lit { opacity: 1; transform: none; }
+
+        @media (max-width: 780px) {
+            .pillars { grid-template-columns: 1fr; text-align: center; }
         }
 
         @media (prefers-reduced-motion: reduce) {
             .hero > *, #sparkles, .cable, .ball { opacity: 1; transform: none; animation: none; }
             .rig { animation: none; }
+            .reveal { opacity: 1; transform: none; }
             .ball .gif { display: none; }
             .ball .poster { display: block; }
         }
@@ -214,16 +298,53 @@
             <h1>DSCO</h1>
             <p class="tagline">A map for finding your people. See who's nearby, make real friends, and share moments where they happened.</p>
             <div class="cta-row">
-                <a class="pill-btn solid" href="mailto:jacob@dsco.dev?subject=TestFlight%20invite">
+                <a class="pill-btn solid" href="#download">
                     <svg width="18" height="18" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
                     Request TestFlight
                 </a>
                 <a class="pill-btn quiet" href="contact.html">Get in touch</a>
             </div>
             <div class="appstore-note">Launching soon on the App Store</div>
-            <p class="privacy-line">You choose who sees you — everyone, friends, or no one. <a href="privacy.html">Privacy</a></p>
         </div>
     </header>
+
+    <section class="section-center">
+        <div class="kicker reveal">The idea</div>
+        <p class="statement reveal">Social apps took the world and flattened it into a feed. <span class="dim">DSCO puts it back on the map.</span></p>
+    </section>
+
+    <section>
+        <div class="pillars">
+            <article class="reveal">
+                <h3>A live map of your world</h3>
+                <p>Friends and familiar faces around you in real time. No feed, no doomscroll — just who's actually near.</p>
+            </article>
+            <article class="reveal">
+                <h3>Friends, made in person</h3>
+                <p>Meet someone at a show or a park — find them on the map and keep them. Chats form around real places.</p>
+            </article>
+            <article class="reveal">
+                <h3>Moments on the corner</h3>
+                <p>Stories, pins, and notes live where they happened — not in an algorithm's void.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="section-center">
+        <div class="kicker reveal">Privacy</div>
+        <p class="statement reveal">Location is the product, <span class="dim">so consent is the architecture.</span></p>
+        <p class="body-copy reveal">You choose who can see you — everyone, friends only, or no one. Going invisible takes one tap. Blocking erases you from each other's worlds. Nothing about your location is ever sold.</p>
+        <a class="pill-btn quiet reveal" href="privacy.html" style="margin-top: 32px">Read the privacy policy</a>
+    </section>
+
+    <section class="encore" id="download">
+        <div class="kicker reveal">Coming soon</div>
+        <h2 class="reveal">The map is warming up.</h2>
+        <div class="cta-row reveal" style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center">
+            <a class="pill-btn solid" href="mailto:jacob@dsco.dev?subject=TestFlight%20invite">Request a TestFlight invite</a>
+            <a class="pill-btn quiet" href="contact.html">Contact</a>
+        </div>
+    </section>
 
     <footer class="site-footer">
         <a class="wordmark" href="index.html">DSCO</a>
@@ -296,6 +417,15 @@
                 if (!reduced) requestAnimationFrame(paint);
             }
             requestAnimationFrame(paint);
+        })();
+
+        (() => {
+            const io = new IntersectionObserver(entries => {
+                for (const e of entries) {
+                    if (e.isIntersecting) { e.target.classList.add('lit'); io.unobserve(e.target); }
+                }
+            }, { threshold: 0.15 });
+            document.querySelectorAll('.reveal').forEach(el => io.observe(el));
         })();
     </script>
 </body>
