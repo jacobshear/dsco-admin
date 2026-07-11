@@ -760,18 +760,16 @@
             try {
                 const token = await getValidToken();
 
-                // Get reports that have content (not just user reports)
-                const response = await fetch(`${SOCIAL_API_BASE}/reports/list`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        status: 'pending',
-                        has_content: true
-                    })
-                });
+                // Backend is GET /reports/list?status=… (has_content filtered client-side).
+                const response = await fetch(
+                    `${SOCIAL_API_BASE}/reports/list?status=${encodeURIComponent('pending')}`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    }
+                );
 
                 if (response.status === 401 || response.status === 403) {
                     showError('Access denied. Please check your permissions.');

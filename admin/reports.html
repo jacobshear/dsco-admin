@@ -857,13 +857,13 @@
 
             try {
                 const token = await getValidToken();
+                // Backend registers GET /reports/list (query params for filters).
+                // POST is not allowed — CORS preflight only lists OPTIONS,GET.
                 const response = await fetch(`${SOCIAL_API_BASE}/reports/list`, {
-                    method: 'POST',
+                    method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({})
                 });
 
                 if (response.status === 401) {
@@ -892,7 +892,8 @@
                 if (error.message === 'Not authenticated' || error.message === 'Session expired') {
                     logout();
                 } else {
-                    showError('Failed to load reports. Check your connection.');
+                    // TypeError "Failed to fetch" is almost always CORS / network.
+                    showError(`Failed to load reports: ${error.message || 'check your connection'}`);
                 }
             }
         }
