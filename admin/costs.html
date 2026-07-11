@@ -83,13 +83,13 @@
                 : '<tr><td colspan="2" class="muted">No cost data</td></tr>';
 
             const mapbox = data.mapbox || {};
-            const dashLink = `<a href="${mapbox.dashboard || 'https://console.mapbox.com/account/usage/'}" target="_blank" style="color:#63b3ed">Mapbox usage dashboard →</a>`;
+            const dashLink = `<a href="${mapbox.dashboard || 'https://console.mapbox.com/account/usage/'}" target="_blank" style="color:var(--info)">Mapbox usage dashboard →</a>`;
             if (!mapbox.available) {
                 document.getElementById('mapbox-body').innerHTML =
                     `<span class="pill warn">unavailable</span> <span class="muted">${mapbox.reason || ''}</span><br><br>${dashLink}`;
             } else {
                 document.getElementById('mapbox-body').innerHTML =
-                    `<pre style="overflow-x:auto; background:#0d1424; padding:14px; border-radius:8px; font-size:0.8rem">${JSON.stringify(mapbox.usage, null, 2)}</pre><br>${dashLink}`;
+                    `<pre style="overflow-x:auto; background:var(--panel-2); padding:14px; border-radius:8px; font-size:0.8rem">${JSON.stringify(mapbox.usage, null, 2)}</pre><br>${dashLink}`;
             }
         }
 

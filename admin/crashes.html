@@ -88,13 +88,24 @@
             const issues = report.issues || report.topIssues || report.groups || report.rows || null;
 
             if (Array.isArray(issues) && issues.length) {
-                const rows = issues.map(issue => {
-                    const title = issue.issue?.title || issue.title || issue.displayName || 'Unknown issue';
-                    const subtitle = issue.issue?.subtitle || issue.subtitle || '';
-                    const events = issue.eventCount || issue.crashCount || issue.count || '—';
-                    const users = issue.impactedUserCount || issue.userCount || '—';
+                // v1alpha topIssues returns { groups: [{ issue, metrics: [{ eventsCount, impactedUsersCount }] }] }
+                const rows = issues.map(row => {
+                    const issue = row.issue || row;
+                    const metrics = (row.metrics && row.metrics[0]) || row.metrics || {};
+                    const title = issue.title || row.title || row.displayName || 'Unknown issue';
+                    const subtitle = issue.subtitle || row.subtitle || '';
+                    const errorType = issue.errorType || row.errorType || '';
+                    const events = metrics.eventsCount ?? row.eventCount ?? row.crashCount ?? row.count ?? '—';
+                    const users = metrics.impactedUsersCount ?? row.impactedUserCount ?? row.userCount ?? '—';
+                    const href = issue.uri || row.uri || '';
+                    const titleHtml = href
+                        ? `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:2px">${esc(title)}</a>`
+                        : esc(title);
+                    const typePill = errorType
+                        ? `<span class="pill ${errorType === 'FATAL' ? 'warn' : 'ok'}" style="margin-left:8px;font-size:0.7rem">${esc(errorType)}</span>`
+                        : '';
                     return `<tr>
-                        <td><strong>${esc(title)}</strong><br><span class="muted" style="font-size:0.8rem">${esc(subtitle)}</span></td>
+                        <td><strong>${titleHtml}</strong>${typePill}<br><span class="muted" style="font-size:0.8rem">${esc(subtitle)}</span></td>
                         <td class="num">${esc(events)}</td>
                         <td class="num">${esc(users)}</td>
                     </tr>`;

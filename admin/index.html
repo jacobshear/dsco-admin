@@ -119,9 +119,22 @@
                     `<span class="pill warn">setup needed</span> · <a href="crashes.html" style="color:inherit">finish setup</a>`;
                 return;
             }
+            // v1alpha topIssues: { groups: [{ issue, metrics: [{ eventsCount }] }] }
             const issues = data.top_issues?.issues || data.top_issues?.topIssues || data.top_issues?.groups || [];
-            document.getElementById('crash-count').textContent = Array.isArray(issues) ? issues.length : '—';
-            document.getElementById('crash-sub').textContent = 'distinct top issues · 7d';
+            if (!Array.isArray(issues)) {
+                document.getElementById('crash-count').textContent = '—';
+                document.getElementById('crash-sub').textContent = 'connected · unrecognized shape';
+                return;
+            }
+            const totalEvents = issues.reduce((sum, row) => {
+                const m = (row.metrics && row.metrics[0]) || {};
+                return sum + Number(m.eventsCount ?? row.eventCount ?? row.crashCount ?? 0);
+            }, 0);
+            document.getElementById('crash-count').textContent = totalEvents || issues.length;
+            document.getElementById('crash-sub').textContent =
+                totalEvents
+                    ? `${issues.length} top issues · 7d`
+                    : `distinct top issues · 7d`;
         }
 
         async function loadLevers() {
