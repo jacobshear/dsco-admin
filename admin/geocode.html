@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCO Admin - Geocode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+    <div class="container">
+        <div class="error-banner" id="error"></div>
+
+        <div class="card-grid">
+            <div class="card">
+                <div class="label">Today (UTC)</div>
+                <div class="value" id="today-total">—</div>
+                <div class="sub" id="today-origin"></div>
+            </div>
+            <div class="card">
+                <div class="label">Month to date</div>
+                <div class="value" id="mtd-total">—</div>
+                <div class="sub" id="mtd-origin"></div>
+            </div>
+            <div class="card">
+                <div class="label">Top source today</div>
+                <div class="value" id="top-source" style="font-size:1.2rem">—</div>
+                <div class="sub" id="top-source-count"></div>
+            </div>
+            <div class="card">
+                <div class="label">As of</div>
+                <div class="sub" style="margin-top:0" id="computed-at">—</div>
+                <button class="btn ghost" style="margin-top:10px" id="refresh">Refresh</button>
+                <div class="sub">Client-reported network geocodes + server Partiful</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Daily network geocodes<span class="hint">last 14 days UTC, client + server reports</span></h2>
+            <div class="bar-chart" id="daily-chart"><div class="loading">Loading…</div></div>
+        </div>
+
+        <div class="section">
+            <h2>Today by call site</h2>
+            <table>
+                <thead><tr><th>Source</th><th class="num">Count</th></tr></thead>
+                <tbody id="source-rows"><tr><td colspan="2" class="muted">Loading…</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Today by type</h2>
+            <table>
+                <thead><tr><th>Type</th><th class="num">Count</th></tr></thead>
+                <tbody id="type-rows"><tr><td colspan="2" class="muted">Loading…</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Month by call site</h2>
+            <table>
+                <thead><tr><th>Source</th><th class="num">Count</th></tr></thead>
+                <tbody id="mtd-source-rows"><tr><td colspan="2" class="muted">Loading…</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Notes</h2>
+            <div class="muted" style="line-height:1.5;font-size:0.9rem">
+                Counts are billed network geocodes only (cache hits are free and not counted).
+                Client batches flush every ~2 min or 5 calls; Partiful forward-geocodes report as
+                <code>partiful_forward</code> / type <code>forward</code>.
+                Cross-check Mapbox account usage on the Costs page — this page attributes
+                where in the app spend is coming from.
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/admin.js"></script>
+    <script>
+        function showError(message) {
+            const el = document.getElementById('error');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function fmtN(n) {
+            if (n == null || n === '') return '—';
+            return Number(n).toLocaleString();
+        }
+
+        function originLine(byOrigin) {
+            if (!byOrigin || !Object.keys(byOrigin).length) return '';
+            return Object.entries(byOrigin)
+                .map(([k, v]) => `${k}: ${fmtN(v)}`)
+                .join(' · ');
+        }
+
+        function rowsFromMap(map) {
+            const entries = Object.entries(map || {});
+            if (!entries.length) {
+                return '<tr><td colspan="2" class="muted">No data yet</td></tr>';
+            }
+            return entries
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, v]) => `<tr><td><code>${k}</code></td><td class="num">${fmtN(v)}</td></tr>`)
+                .join('');
+        }
+
+        function render(data) {
+            const today = data.today || {};
+            const mtd = data.month_to_date || {};
+
+            document.getElementById('today-total').textContent = fmtN(today.total);
+            document.getElementById('mtd-total').textContent = fmtN(mtd.total);
+            document.getElementById('today-origin').textContent = originLine(today.by_origin);
+            document.getElementById('mtd-origin').textContent = originLine(mtd.by_origin);
+            document.getElementById('computed-at').textContent = data.computed_at
+                ? new Date(data.computed_at).toLocaleString()
+                : '—';
+
+            const sources = today.by_source || {};
+            const top = Object.entries(sources).sort((a, b) => b[1] - a[1])[0];
+            if (top) {
+                document.getElementById('top-source').textContent = top[0];
+                document.getElementById('top-source-count').textContent = fmtN(top[1]) + ' calls';
+            } else {
+                document.getElementById('top-source').textContent = '—';
+                document.getElementById('top-source-count').textContent = '';
+            }
+
+            document.getElementById('source-rows').innerHTML = rowsFromMap(today.by_source);
+            document.getElementById('type-rows').innerHTML = rowsFromMap(today.by_type);
+            document.getElementById('mtd-source-rows').innerHTML = rowsFromMap(mtd.by_source);
+
+            const daily = data.daily || [];
+            const chartEl = document.getElementById('daily-chart');
+            if (daily.length) {
+                const max = Math.max(...daily.map(d => d.total || 0), 1);
+                chartEl.innerHTML = daily.map(d => {
+                    const t = d.total || 0;
+                    const h = Math.max(2, (t / max) * 100);
+                    return `<div class="bar" style="height:${h}%"><div class="tip">${d.date}: ${fmtN(t)}</div></div>`;
+                }).join('');
+            } else {
+                chartEl.innerHTML = '<div class="loading">No data</div>';
+            }
+        }
+
+        function loadPage() {
+            document.getElementById('error').style.display = 'none';
+            AdminShell.api('realtime', '/admin/metrics/geocode', { days: 14 })
+                .then(render)
+                .catch(e => showError(e.message));
+        }
+
+        document.addEventListener('click', e => {
+            if (e.target.id === 'refresh') loadPage();
+        });
+
+        AdminShell.init({ active: 'geocode.html', onReady: loadPage });
+    </script>
+</body>
+</html>

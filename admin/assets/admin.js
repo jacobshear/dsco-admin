@@ -30,6 +30,7 @@ const AdminShell = (() => {
         ['transparency.html', 'Transparency'],
         ['levers.html', 'Levers'],
         ['costs.html', 'Costs'],
+        ['geocode.html', 'Geocode'],
         ['crashes.html', 'Crashes'],
     ];
 
