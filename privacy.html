@@ -24,33 +24,80 @@
 
     <main class="prose-page">
         <h1>Privacy Policy</h1>
-        <div class="updated">Last updated: July 12, 2026</div>
+        <div class="updated">Version 2026-07-15 · Last updated: July 15, 2026</div>
 
         <p class="lede">DSCO is a location-based social app for adults 18 and over. This policy describes what we collect, why, and the control you have over it. The short version: location sharing is the core of the product, you decide who can see you, and we don't sell your data.</p>
 
         <h2>What we collect</h2>
         <ul>
             <li><strong>Account information</strong> — email address or phone number, username, display name, avatar, and profile details you choose to add (bio, linked Instagram or Spotify).</li>
-            <li><strong>Location</strong> — your device location while you use the app, and optionally in the background if you enable background sharing. Location powers the map, nearby discovery, and location-based notifications.</li>
-            <li><strong>Contacts</strong> — only if you opt in to contact matching, and only to find friends already on the app.</li>
+            <li><strong>Location</strong> — your device location while you use the app, and optionally in the background if you enable background sharing. Location powers the map, nearby discovery, and location-based notifications. Location is precise, meaning it identifies where you are to within a few metres.</li>
+            <li><strong>Contacts</strong> — only if you opt in to contact matching. See "Contacts" below for exactly what happens to them.</li>
             <li><strong>Content</strong> — photos, videos, stories, messages, pins, and notes you create.</li>
             <li><strong>Device and diagnostics</strong> — push notification tokens, device identifiers, and crash/performance data so we can fix problems.</li>
         </ul>
 
+        <h2>Age</h2>
+        <p>DSCO is for adults only. You must be at least 18 to create an account or use the app.</p>
+        <p>We ask for your date of birth at signup and block the account if it puts you under 18. We check this on our servers, not just in the app. We do not keep your date of birth — we record only that the check ran and passed, and when.</p>
+        <p>We want to be precise about what that is and isn't: it is a self-declared date of birth, not identity verification. We do not check it against a government ID or any outside source, and we do not describe it as verification. Where the App Store or Google Play tells us an account belongs to someone under 18, we use that signal and it overrides what was self-declared.</p>
+        <p>We do not knowingly collect personal information from anyone under 18. If we learn an account belongs to someone under 18, we will remove it and delete the associated data promptly. If you believe a minor is using DSCO, email <a href="mailto:jacob@dsco.dev">jacob@dsco.dev</a>.</p>
+
         <h2>How your location is shared</h2>
-        <p>Your visibility is controlled by your discoverability setting (everyone, friends only, or hidden). When hidden, you don't appear on anyone's map. Blocking someone makes you both permanently invisible to each other throughout the app.</p>
+        <p>Your visibility is controlled by your discoverability setting (everyone, friends only, or hidden). When hidden, you don't appear on anyone's map. Blocking someone makes you invisible to each other throughout the app, in both directions, until you unblock them.</p>
+        <p>Your location is shared with other DSCO users according to that setting. It is not shared with advertisers, data brokers, or anyone else for their own purposes.</p>
+
+        <h2>How long we keep it</h2>
+        <ul>
+            <li><strong>Location</strong> — your current location row expires 24 hours after your last update. We do not build a long-term location history.</li>
+            <li><strong>Stories</strong> — expire 24 hours after posting.</li>
+            <li><strong>Map notes</strong> — expire 24 hours after posting.</li>
+            <li><strong>Account information, profile, and social graph</strong> — kept while your account is active, and deleted when you delete your account.</li>
+            <li><strong>Messages</strong> — kept while your account is active. Messages you sent to other people remain visible to those people.</li>
+            <li><strong>Crash and diagnostic data</strong> — retained by our crash reporting provider on their standard schedule, generally up to 90 days.</li>
+        </ul>
+        <p>Backups and logs may hold copies for a short period after deletion while they age out on their normal cycle.</p>
 
         <h2>Who we share data with</h2>
-        <p>We use service providers to run the app: Amazon Web Services (hosting and storage), Google Firebase (messaging, notifications, and crash reporting), and Mapbox (maps). They process data on our behalf and don't get to use it for their own purposes. We don't sell personal data and we don't share it with advertisers.</p>
+        <p>We use service providers to run the app:</p>
+        <ul>
+            <li><strong>Amazon Web Services</strong> — hosting, database, and media storage.</li>
+            <li><strong>Google Firebase</strong> — chat, push notifications, and crash reporting.</li>
+            <li><strong>Mapbox</strong> — map rendering and place lookup.</li>
+            <li><strong>Spotify</strong> — only if you link your Spotify account, and only to show what you're listening to.</li>
+        </ul>
+        <p>These providers process data on our behalf under their standard data processing terms, and are contractually required to protect it to a standard at least equivalent to this policy and to use it only to provide their service to us. They do not get to use your data for their own purposes.</p>
+        <p>We do not sell personal data, we do not share it with advertisers, and we do not use it to train machine learning models.</p>
 
-        <h2>Retention and deletion</h2>
-        <p>Stories and map notes expire automatically. You can delete your account and its data from inside the app (Settings → Account), or by emailing us. Deletion removes your profile, content, location history, and social graph.</p>
+        <h2>Legal process and emergencies</h2>
+        <p>We may disclose information to law enforcement or other government authorities when we are required to by valid legal process — a subpoena, court order, or warrant — or where we believe in good faith that disclosure is necessary to prevent death or serious physical injury.</p>
+        <p>Outside those two situations we do not hand your data to government authorities voluntarily. If we receive a request that we think is overbroad or improper, we push back on it. We will try to notify you when we receive a request for your data unless we're legally barred from doing so or notifying you would create a risk to someone's safety.</p>
 
-        <h2>Age (18+)</h2>
-        <p>DSCO is for adults only. You must be at least 18 years old to create an account or use the app. We verify age at signup. We do not knowingly collect personal information from anyone under 18. If we learn an account belongs to someone under 18, we will remove it and delete associated data promptly.</p>
+        <h2>Contacts</h2>
+        <p>Contact matching is optional. If you decline the contacts permission, we upload nothing.</p>
+        <p>If you opt in, we upload the phone numbers from your address book so we can tell you which of your contacts are already on DSCO. We do not upload names, email addresses, or any other field from your contact records.</p>
+        <p>We keep the matched numbers so that if someone in your contacts joins DSCO later, we can let you know that they joined. That means a phone number belonging to someone who is not a DSCO user may sit in our system as a result of you sharing your address book. We do not text, email, or otherwise contact those people, and we do not use those numbers for anything except telling you when someone you already know joins. You can turn off contact matching in Settings, which deletes the numbers we hold from your address book.</p>
+
+        <h2>Security</h2>
+        <p>Data is encrypted in transit, and our database and media storage are encrypted at rest by the platforms we run on. Access to production data is limited to the people who operate the service. No system is perfectly secure, and we don't claim ours is.</p>
+
+        <h2>Your controls</h2>
+        <ul>
+            <li>Set your discoverability to everyone, friends only, or hidden.</li>
+            <li>Turn background location on or off, and revoke location access entirely in iOS Settings. The app still works without it — you can place yourself on the map manually.</li>
+            <li>Turn contact matching off, which deletes the numbers we hold from your address book.</li>
+            <li>Block anyone, in both directions, at any time.</li>
+            <li>Delete your account and its data from inside the app (Settings → Account), or by emailing us. Deletion removes your profile, content, location, and social graph. It does not remove messages you sent that are already in other people's chats.</li>
+        </ul>
+
+        <h2>Do Not Track</h2>
+        <p>We do not track you across other companies' apps or websites, so there is nothing for a Do Not Track signal to turn off. We do not respond to DNT signals because we don't do the thing they're designed to stop.</p>
+
+        <h2>If DSCO is sold or transferred</h2>
+        <p>If DSCO is acquired, merged, or its assets are transferred, your data may transfer as part of that. We'll note it here before it happens, and the new owner remains bound by this policy until they give you notice of a different one.</p>
 
         <h2>Changes</h2>
-        <p>If this policy changes materially we'll note it here with a new date.</p>
+        <p>If this policy changes materially we'll note it here with a new version and date, and tell you in the app. Old versions are kept so you can see what applied when.</p>
 
         <h2>Contact</h2>
         <p>Questions or requests: <a href="mailto:jacob@dsco.dev">jacob@dsco.dev</a></p>

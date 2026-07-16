@@ -163,6 +163,13 @@ img { max-width: 100%; height: auto; }
     color: var(--ink);
     margin: 40px 0 12px;
 }
+.prose-page h3 {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--ink-90);
+    margin: 24px 0 8px;
+}
 .prose-page p, .prose-page li { font-size: 0.98rem; color: var(--ink-70); margin-bottom: 12px; }
 .prose-page ul { padding-left: 22px; }
 .prose-page strong { color: var(--ink-90); }
