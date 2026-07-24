@@ -3,125 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Appeals</title>
+    <title>Appeals — DSCO Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #fff;
-            min-height: 100vh;
-        }
-
-        .header {
-            background: #16213e;
-            padding: 20px;
-            border-bottom: 1px solid #ffffff20;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 1.5rem;
-            letter-spacing: 0.2em;
-        }
-
-        .header-nav {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .header-nav a {
-            color: #ffffff80;
-            text-decoration: none;
-            font-size: 0.9rem;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .header-nav a:hover {
-            color: #fff;
-            background: #ffffff10;
-        }
-
-        .header-nav a.active {
-            color: #fff;
-            background: #3182ce;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions button {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid #ffffff30;
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .header-actions .logout-btn:hover {
-            background: #e53e3e;
-            border-color: #e53e3e;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .login-form {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: #16213e;
-            border-radius: 12px;
-        }
-
-        .login-form h2 { margin-bottom: 20px; }
-
-        .login-form input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ffffff30;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .login-form button {
-            width: 100%;
-            padding: 14px;
-            background: #3182ce;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .login-form button:hover { background: #2c5aa0; }
-        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
-
-        .login-error {
-            color: #fc8181;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            display: none;
-        }
-
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -130,38 +18,43 @@
         }
 
         .stat-card {
-            background: #16213e;
+            background: linear-gradient(180deg, var(--panel-2), var(--panel));
             padding: 20px;
-            border-radius: 12px;
+            border-radius: var(--radius);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
+            transition: border-color 0.15s;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
         }
 
         .stat-card:hover {
-            border-color: #ffffff30;
+            border-color: var(--line-strong);
         }
 
         .stat-card.active {
-            border-color: #3182ce;
+            border-color: rgba(255, 255, 255, 0.35);
         }
 
         .stat-card .number {
             font-size: 2rem;
-            font-weight: bold;
-            color: #3182ce;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--info);
         }
 
         .stat-card .label {
-            color: #ffffff80;
-            font-size: 0.85rem;
-            margin-top: 5px;
+            color: var(--ink-50);
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 6px;
         }
 
-        .stat-card.pending .number { color: #f6ad55; }
-        .stat-card.approved .number { color: #68d391; }
-        .stat-card.denied .number { color: #e53e3e; }
+        .stat-card.pending .number { color: var(--warn); }
+        .stat-card.approved .number { color: var(--good); }
+        .stat-card.denied .number { color: var(--bad); }
 
         .appeals-list {
             display: flex;
@@ -170,19 +63,21 @@
         }
 
         .appeal-card {
-            background: #16213e;
-            border-radius: 12px;
+            background: linear-gradient(180deg, var(--panel-2), var(--panel));
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             padding: 20px;
-            border-left: 4px solid #f6ad55;
+            border-left: 4px solid var(--warn);
         }
 
         .appeal-card.approved {
-            border-left-color: #68d391;
+            border-left-color: var(--good);
             opacity: 0.8;
         }
 
         .appeal-card.denied {
-            border-left-color: #e53e3e;
+            border-left-color: var(--bad);
             opacity: 0.8;
         }
 
@@ -206,43 +101,46 @@
 
         .appeal-user .user-id {
             font-size: 0.8rem;
-            color: #ffffff60;
+            color: var(--ink-35);
             font-family: monospace;
         }
 
         .appeal-time {
             font-size: 0.85rem;
-            color: #ffffff60;
+            color: var(--ink-35);
         }
 
         .appeal-status {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: var(--pill);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
         }
 
-        .appeal-status.pending { background: #f6ad5520; color: #f6ad55; }
-        .appeal-status.approved { background: #68d39120; color: #68d391; }
-        .appeal-status.denied { background: #e53e3e20; color: #e53e3e; }
+        .appeal-status.pending { background: var(--warn-bg); color: var(--warn); }
+        .appeal-status.approved { background: var(--good-bg); color: var(--good); }
+        .appeal-status.denied { background: var(--bad-bg); color: var(--bad); }
 
         .appeal-section {
             margin-bottom: 16px;
         }
 
         .appeal-section-title {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #ffffff50;
+            letter-spacing: 0.08em;
+            color: var(--ink-35);
             margin-bottom: 8px;
         }
 
         .appeal-section-content {
-            background: #0f1729;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--line);
             padding: 14px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             font-size: 0.95rem;
             line-height: 1.5;
         }
@@ -261,8 +159,9 @@
 
         .original-action-item label {
             font-size: 0.7rem;
-            color: #ffffff50;
+            color: var(--ink-35);
             text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
         .original-action-item span {
@@ -274,47 +173,48 @@
             gap: 10px;
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid #ffffff10;
+            border-top: 1px solid var(--line);
         }
 
-        .appeal-actions button {
+        .appeal-actions button,
+        .modal-actions .btn-confirm {
             padding: 10px 20px;
             border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
+            border-radius: var(--pill);
+            font-family: var(--body);
+            font-size: 0.88rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: opacity 0.15s, transform 0.12s;
         }
 
-        .appeal-actions .btn-approve {
-            background: #68d391;
-            color: #1a1a2e;
+        .appeal-actions button:active { transform: scale(0.98); }
+
+        .btn-approve, .btn-confirm.approved {
+            background: var(--good);
+            color: #0a0a0c;
         }
 
-        .appeal-actions .btn-approve:hover {
-            background: #48bb78;
+        .btn-approve:hover, .btn-confirm.approved:hover { opacity: 0.88; }
+
+        .btn-deny, .btn-confirm.denied {
+            background: var(--bad);
+            color: #0a0a0c;
         }
 
-        .appeal-actions .btn-deny {
-            background: #e53e3e;
-            color: #fff;
-        }
-
-        .appeal-actions .btn-deny:hover {
-            background: #c53030;
-        }
+        .btn-deny:hover, .btn-confirm.denied:hover { opacity: 0.88; }
 
         .appeal-decision {
             margin-top: 16px;
-            padding: 12px;
-            background: #0f1729;
-            border-radius: 8px;
+            padding: 12px 14px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
         }
 
         .appeal-decision .decided-by {
             font-size: 0.8rem;
-            color: #ffffff60;
+            color: var(--ink-35);
         }
 
         .appeal-decision .decision-reason {
@@ -331,16 +231,18 @@
 
         .pagination button {
             padding: 8px 16px;
-            background: #16213e;
-            border: 1px solid #ffffff30;
-            color: #fff;
-            border-radius: 6px;
+            background: transparent;
+            border: 1px solid var(--line-strong);
+            color: var(--ink);
+            border-radius: var(--pill);
+            font-family: var(--body);
+            font-weight: 600;
             cursor: pointer;
+            transition: background 0.15s;
         }
 
         .pagination button:hover:not(:disabled) {
-            background: #3182ce;
-            border-color: #3182ce;
+            background: var(--accent-dim);
         }
 
         .pagination button:disabled {
@@ -348,31 +250,15 @@
             cursor: not-allowed;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #ffffff60;
-        }
-
         .empty {
             text-align: center;
             padding: 60px 20px;
-            color: #ffffff60;
+            color: var(--ink-35);
         }
 
         .empty-icon {
             font-size: 3rem;
             margin-bottom: 16px;
-        }
-
-        .error-message {
-            background: #e53e3e20;
-            border: 1px solid #e53e3e;
-            color: #fc8181;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
         }
 
         .decision-modal {
@@ -382,7 +268,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -393,8 +279,10 @@
         }
 
         .decision-modal-content {
-            background: #16213e;
-            border-radius: 12px;
+            background: linear-gradient(180deg, var(--panel-2), var(--panel));
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             padding: 24px;
             max-width: 500px;
             width: 90%;
@@ -406,15 +294,22 @@
 
         .decision-modal textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ffffff30;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 14px;
+            padding: 12px 14px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            background: rgba(0, 0, 0, 0.35);
+            color: var(--ink);
+            font-size: 0.9rem;
             min-height: 100px;
             resize: vertical;
             margin-bottom: 16px;
+            font-family: var(--body);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .decision-modal textarea:focus {
+            border-color: rgba(255, 255, 255, 0.35);
         }
 
         .decision-modal .modal-actions {
@@ -423,107 +318,62 @@
             justify-content: flex-end;
         }
 
-        .decision-modal button {
+        .decision-modal .btn-cancel {
             padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            background: transparent;
+            border: 1px solid var(--line-strong);
+            color: var(--ink);
+            border-radius: var(--pill);
+            font-family: var(--body);
+            font-size: 0.88rem;
+            font-weight: 600;
             cursor: pointer;
         }
 
-        .decision-modal .btn-cancel {
-            background: transparent;
-            border: 1px solid #ffffff30;
-            color: #fff;
-        }
+        .decision-modal .btn-cancel:hover { background: var(--accent-dim); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
-        <div class="header-nav">
-            <a href="index.html">Overview</a>
-            <a href="reports.html">Reports</a>
-            <a href="users.html">Users</a>
-            <a href="appeals.html" class="active">Appeals</a>
-            <a href="content.html">Content</a>
-            <a href="audit.html">Audit</a>
-            <a href="transparency.html">Transparency</a>
-            <a href="levers.html">Levers</a>
-            <a href="costs.html">Costs</a>
-            <a href="crashes.html">Crashes</a>
-        </div>
-        <div class="header-actions" id="header-actions" style="display: none;">
-            <button class="logout-btn" onclick="logout()">Sign Out</button>
-        </div>
-    </div>
+    <div class="container">
+        <div class="error-banner" id="error-message"></div>
 
-    <!-- Login Section -->
-    <div id="login-section" style="display: none;">
-        <div class="login-form">
-            <h2>Admin Sign In</h2>
-            <div class="login-error" id="login-error"></div>
-            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
-            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
-            <button id="login-btn" onclick="login()">Sign In</button>
-        </div>
-    </div>
-
-    <!-- Dashboard Section -->
-    <div id="dashboard-section" style="display: none;">
-        <div class="container">
-            <div class="error-message" id="error-message"></div>
-
-            <div class="stats">
-                <div class="stat-card pending" onclick="filterStatus('pending')">
-                    <div class="number" id="pending-count">-</div>
-                    <div class="label">Pending</div>
-                </div>
-                <div class="stat-card approved" onclick="filterStatus('approved')">
-                    <div class="number" id="approved-count">-</div>
-                    <div class="label">Approved</div>
-                </div>
-                <div class="stat-card denied" onclick="filterStatus('denied')">
-                    <div class="number" id="denied-count">-</div>
-                    <div class="label">Denied</div>
-                </div>
+        <div class="stats">
+            <div class="stat-card pending" onclick="filterStatus('pending')">
+                <div class="number" id="pending-count">-</div>
+                <div class="label">Pending</div>
             </div>
-
-            <div class="appeals-list" id="appeals-container">
-                <div class="loading">Loading appeals...</div>
+            <div class="stat-card approved" onclick="filterStatus('approved')">
+                <div class="number" id="approved-count">-</div>
+                <div class="label">Approved</div>
             </div>
-
-            <div class="pagination" id="pagination"></div>
+            <div class="stat-card denied" onclick="filterStatus('denied')">
+                <div class="number" id="denied-count">-</div>
+                <div class="label">Denied</div>
+            </div>
         </div>
+
+        <div class="appeals-list" id="appeals-container">
+            <div class="loading">Loading appeals...</div>
+        </div>
+
+        <div class="pagination" id="pagination"></div>
     </div>
 
     <!-- Decision Modal -->
     <div class="decision-modal" id="decision-modal">
         <div class="decision-modal-content">
             <h3 id="modal-title">Decision</h3>
-            <p id="modal-description" style="margin-bottom: 16px; color: #ffffff80;"></p>
+            <p id="modal-description" style="margin-bottom: 16px; color: rgba(255, 255, 255, 0.5);"></p>
             <textarea id="decision-reason" placeholder="Add a note for the user (optional)"></textarea>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeDecisionModal()">Cancel</button>
-                <button id="modal-confirm-btn" onclick="confirmDecision()">Confirm</button>
+                <button class="btn-confirm" id="modal-confirm-btn" onclick="confirmDecision()">Confirm</button>
             </div>
         </div>
     </div>
 
+    <script src="assets/admin.js"></script>
     <script>
-        // --- Configuration ---
-        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
-        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
-        const API_BASE = 'https://api.dsco.dev/realtime';
-
-        const poolData = {
-            UserPoolId: COGNITO_USER_POOL_ID,
-            ClientId: COGNITO_CLIENT_ID,
-        };
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
-
-        let cognitoUser = null;
-        let idToken = '';
         let allAppeals = [];
         let currentFilter = 'pending';
         let pendingDecision = null;
@@ -542,149 +392,21 @@
             'OTHER': 'Other'
         };
 
-        // --- Auth ---
-
-        function init() {
-            cognitoUser = userPool.getCurrentUser();
-            if (cognitoUser) {
-                cognitoUser.getSession((err, session) => {
-                    if (err || !session || !session.isValid()) {
-                        showLogin();
-                        return;
-                    }
-                    idToken = session.getIdToken().getJwtToken();
-                    showDashboard();
-                    loadAppeals();
-                });
-            } else {
-                showLogin();
-            }
-        }
-
-        function showLogin() {
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('header-actions').style.display = 'none';
-        }
-
-        function showDashboard() {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'block';
-            document.getElementById('header-actions').style.display = 'flex';
-        }
-
-        function login() {
-            const email = document.getElementById('email-input').value.trim();
-            const password = document.getElementById('password-input').value;
-            const errorEl = document.getElementById('login-error');
-            const btn = document.getElementById('login-btn');
-
-            if (!email || !password) {
-                errorEl.textContent = 'Please enter email and password.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Signing in...';
-
-            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-                Username: email,
-                Password: password,
-            });
-
-            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: email,
-                Pool: userPool,
-            });
-
-            cognitoUser.authenticateUser(authDetails, {
-                onSuccess: (result) => {
-                    idToken = result.getIdToken().getJwtToken();
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    showDashboard();
-                    loadAppeals();
-                },
-                onFailure: (err) => {
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    errorEl.textContent = err.message || 'Authentication failed.';
-                    errorEl.style.display = 'block';
-                },
-            });
-        }
-
-        function logout() {
-            if (cognitoUser) cognitoUser.signOut();
-            cognitoUser = null;
-            idToken = '';
-            allAppeals = [];
-            showLogin();
-        }
-
-        function getValidToken() {
-            return new Promise((resolve, reject) => {
-                if (!cognitoUser) {
-                    reject(new Error('Not authenticated'));
-                    return;
-                }
-                cognitoUser.getSession((err, session) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (!session.isValid()) {
-                        reject(new Error('Session expired'));
-                        return;
-                    }
-                    resolve(session.getIdToken().getJwtToken());
-                });
-            });
-        }
-
-        // --- Appeals ---
-
         async function loadAppeals() {
             const container = document.getElementById('appeals-container');
             container.innerHTML = '<div class="loading">Loading appeals...</div>';
             hideError();
 
             try {
-                const token = await getValidToken();
-                const response = await fetch(`${API_BASE}/admin/appeals/list`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({})
-                });
-
-                if (response.status === 401 || response.status === 403) {
-                    showError('Access denied. Please check your permissions.');
-                    setTimeout(logout, 2000);
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
+                // Preserve original list body (empty — client-side status filter)
+                const data = await AdminShell.api('realtime', '/admin/appeals/list', {});
                 allAppeals = data.appeals || [];
                 updateStats();
                 renderAppeals();
-
             } catch (error) {
                 console.error('Error loading appeals:', error);
-                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
-                    logout();
-                } else {
-                    showError('Failed to load appeals.');
-                    container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Failed to load appeals</p></div>';
-                }
+                showError(error.message || 'Failed to load appeals.');
+                container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Failed to load appeals</p></div>';
             }
         }
 
@@ -697,7 +419,6 @@
             document.getElementById('approved-count').textContent = approved;
             document.getElementById('denied-count').textContent = denied;
 
-            // Update active state
             document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active'));
             document.querySelector(`.stat-card.${currentFilter}`)?.classList.add('active');
         }
@@ -710,7 +431,6 @@
 
         function renderAppeals() {
             const container = document.getElementById('appeals-container');
-
             const filtered = allAppeals.filter(a => a.status === currentFilter);
 
             if (filtered.length === 0) {
@@ -727,7 +447,7 @@
                 <div class="appeal-card ${appeal.status}" id="appeal-${appeal.appeal_id}">
                     <div class="appeal-header">
                         <div class="appeal-user">
-                            <span class="username">User Appeal</span>
+                            <span class="username">User appeal</span>
                             <span class="user-id">${appeal.user_id}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px;">
@@ -749,7 +469,7 @@
                                     <span>${REASON_LABELS[appeal.original_reason_code] || appeal.original_reason_code || '-'}</span>
                                 </div>
                             </div>
-                            ${appeal.original_reason_text ? `<p style="margin-top: 10px; color: #ffffff80;">${escapeHtml(appeal.original_reason_text)}</p>` : ''}
+                            ${appeal.original_reason_text ? `<p style="margin-top: 10px; color: rgba(255, 255, 255, 0.5);">${escapeHtml(appeal.original_reason_text)}</p>` : ''}
                         </div>
                     </div>
 
@@ -762,8 +482,8 @@
 
                     ${appeal.status === 'pending' ? `
                         <div class="appeal-actions">
-                            <button class="btn-approve" onclick="showDecisionModal('${appeal.appeal_id}', 'approved')">✓ Approve Appeal</button>
-                            <button class="btn-deny" onclick="showDecisionModal('${appeal.appeal_id}', 'denied')">✕ Deny Appeal</button>
+                            <button class="btn-approve" onclick="showDecisionModal('${appeal.appeal_id}', 'approved')">Approve appeal</button>
+                            <button class="btn-deny" onclick="showDecisionModal('${appeal.appeal_id}', 'denied')">Deny appeal</button>
                         </div>
                     ` : `
                         <div class="appeal-decision">
@@ -785,18 +505,17 @@
             const desc = document.getElementById('modal-description');
             const btn = document.getElementById('modal-confirm-btn');
 
+            btn.classList.remove('approved', 'denied');
             if (decision === 'approved') {
-                title.textContent = 'Approve Appeal';
+                title.textContent = 'Approve appeal';
                 desc.textContent = 'This will reverse the original moderation action and restore the user\'s account.';
                 btn.textContent = 'Approve';
-                btn.style.background = '#68d391';
-                btn.style.color = '#1a1a2e';
+                btn.classList.add('approved');
             } else {
-                title.textContent = 'Deny Appeal';
+                title.textContent = 'Deny appeal';
                 desc.textContent = 'The original moderation action will remain in effect.';
                 btn.textContent = 'Deny';
-                btn.style.background = '#e53e3e';
-                btn.style.color = '#fff';
+                btn.classList.add('denied');
             }
 
             document.getElementById('decision-reason').value = '';
@@ -819,28 +538,15 @@
             btn.textContent = 'Processing...';
 
             try {
-                const token = await getValidToken();
-                const response = await fetch(`${API_BASE}/admin/appeals/decide`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        appeal_id: appealId,
-                        decision: decision,
-                        decision_reason: reason
-                    })
+                // Preserve original decide body fields: appeal_id, decision, decision_reason
+                await AdminShell.api('realtime', '/admin/appeals/decide', {
+                    appeal_id: appealId,
+                    decision: decision,
+                    decision_reason: reason
                 });
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.message || `HTTP ${response.status}`);
-                }
 
                 closeDecisionModal();
                 loadAppeals();
-
             } catch (error) {
                 console.error('Error deciding appeal:', error);
                 showError(`Failed to process appeal: ${error.message}`);
@@ -851,8 +557,7 @@
 
         function formatTime(isoString) {
             if (!isoString) return 'Unknown';
-            const date = new Date(isoString);
-            return date.toLocaleString();
+            return new Date(isoString).toLocaleString();
         }
 
         function escapeHtml(text) {
@@ -872,19 +577,15 @@
             document.getElementById('error-message').style.display = 'none';
         }
 
-        // Handle Enter key on login form
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeDecisionModal();
-            if (e.key === 'Enter' && document.getElementById('login-section').style.display !== 'none') {
-                login();
-            }
         });
 
         document.getElementById('decision-modal').addEventListener('click', (e) => {
             if (e.target.id === 'decision-modal') closeDecisionModal();
         });
 
-        init();
+        AdminShell.init({ active: 'appeals.html', title: 'Appeals', onReady: loadAppeals });
     </script>
 </body>
 </html>

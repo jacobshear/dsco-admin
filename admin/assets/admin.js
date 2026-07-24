@@ -1,8 +1,14 @@
 /*
- * Shared shell for DSCO admin pages: Cognito auth, API helper, header/nav,
- * login overlay. Used by the new-generation pages (overview, levers, costs,
- * crashes); the original pages (reports, users, appeals, content, audit,
- * transparency) are self-contained and predate this module.
+ * Shared shell for every DSCO admin page: Cognito auth, API helper,
+ * header/nav, env switcher, login overlay.
+ *
+ * Env selection:
+ *   1. ?env=prod | ?env=dev  (highest priority; sticky for nav links)
+ *   2. hostname contains "prod" or is api-prod-adjacent admin host
+ *   3. default: dev
+ * The header carries a DEV | PROD segmented switch (each env has its own
+ * Cognito pool, so switching may ask you to sign in again — sessions for
+ * both envs coexist in localStorage, keyed by client id).
  *
  * Usage:
  *   <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
@@ -10,15 +16,58 @@
  *   <script>AdminShell.init({ active: 'levers', onReady: loadPage });</script>
  */
 const AdminShell = (() => {
-    const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
-    const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
-    const API = {
-        core: 'https://api.dsco.dev/core',
-        social: 'https://api.dsco.dev/social',
-        map: 'https://api.dsco.dev/map',
-        content: 'https://api.dsco.dev/content',
-        realtime: 'https://api.dsco.dev/realtime',
+    const ENV_CONFIGS = {
+        dev: {
+            label: 'DEV',
+            poolId: 'us-west-1_3Z2uwqvBT',
+            clientId: 'p5g5ou0a6r9la6it2c92tlje5',
+            apiBase: 'https://api.dsco.dev',
+            firebaseProjectId: 'dsco-683f6',
+        },
+        prod: {
+            label: 'PROD',
+            poolId: 'us-west-1_EJOoIz82g',
+            // DscoAdminDashboard app client (created 2026-07-17; no client secret)
+            clientId: '7l6em5bt2hfrg5on1t8591rgrg',
+            apiBase: 'https://api-prod.dsco.dev',
+            firebaseProjectId: 'dsco-app-prod',
+        },
     };
+
+    /**
+     * Resolve active env. Query param wins so a shared bookmark can pin prod;
+     * hostname fallback for a future dedicated prod admin host.
+     */
+    function resolveEnvName() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const q = (params.get('env') || '').toLowerCase();
+            if (q === 'prod' || q === 'dev') return q;
+        } catch (_) { /* ignore */ }
+        const host = (window.location.hostname || '').toLowerCase();
+        // Explicit prod hosts only — never treat github.io / localhost as prod.
+        if (host.includes('admin-prod') || host === 'admin.dsco.app' || host.startsWith('admin-prod.')) {
+            return 'prod';
+        }
+        return 'dev';
+    }
+
+    const envName = resolveEnvName();
+    const env = ENV_CONFIGS[envName] || ENV_CONFIGS.dev;
+
+    function apiForBase(base) {
+        return {
+            core: `${base}/core`,
+            social: `${base}/social`,
+            map: `${base}/map`,
+            content: `${base}/content`,
+            realtime: `${base}/realtime`,
+        };
+    }
+
+    const API = apiForBase(env.apiBase);
+    const COGNITO_USER_POOL_ID = env.poolId;
+    const COGNITO_CLIENT_ID = env.clientId;
 
     const NAV_ITEMS = [
         ['index.html', 'Overview'],
@@ -42,9 +91,39 @@ const AdminShell = (() => {
     let cognitoUser = null;
     let onReadyCallback = null;
 
+    /** Preserve ?env= on internal nav so switching pages does not drop prod. */
+    function envAwareHref(href) {
+        if (envName === 'dev') return href;
+        const sep = href.includes('?') ? '&' : '?';
+        return `${href}${sep}env=${encodeURIComponent(envName)}`;
+    }
+
+    /** Reload the current page pinned to the given env (preserves other params). */
+    function switchEnv(name) {
+        if (name === envName) return;
+        const url = new URL(window.location.href);
+        if (name === 'dev') url.searchParams.delete('env');
+        else url.searchParams.set('env', name);
+        window.location.href = url.toString();
+    }
+
+    function envSwitchHtml(id) {
+        return `
+            <div class="env-switch" id="${id}" title="API ${env.apiBase} · pool ${env.poolId}">
+                <button type="button" data-env="dev" class="${envName === 'dev' ? 'active' : ''}">Dev</button>
+                <button type="button" data-env="prod" class="${envName === 'prod' ? 'active prod' : ''}">Prod</button>
+            </div>`;
+    }
+
+    function bindEnvSwitch(id) {
+        document.querySelectorAll(`#${id} button`).forEach(btn => {
+            btn.addEventListener('click', () => switchEnv(btn.dataset.env));
+        });
+    }
+
     function renderShell(active, title) {
         const nav = NAV_ITEMS.map(([href, label]) =>
-            `<a href="${href}"${href === active ? ' class="active"' : ''}>${label}</a>`
+            `<a href="${envAwareHref(href)}"${href === active ? ' class="active"' : ''}>${label}</a>`
         ).join('');
 
         // Page titles are short section labels; brand lives in the wordmark.
@@ -66,12 +145,14 @@ const AdminShell = (() => {
                         <input type="password" id="shell-newpw" placeholder="New password (min 8 chars)">
                         <button class="btn" id="shell-newpw-btn">Set password &amp; sign in</button>
                     </div>
+                    <div class="login-env">${envSwitchHtml('shell-login-env-switch')}</div>
                 </div>
             </div>
             <div class="header" id="shell-header" style="display:none">
-                <h1 title="${pageTitle}">DSCO</h1>
+                <h1 title="${pageTitle}" id="shell-wordmark">DSCO</h1>
                 <div class="header-nav">${nav}</div>
                 <div class="header-actions">
+                    ${envSwitchHtml('shell-env-switch')}
                     <button id="shell-signout">Sign out</button>
                 </div>
             </div>
@@ -83,6 +164,8 @@ const AdminShell = (() => {
         });
         document.getElementById('shell-newpw-btn').addEventListener('click', completeNewPassword);
         document.getElementById('shell-signout').addEventListener('click', signOut);
+        bindEnvSwitch('shell-env-switch');
+        bindEnvSwitch('shell-login-env-switch');
     }
 
     function showLogin() {
@@ -95,7 +178,20 @@ const AdminShell = (() => {
         document.getElementById('shell-login').style.display = 'none';
         document.getElementById('shell-header').style.display = 'flex';
         document.querySelectorAll('.container').forEach(el => el.style.display = '');
+        applyBrand();
         if (onReadyCallback) onReadyCallback();
+    }
+
+    // Wordmark follows the naming_mode lever (dsco|borg). Post-login only —
+    // config/get needs auth, so the login box keeps the static brand.
+    function applyBrand() {
+        api('realtime', '/admin/config/get').then(data => {
+            const mode = (data.levers && data.levers.naming_mode) || data.naming_mode;
+            if (mode === 'borg') {
+                const el = document.getElementById('shell-wordmark');
+                if (el) el.textContent = 'BORG';
+            }
+        }).catch(() => { /* cosmetic; never block the shell */ });
     }
 
     function loginError(message) {
@@ -222,18 +318,26 @@ const AdminShell = (() => {
         return best;
     }
 
-    /** POST to an API service. api('realtime', '/admin/config/get', {...}) */
-    async function api(service, path, body) {
+    /**
+     * Call an API service. Defaults to POST with JSON body.
+     * api('realtime', '/admin/config/get')
+     * api('realtime', '/admin/config/get', { refresh: true })
+     * api('social', '/reports/list?status=pending', null, { method: 'GET' })
+     */
+    async function api(service, path, body, options = {}) {
         const token = await getValidToken();
+        const method = (options.method || 'POST').toUpperCase();
         // Cognito User Pool authorizer expects the *ID* token (access token → 401).
-        const response = await fetch(`${API[service]}${path}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(body || {}),
-        });
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            ...(options.headers || {}),
+        };
+        const init = { method, headers };
+        if (method !== 'GET' && method !== 'HEAD') {
+            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+            init.body = JSON.stringify(body || {});
+        }
+        const response = await fetch(`${API[service]}${path}`, init);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             const msg = data.error || data.message || `${service}${path} failed (${response.status})`;
@@ -275,5 +379,15 @@ const AdminShell = (() => {
         });
     }
 
-    return { init, api, getValidToken, roleFromToken, API };
+    return {
+        init,
+        api,
+        getValidToken,
+        roleFromToken,
+        switchEnv,
+        API,
+        env: envName,
+        envConfig: env,
+        firebaseProjectId: env.firebaseProjectId,
+    };
 })();

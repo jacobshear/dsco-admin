@@ -22,6 +22,10 @@
     --bad-bg: rgba(255, 107, 122, 0.12);
     --info: #6eb6ff;
     --info-bg: rgba(110, 182, 255, 0.12);
+    --orange: #ffa261;
+    --orange-bg: rgba(255, 162, 97, 0.12);
+    --purple: #b794f4;
+    --purple-bg: rgba(183, 148, 244, 0.14);
     --brand: 'Bebas Neue', sans-serif;
     --body: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, sans-serif;
     --radius: 14px;
@@ -104,6 +108,11 @@ body::before {
     background: var(--ink);
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 .header-actions button {
     padding: 8px 14px;
     background: transparent;
@@ -120,6 +129,47 @@ body::before {
     background: var(--bad-bg);
     border-color: rgba(255, 107, 122, 0.45);
     color: var(--bad);
+}
+
+/* Env switch (DEV | PROD) — always visible so you never moderate the wrong stack.
+   Prod is styled hot so an armed prod console is unmistakable. */
+.env-switch {
+    display: inline-flex;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--pill);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.25);
+}
+.env-switch button {
+    padding: 5px 12px;
+    background: transparent;
+    border: none;
+    color: var(--ink-50);
+    cursor: pointer;
+    font-family: var(--body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: background 0.15s, color 0.15s;
+}
+.env-switch button + button { border-left: 1px solid var(--line); }
+.env-switch button:hover { color: var(--ink); }
+.env-switch button.active {
+    background: var(--info-bg);
+    color: var(--info);
+    cursor: default;
+}
+.env-switch button.active.prod {
+    background: var(--bad-bg);
+    color: var(--bad);
+}
+.login-env {
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
 }
 
 /* ---- Layout ---- */

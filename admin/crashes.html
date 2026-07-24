@@ -16,7 +16,7 @@
 
         <div class="section">
             <h2>Crashlytics
-                <span class="hint">iOS · Firebase project dsco-683f6</span>
+                <span class="hint" id="crash-project-hint">iOS · Firebase project …</span>
             </h2>
             <div class="toolbar">
                 <div class="seg" id="days-seg">
@@ -24,7 +24,7 @@
                     <button data-days="30">30d</button>
                     <button data-days="90">90d</button>
                 </div>
-                <a class="link" id="console-link" href="https://console.firebase.google.com/project/dsco-683f6/crashlytics" target="_blank" rel="noopener">Open Firebase console →</a>
+                <a class="link" id="console-link" href="#" target="_blank" rel="noopener">Open Firebase console →</a>
             </div>
             <div id="crash-body"><div class="loading">Loading…</div></div>
         </div>
@@ -33,6 +33,24 @@
     <script src="assets/admin.js"></script>
     <script>
         let currentDays = 7;
+
+        /** Prefer API firebase_project_id; fall back to AdminShell env map. */
+        function projectIdFrom(data) {
+            return data?.firebase_project_id
+                || AdminShell.firebaseProjectId
+                || 'dsco-683f6';
+        }
+
+        function applyProjectUi(data) {
+            const projectId = projectIdFrom(data);
+            const hint = document.getElementById('crash-project-hint');
+            if (hint) hint.textContent = `iOS · Firebase project ${projectId}`;
+            const link = document.getElementById('console-link');
+            if (link) {
+                link.href = data?.console
+                    || `https://console.firebase.google.com/project/${projectId}/crashlytics`;
+            }
+        }
 
         function showError(message) {
             const el = document.getElementById('error');
@@ -77,7 +95,7 @@
 
         function renderIssues(data) {
             const body = document.getElementById('crash-body');
-            if (data.console) document.getElementById('console-link').href = data.console;
+            applyProjectUi(data);
 
             if (!data.available) {
                 body.innerHTML = renderSetup(data);
@@ -127,6 +145,8 @@
         function loadPage() {
             document.getElementById('error').style.display = 'none';
             document.getElementById('crash-body').innerHTML = '<div class="loading">Loading…</div>';
+            // Seed console link from shell env before API returns (prod vs dev).
+            applyProjectUi(null);
             AdminShell.api('realtime', '/admin/metrics/crashes', { days: currentDays })
                 .then(renderIssues)
                 .catch(e => showError(e.message));
@@ -140,6 +160,8 @@
             loadPage();
         });
 
+        // Seed project hint immediately (env known before auth/API).
+        applyProjectUi(null);
         AdminShell.init({ active: 'crashes.html', title: 'Crashes', onReady: loadPage });
     </script>
 </body>

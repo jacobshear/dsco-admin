@@ -3,153 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Content Moderation</title>
+    <title>Content — DSCO Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #fff;
-            min-height: 100vh;
-        }
-
-        .header {
-            background: #16213e;
-            padding: 20px;
-            border-bottom: 1px solid #ffffff20;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 1.5rem;
-            letter-spacing: 0.2em;
-        }
-
-        .header-nav {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .header-nav a {
-            color: #ffffff80;
-            text-decoration: none;
-            font-size: 0.9rem;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .header-nav a:hover {
-            color: #fff;
-            background: #ffffff10;
-        }
-
-        .header-nav a.active {
-            color: #fff;
-            background: #3182ce;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions button {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid #ffffff30;
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .header-actions .logout-btn:hover {
-            background: #e53e3e;
-            border-color: #e53e3e;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .login-form {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: #16213e;
-            border-radius: 12px;
-        }
-
-        .login-form h2 { margin-bottom: 20px; }
-
-        .login-form input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ffffff30;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .login-form button {
-            width: 100%;
-            padding: 14px;
-            background: #3182ce;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .login-form button:hover { background: #2c5aa0; }
-        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
-
-        .login-error {
-            color: #fc8181;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            display: none;
-        }
+        /* Page-specific: tabs, content grid, remove/preview modals */
 
         .tabs {
             display: flex;
             gap: 4px;
             margin-bottom: 20px;
-            background: #16213e;
+            background: var(--panel);
             padding: 6px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             width: fit-content;
+            border: 1px solid var(--line);
         }
 
         .tab {
             padding: 10px 20px;
             background: transparent;
             border: none;
-            color: #ffffff80;
+            color: var(--ink-50);
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
+            font-family: inherit;
         }
 
         .tab:hover {
-            color: #fff;
-            background: #ffffff10;
+            color: var(--ink);
+            background: var(--accent-dim);
         }
 
         .tab.active {
-            background: #3182ce;
-            color: #fff;
+            background: var(--info-bg);
+            color: var(--info);
         }
 
         .content-grid {
@@ -159,15 +51,15 @@
         }
 
         .content-card {
-            background: #16213e;
-            border-radius: 12px;
+            background: var(--panel);
+            border-radius: var(--radius);
             overflow: hidden;
-            border: 1px solid #ffffff10;
+            border: 1px solid var(--line);
         }
 
         .content-card-header {
             padding: 16px;
-            border-bottom: 1px solid #ffffff10;
+            border-bottom: 1px solid var(--line);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -182,13 +74,13 @@
             text-transform: uppercase;
         }
 
-        .content-type-badge.story { background: #805ad520; color: #b794f4; }
-        .content-type-badge.pin { background: #3182ce20; color: #63b3ed; }
-        .content-type-badge.message { background: #38a16920; color: #68d391; }
+        .content-type-badge.story { background: var(--purple-bg); color: var(--purple); }
+        .content-type-badge.pin { background: var(--info-bg); color: var(--info); }
+        .content-type-badge.message { background: var(--good-bg); color: var(--good); }
 
         .report-count {
             font-size: 0.8rem;
-            color: #fc8181;
+            color: var(--bad);
         }
 
         .content-preview {
@@ -197,7 +89,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #0f1729;
+            background: var(--panel-2);
         }
 
         .content-preview img {
@@ -207,20 +99,20 @@
         }
 
         .content-preview .text-preview {
-            color: #ffffff80;
+            color: var(--ink-50);
             font-style: italic;
             text-align: center;
             padding: 20px;
         }
 
         .content-preview .no-preview {
-            color: #ffffff40;
+            color: var(--ink-35);
             font-size: 0.9rem;
         }
 
         .content-meta {
             padding: 16px;
-            border-top: 1px solid #ffffff10;
+            border-top: 1px solid var(--line);
         }
 
         .meta-row {
@@ -235,15 +127,15 @@
         }
 
         .meta-label {
-            color: #ffffff60;
+            color: var(--ink-50);
         }
 
         .meta-value {
-            color: #fff;
+            color: var(--ink);
         }
 
         .meta-value.user-link {
-            color: #63b3ed;
+            color: var(--info);
             text-decoration: none;
         }
 
@@ -255,7 +147,7 @@
             padding: 16px;
             display: flex;
             gap: 8px;
-            border-top: 1px solid #ffffff10;
+            border-top: 1px solid var(--line);
         }
 
         .content-actions button {
@@ -266,45 +158,46 @@
             cursor: pointer;
             font-size: 0.85rem;
             font-weight: 500;
+            font-family: inherit;
         }
 
         .btn-view {
-            background: #ffffff10;
-            color: #fff;
+            background: var(--accent-dim);
+            color: var(--ink);
         }
 
         .btn-view:hover {
-            background: #ffffff20;
+            background: rgba(255, 255, 255, 0.14);
         }
 
         .btn-remove {
-            background: #e53e3e;
+            background: var(--bad);
             color: #fff;
         }
 
         .btn-remove:hover {
-            background: #c53030;
+            filter: brightness(0.9);
         }
 
         .btn-dismiss {
-            background: #38a169;
-            color: #fff;
+            background: var(--good);
+            color: #0a0a0c;
         }
 
         .btn-dismiss:hover {
-            background: #2f855a;
+            filter: brightness(0.95);
         }
 
         .loading {
             text-align: center;
             padding: 60px;
-            color: #ffffff60;
+            color: var(--ink-50);
         }
 
         .empty {
             text-align: center;
             padding: 60px 20px;
-            color: #ffffff60;
+            color: var(--ink-50);
         }
 
         .empty-icon {
@@ -313,9 +206,9 @@
         }
 
         .error-message {
-            background: #e53e3e20;
-            border: 1px solid #e53e3e;
-            color: #fc8181;
+            background: var(--bad-bg);
+            border: 1px solid var(--bad);
+            color: var(--bad);
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -323,16 +216,16 @@
         }
 
         .success-message {
-            background: #38a16920;
-            border: 1px solid #38a169;
-            color: #68d391;
+            background: var(--good-bg);
+            border: 1px solid var(--good);
+            color: var(--good);
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
         }
 
-        /* Remove Modal */
+        /* Remove / Preview Modal */
         .modal {
             display: none;
             position: fixed;
@@ -340,7 +233,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -351,11 +244,13 @@
         }
 
         .modal-content {
-            background: #16213e;
-            border-radius: 12px;
+            background: var(--panel);
+            border-radius: var(--radius);
             padding: 24px;
             max-width: 500px;
             width: 90%;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
         }
 
         .modal h3 {
@@ -368,16 +263,17 @@
         .modal .close-btn {
             background: none;
             border: none;
-            color: #fff;
+            color: var(--ink);
             font-size: 1.5rem;
             cursor: pointer;
+            line-height: 1;
         }
 
         .modal label {
             display: block;
             margin-bottom: 6px;
             font-size: 0.85rem;
-            color: #ffffff80;
+            color: var(--ink-50);
         }
 
         .modal select,
@@ -385,15 +281,16 @@
             width: 100%;
             padding: 12px;
             margin-bottom: 16px;
-            border: 1px solid #ffffff30;
+            border: 1px solid var(--line-strong);
             border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
+            background: var(--panel-2);
+            color: var(--ink);
             font-size: 14px;
+            font-family: inherit;
         }
 
         .modal select option {
-            background: #1a1a2e;
+            background: var(--panel-2);
         }
 
         .modal textarea {
@@ -415,34 +312,35 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
+            font-family: inherit;
         }
 
         .modal-actions .btn-cancel {
-            background: #ffffff10;
-            color: #fff;
+            background: var(--accent-dim);
+            color: var(--ink);
         }
 
         .modal-actions .btn-confirm {
-            background: #e53e3e;
+            background: var(--bad);
             color: #fff;
         }
 
         .modal-actions .btn-confirm:hover {
-            background: #c53030;
+            filter: brightness(0.9);
         }
 
         .modal-actions .btn-confirm:disabled {
-            background: #4a5568;
+            background: var(--ink-35);
             cursor: not-allowed;
+            filter: none;
         }
 
-        /* Preview Modal */
         .preview-modal-content {
             max-width: 700px;
         }
 
         .preview-modal-content .preview-area {
-            background: #0f1729;
+            background: var(--panel-2);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 16px;
@@ -462,7 +360,8 @@
         }
 
         .preview-modal-content .message-bubble {
-            background: #3182ce;
+            background: var(--info-bg);
+            color: var(--info);
             padding: 12px 16px;
             border-radius: 16px;
             display: inline-block;
@@ -473,11 +372,11 @@
         .report-list {
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid #ffffff10;
+            border-top: 1px solid var(--line);
         }
 
         .report-item {
-            background: #0f1729;
+            background: var(--panel-2);
             padding: 12px;
             border-radius: 8px;
             margin-bottom: 8px;
@@ -500,63 +399,62 @@
 
         .report-time {
             font-size: 0.75rem;
-            color: #ffffff60;
+            color: var(--ink-50);
         }
 
         .report-details {
             font-size: 0.85rem;
-            color: #ffffff80;
+            color: var(--ink-70);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--info-bg);
+            color: var(--info);
+            border-color: var(--info);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
-        <div class="header-nav">
-            <a href="index.html">Overview</a>
-            <a href="reports.html">Reports</a>
-            <a href="users.html">Users</a>
-            <a href="appeals.html">Appeals</a>
-            <a href="content.html" class="active">Content</a>
-            <a href="audit.html">Audit</a>
-            <a href="transparency.html">Transparency</a>
-            <a href="levers.html">Levers</a>
-            <a href="costs.html">Costs</a>
-            <a href="crashes.html">Crashes</a>
-        </div>
-        <div class="header-actions" id="header-actions" style="display: none;">
-            <button class="logout-btn" onclick="logout()">Sign Out</button>
-        </div>
-    </div>
+    <div class="container">
+        <div class="error-message" id="error-message"></div>
+        <div class="success-message" id="success-message"></div>
 
-    <!-- Login Section -->
-    <div id="login-section" style="display: none;">
-        <div class="login-form">
-            <h2>Admin Sign In</h2>
-            <div class="login-error" id="login-error"></div>
-            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
-            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
-            <button id="login-btn" onclick="login()">Sign In</button>
+        <div class="tabs">
+            <button class="tab active" data-type="all" onclick="switchTab('all')">All</button>
+            <button class="tab" data-type="story" onclick="switchTab('story')">Stories</button>
+            <button class="tab" data-type="pin" onclick="switchTab('pin')">Pins</button>
+            <button class="tab" data-type="message" onclick="switchTab('message')">Messages</button>
+            <button class="tab" data-type="recent_story" onclick="switchTab('recent_story')">Recent stories</button>
+            <button class="tab" data-type="recent_pin" onclick="switchTab('recent_pin')">Recent pins</button>
         </div>
-    </div>
 
-    <!-- Dashboard Section -->
-    <div id="dashboard-section" style="display: none;">
-        <div class="container">
-            <div class="error-message" id="error-message"></div>
-            <div class="success-message" id="success-message"></div>
-
-            <div class="tabs">
-                <button class="tab active" data-type="all" onclick="switchTab('all')">All</button>
-                <button class="tab" data-type="story" onclick="switchTab('story')">Stories</button>
-                <button class="tab" data-type="pin" onclick="switchTab('pin')">Pins</button>
-                <button class="tab" data-type="message" onclick="switchTab('message')">Messages</button>
-            </div>
-
-            <div class="content-grid" id="content-grid">
-                <div class="loading">Loading reported content...</div>
-            </div>
+        <div class="content-grid" id="content-grid">
+            <div class="loading">Loading reported content...</div>
         </div>
+        <div class="pagination" id="pagination"></div>
     </div>
 
     <!-- Remove Content Modal -->
@@ -566,7 +464,7 @@
                 Remove Content
                 <button class="close-btn" onclick="closeRemoveModal()">&times;</button>
             </h3>
-            <p style="margin-bottom: 16px; color: #ffffff80;">
+            <p style="margin-bottom: 16px; color: var(--ink-50);">
                 This will permanently remove the content and notify the owner.
             </p>
             <label>Reason Code</label>
@@ -605,7 +503,7 @@
             </div>
             <div id="preview-meta"></div>
             <div class="report-list" id="report-list">
-                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #ffffff80;">Reports</h4>
+                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: var(--ink-50);">Reports</h4>
                 <!-- Reports loaded dynamically -->
             </div>
             <div class="modal-actions" style="margin-top: 16px;">
@@ -615,24 +513,14 @@
         </div>
     </div>
 
+    <script src="assets/admin.js"></script>
     <script>
-        // --- Configuration ---
-        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
-        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
-        const API_BASE = 'https://api.dsco.dev/realtime';
-        const SOCIAL_API_BASE = 'https://api.dsco.dev/social';
-
-        const poolData = {
-            UserPoolId: COGNITO_USER_POOL_ID,
-            ClientId: COGNITO_CLIENT_ID,
-        };
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
-
-        let cognitoUser = null;
-        let idToken = '';
         let currentTab = 'all';
         let reportedContent = [];
+        let recentContent = [];
         let selectedContent = null;
+        let storedLastKey = null;
+        let hasMore = false;
 
         const REASON_LABELS = {
             'HARASSMENT': 'Harassment',
@@ -648,172 +536,177 @@
             'OTHER': 'Other'
         };
 
-        // --- Auth ---
-
-        function init() {
-            cognitoUser = userPool.getCurrentUser();
-            if (cognitoUser) {
-                cognitoUser.getSession((err, session) => {
-                    if (err || !session || !session.isValid()) {
-                        showLogin();
-                        return;
-                    }
-                    idToken = session.getIdToken().getJwtToken();
-                    showDashboard();
-                    loadReportedContent();
-                });
-            } else {
-                showLogin();
-            }
-        }
-
-        function showLogin() {
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('header-actions').style.display = 'none';
-        }
-
-        function showDashboard() {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'block';
-            document.getElementById('header-actions').style.display = 'flex';
-        }
-
-        function login() {
-            const email = document.getElementById('email-input').value.trim();
-            const password = document.getElementById('password-input').value;
-            const errorEl = document.getElementById('login-error');
-            const btn = document.getElementById('login-btn');
-
-            if (!email || !password) {
-                errorEl.textContent = 'Please enter email and password.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Signing in...';
-
-            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-                Username: email,
-                Password: password,
-            });
-
-            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: email,
-                Pool: userPool,
-            });
-
-            cognitoUser.authenticateUser(authDetails, {
-                onSuccess: (result) => {
-                    idToken = result.getIdToken().getJwtToken();
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    showDashboard();
-                    loadReportedContent();
-                },
-                onFailure: (err) => {
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    errorEl.textContent = err.message || 'Authentication failed.';
-                    errorEl.style.display = 'block';
-                },
-            });
-        }
-
-        function logout() {
-            if (cognitoUser) cognitoUser.signOut();
-            cognitoUser = null;
-            idToken = '';
-            showLogin();
-        }
-
-        function getValidToken() {
-            return new Promise((resolve, reject) => {
-                if (!cognitoUser) {
-                    reject(new Error('Not authenticated'));
-                    return;
-                }
-                cognitoUser.getSession((err, session) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (!session.isValid()) {
-                        reject(new Error('Session expired'));
-                        return;
-                    }
-                    resolve(session.getIdToken().getJwtToken());
-                });
-            });
-        }
-
         // --- Content Management ---
 
-        async function loadReportedContent() {
+        function isRecentTab(type = currentTab) {
+            return type === 'recent_story' || type === 'recent_pin';
+        }
+
+        function recentContentType(type = currentTab) {
+            return type === 'recent_pin' ? 'pin' : 'story';
+        }
+
+        function clearPagination() {
+            storedLastKey = null;
+            hasMore = false;
+            const pagination = document.getElementById('pagination');
+            if (pagination) pagination.innerHTML = '';
+        }
+
+        async function loadContent() {
             const grid = document.getElementById('content-grid');
             grid.innerHTML = '<div class="loading">Loading reported content...</div>';
+            clearPagination();
             hideError();
             hideSuccess();
 
             try {
-                const token = await getValidToken();
-
                 // Backend is GET /reports/list?status=… (has_content filtered client-side).
-                const response = await fetch(
-                    `${SOCIAL_API_BASE}/reports/list?status=${encodeURIComponent('pending')}`,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
-                    }
+                const data = await AdminShell.api(
+                    'social',
+                    '/reports/list?status=' + encodeURIComponent('pending'),
+                    null,
+                    { method: 'GET' }
                 );
 
-                if (response.status === 401 || response.status === 403) {
-                    showError('Access denied. Please check your permissions.');
-                    setTimeout(logout, 2000);
-                    return;
-                }
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.message || `HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
                 reportedContent = data.reports || data.items || [];
 
                 // Group reports by content
                 reportedContent = groupReportsByContent(reportedContent);
 
-                renderContent();
+                if (!isRecentTab()) renderContent();
 
             } catch (error) {
                 console.error('Error loading content:', error);
-                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
-                    logout();
-                } else {
-                    showError('Failed to load reported content.');
+                showError(error.message || 'Failed to load reported content.');
+                if (!isRecentTab()) {
                     grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load content</p></div>';
                 }
             }
+        }
+
+        async function loadRecentContent(lastKey = null) {
+            const grid = document.getElementById('content-grid');
+            const contentType = recentContentType();
+            grid.innerHTML = `<div class="loading">Loading recent ${contentType === 'pin' ? 'pins' : 'stories'}...</div>`;
+            hideError();
+            hideSuccess();
+
+            const body = {
+                content_type: contentType,
+                limit: 20,
+            };
+            if (lastKey) body.last_key = lastKey;
+
+            try {
+                const data = await AdminShell.api('realtime', '/admin/content/recent', body);
+
+                const rawItems =
+                    data.items ||
+                    data.stories ||
+                    data.pins ||
+                    data.content ||
+                    [];
+
+                recentContent = rawItems.map(item => normalizeRecentItem(item, contentType));
+                storedLastKey = data.last_key || null;
+                hasMore = !!storedLastKey;
+
+                renderRecentContent();
+            } catch (error) {
+                console.error('Error loading recent content:', error);
+                showError(error.message || 'Failed to load recent content.');
+                grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load content</p></div>';
+                clearPagination();
+            }
+        }
+
+        function normalizeRecentItem(item, contentType) {
+            const contentId =
+                item.content_id ||
+                item.id ||
+                item.story_id ||
+                item.pin_id ||
+                '';
+            const ownerId =
+                item.owner_id ||
+                item.user_id ||
+                item.content_owner_id ||
+                item.uid ||
+                item.author_id ||
+                null;
+            const title =
+                item.title ||
+                item.name ||
+                item.type ||
+                item.pin_type ||
+                item.media_type ||
+                contentType;
+            const previewUrl =
+                item.content_preview_url ||
+                item.preview_url ||
+                item.media_url ||
+                item.image_url ||
+                item.thumbnail_url ||
+                null;
+            const text =
+                item.content_text ||
+                item.text ||
+                item.caption ||
+                item.body ||
+                item.message ||
+                null;
+
+            return {
+                content_type: contentType,
+                content_id: String(contentId),
+                content_owner_id: ownerId,
+                created_at: item.created_at || item.createdAt || item.timestamp || null,
+                title: title,
+                content_preview_url: previewUrl,
+                content_text: text,
+                reports: [],
+            };
+        }
+
+        function loadRecentFirstPage() {
+            storedLastKey = null;
+            loadRecentContent(null);
+        }
+
+        function loadRecentNextPage() {
+            if (storedLastKey) loadRecentContent(storedLastKey);
+        }
+
+        function resolveContentId(report) {
+            // Prefer explicit content_id from reports/submit.
+            if (report.content_id) return report.content_id;
+            // Legacy story/pin clients stored the content primary key as reported_id
+            // with no content_id field. Never invent a path for messages — reported_id
+            // is the sender user id, not an RTDB path.
+            if (report.content_type === 'story' || report.content_type === 'pin') {
+                return report.reported_id || null;
+            }
+            return null;
         }
 
         function groupReportsByContent(reports) {
             const grouped = {};
 
             for (const report of reports) {
-                // Only include reports with content_type and content_id
-                if (!report.content_type || !report.content_id) continue;
+                if (!report.content_type || report.content_type === 'user') continue;
 
-                const key = `${report.content_type}:${report.content_id}`;
+                const contentId = resolveContentId(report);
+                if (!contentId) continue;
+
+                const key = `${report.content_type}:${contentId}`;
                 if (!grouped[key]) {
                     grouped[key] = {
                         content_type: report.content_type,
-                        content_id: report.content_id,
-                        content_owner_id: report.reported_user_id || report.target_id,
+                        content_id: contentId,
+                        // reported_id is content owner for message reports; for legacy
+                        // story/pin it may still be the content primary key.
+                        content_owner_id: report.reported_id || report.reported_user_id || report.target_id,
                         content_preview_url: report.content_preview_url,
                         content_text: report.content_text,
                         reports: []
@@ -830,7 +723,14 @@
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.toggle('active', tab.dataset.type === type);
             });
-            renderContent();
+
+            if (isRecentTab(type)) {
+                storedLastKey = null;
+                loadRecentContent(null);
+            } else {
+                clearPagination();
+                renderContent();
+            }
         }
 
         function renderContent() {
@@ -875,11 +775,81 @@
                         </div>
                     </div>
                     <div class="content-actions">
-                        <button class="btn-view" onclick="showPreview(${idx})">View Details</button>
+                        <button class="btn-view" onclick="showPreview(${idx})">View details</button>
                         <button class="btn-remove" onclick="showRemoveModal(${idx})">Remove</button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function renderRecentContent() {
+            const grid = document.getElementById('content-grid');
+            const contentType = recentContentType();
+
+            if (recentContent.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">📭</div>
+                        <p>No recent ${contentType === 'pin' ? 'pins' : 'stories'}</p>
+                    </div>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            grid.innerHTML = recentContent.map((content, idx) => {
+                const idDisplay = content.content_id
+                    ? (content.content_id.length > 16
+                        ? content.content_id.substring(0, 16) + '...'
+                        : content.content_id)
+                    : 'Unknown';
+                const ownerDisplay = content.content_owner_id
+                    ? (content.content_owner_id.length > 16
+                        ? content.content_owner_id.substring(0, 16) + '...'
+                        : content.content_owner_id)
+                    : 'Unknown';
+                const titleDisplay = escapeHtml(String(content.title || contentType));
+
+                return `
+                <div class="content-card" data-index="${idx}">
+                    <div class="content-card-header">
+                        <span class="content-type-badge ${content.content_type}">${content.content_type}</span>
+                        <span class="meta-value" style="font-size:0.85rem;">${titleDisplay}</span>
+                    </div>
+                    <div class="content-preview">
+                        ${getPreviewHtml(content)}
+                    </div>
+                    <div class="content-meta">
+                        <div class="meta-row">
+                            <span class="meta-label">Content ID</span>
+                            <span class="meta-value" style="font-family:monospace;font-size:0.8rem;" title="${escapeHtml(content.content_id)}">${escapeHtml(idDisplay)}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Owner</span>
+                            ${content.content_owner_id
+                                ? `<a href="users.html?id=${encodeURIComponent(content.content_owner_id)}" class="meta-value user-link">${escapeHtml(ownerDisplay)}</a>`
+                                : `<span class="meta-value">Unknown</span>`}
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Created</span>
+                            <span class="meta-value">${formatTime(content.created_at)}</span>
+                        </div>
+                    </div>
+                    <div class="content-actions">
+                        <button class="btn-remove" onclick="showRemoveModal(${idx})">Remove</button>
+                    </div>
+                </div>
+            `;
+            }).join('');
+
+            // Pagination — keys stay in JS (storedLastKey), never JSON-in-attribute
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = `
+                <button type="button" id="page-first">First</button>
+                <button type="button" id="page-next" ${!hasMore ? 'disabled' : ''}>Next</button>
+            `;
+            document.getElementById('page-first').addEventListener('click', loadRecentFirstPage);
+            document.getElementById('page-next').addEventListener('click', loadRecentNextPage);
         }
 
         function getPreviewHtml(content) {
@@ -894,7 +864,7 @@
                 const truncated = content.content_text.length > 100
                     ? content.content_text.substring(0, 100) + '...'
                     : content.content_text;
-                return `<div class="text-preview">"${truncated}"</div>`;
+                return `<div class="text-preview">"${escapeHtml(truncated)}"</div>`;
             }
 
             return '<span class="no-preview">No preview available</span>';
@@ -917,7 +887,7 @@
             selectedContent = content;
 
             document.getElementById('preview-title').textContent =
-                `${content.content_type.charAt(0).toUpperCase() + content.content_type.slice(1)} Preview`;
+                `${content.content_type.charAt(0).toUpperCase() + content.content_type.slice(1)} preview`;
 
             const previewArea = document.getElementById('preview-area');
             if (content.content_preview_url) {
@@ -938,14 +908,14 @@
                     <span class="meta-value" style="font-family:monospace;">${content.content_id}</span>
                 </div>
                 <div class="meta-row">
-                    <span class="meta-label">Content Owner</span>
+                    <span class="meta-label">Content owner</span>
                     <a href="users.html?id=${content.content_owner_id}" class="meta-value user-link">${content.content_owner_id}</a>
                 </div>
             `;
 
             const reportList = document.getElementById('report-list');
             reportList.innerHTML = `
-                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: #ffffff80;">Reports (${content.reports.length})</h4>
+                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: var(--ink-50);">Reports (${content.reports.length})</h4>
                 ${content.reports.map(report => `
                     <div class="report-item">
                         <div class="report-header">
@@ -966,17 +936,16 @@
         }
 
         function showRemoveFromPreview() {
-            closePreviewModal();
-            if (selectedContent) {
-                const idx = getFilteredContent().findIndex(c =>
-                    c.content_type === selectedContent.content_type &&
-                    c.content_id === selectedContent.content_id
-                );
-                if (idx >= 0) showRemoveModal(idx);
-            }
+            if (!selectedContent) return;
+            // Keep selection; only close preview (do not null selectedContent).
+            document.getElementById('preview-modal').classList.remove('active');
+            document.getElementById('remove-reason-code').value = '';
+            document.getElementById('remove-notes').value = '';
+            document.getElementById('remove-modal').classList.add('active');
         }
 
         function getFilteredContent() {
+            if (isRecentTab()) return recentContent;
             if (currentTab === 'all') return reportedContent;
             return reportedContent.filter(c => c.content_type === currentTab);
         }
@@ -1010,45 +979,45 @@
             btn.disabled = true;
             btn.textContent = 'Removing...';
 
+            const content = selectedContent;
+            const firstReportId = (content.reports || [])
+                .map(r => r.report_id || r.id)
+                .find(Boolean);
+
             try {
-                const token = await getValidToken();
+                const body = {
+                    content_type: content.content_type,
+                    content_id: content.content_id,
+                    reason_code: reasonCode,
+                    reason_text: notes,
+                };
+                if (firstReportId) body.source_report_id = firstReportId;
 
-                const response = await fetch(`${API_BASE}/admin/content/remove`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        content_type: selectedContent.content_type,
-                        content_id: selectedContent.content_id,
-                        reason_code: reasonCode,
-                        reason_text: notes,
-                        report_ids: selectedContent.reports.map(r => r.report_id || r.id).filter(Boolean)
-                    })
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.message || `HTTP ${response.status}`);
-                }
+                await AdminShell.api('realtime', '/admin/content/remove', body);
 
                 showSuccess('Content removed successfully.');
                 closeRemoveModal();
 
-                // Remove from local state
-                reportedContent = reportedContent.filter(c =>
-                    !(c.content_type === selectedContent.content_type && c.content_id === selectedContent.content_id)
-                );
-                selectedContent = null;
-                renderContent();
+                if (isRecentTab()) {
+                    recentContent = recentContent.filter(c =>
+                        !(c.content_type === content.content_type && c.content_id === content.content_id)
+                    );
+                    selectedContent = null;
+                    renderRecentContent();
+                } else {
+                    reportedContent = reportedContent.filter(c =>
+                        !(c.content_type === content.content_type && c.content_id === content.content_id)
+                    );
+                    selectedContent = null;
+                    renderContent();
+                }
 
             } catch (error) {
                 console.error('Error removing content:', error);
                 showError(`Failed to remove content: ${error.message}`);
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Remove Content';
+                btn.textContent = 'Remove content';
             }
         }
 
@@ -1059,33 +1028,24 @@
                 return;
             }
 
-            try {
-                const token = await getValidToken();
+            const content = selectedContent;
 
-                // Mark each report as dismissed
-                for (const report of selectedContent.reports) {
+            try {
+                for (const report of (content.reports || [])) {
                     const reportId = report.report_id || report.id;
                     if (!reportId) continue;
 
-                    await fetch(`${SOCIAL_API_BASE}/reports/action`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            report_id: reportId,
-                            action: 'dismissed'
-                        })
+                    await AdminShell.api('social', '/reports/action', {
+                        report_id: reportId,
+                        action: 'dismissed'
                     });
                 }
 
                 showSuccess('Reports dismissed.');
-                closePreviewModal();
+                document.getElementById('preview-modal').classList.remove('active');
 
-                // Remove from local state
                 reportedContent = reportedContent.filter(c =>
-                    !(c.content_type === selectedContent.content_type && c.content_id === selectedContent.content_id)
+                    !(c.content_type === content.content_type && c.content_id === content.content_id)
                 );
                 selectedContent = null;
                 renderContent();
@@ -1138,9 +1098,6 @@
                 closeRemoveModal();
                 closePreviewModal();
             }
-            if (e.key === 'Enter' && document.getElementById('login-section').style.display !== 'none') {
-                login();
-            }
         });
 
         document.getElementById('remove-modal').addEventListener('click', (e) => {
@@ -1151,7 +1108,7 @@
             if (e.target.id === 'preview-modal') closePreviewModal();
         });
 
-        init();
+        AdminShell.init({ active: 'content.html', title: 'Content', onReady: loadContent });
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Overview</title>
+    <title>Overview — DSCO Admin</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
@@ -21,6 +21,40 @@
             <div class="card"><div class="label">Signups (7d)</div><div class="value" id="signups-7d">—</div></div>
             <div class="card"><div class="label">AWS month to date</div><div class="value" id="aws-mtd">—</div><div class="sub" id="aws-forecast"></div></div>
             <div class="card"><div class="label">Crashes (7d)</div><div class="value" id="crash-count">—</div><div class="sub" id="crash-sub"></div></div>
+        </div>
+
+        <div class="section">
+            <h2>Ops health<span class="hint" id="ops-checked-at">DLQ · crons · geocode breaker · Partiful</span></h2>
+            <div class="card-grid" id="ops-cards" style="margin-bottom:16px">
+                <div class="card" id="ops-dlq-card">
+                    <div class="label">DLQ depth</div>
+                    <div class="value" id="ops-dlq">—</div>
+                    <div class="sub" id="ops-dlq-sub">Loading…</div>
+                </div>
+                <div class="card" id="ops-geocode-card">
+                    <div class="label">Geocode breaker</div>
+                    <div class="value" id="ops-geocode">—</div>
+                    <div class="sub" id="ops-geocode-sub">Loading…</div>
+                </div>
+                <div class="card" id="ops-partiful-card">
+                    <div class="label">Partiful last scrape</div>
+                    <div class="value" id="ops-partiful" style="font-size:1.1rem">—</div>
+                    <div class="sub" id="ops-partiful-sub">Loading…</div>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cron</th>
+                        <th class="num">Invocations (24h)</th>
+                        <th class="num">Errors (24h)</th>
+                        <th>Last bucket</th>
+                    </tr>
+                </thead>
+                <tbody id="ops-cron-rows">
+                    <tr><td colspan="4" class="muted">Loading…</td></tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="section">
@@ -147,11 +181,128 @@
                 rows || '<tr><td colspan="3" class="muted">No config found</td></tr>';
         }
 
+        function fmtN(n) {
+            if (n == null || n === '') return '—';
+            return Number(n).toLocaleString();
+        }
+
+        function fmtWhen(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+        }
+
+        async function loadOps() {
+            const data = await AdminShell.api('realtime', '/admin/metrics/ops', {});
+            const stage = data.stage || '';
+            const checked = data.checked_at ? fmtWhen(data.checked_at) : '';
+            document.getElementById('ops-checked-at').textContent =
+                [stage && `stage ${stage}`, checked && `checked ${checked}`].filter(Boolean).join(' · ')
+                || 'DLQ · crons · geocode breaker · Partiful';
+
+            // DLQ
+            const dlq = data.dlq || {};
+            const dlqEl = document.getElementById('ops-dlq');
+            const dlqSub = document.getElementById('ops-dlq-sub');
+            const dlqCard = document.getElementById('ops-dlq-card');
+            if (dlq.error) {
+                dlqEl.textContent = '—';
+                dlqSub.innerHTML = `<span class="pill warn">error</span> · ${dlq.error}`;
+            } else if (dlq.visible == null && dlq.not_visible == null) {
+                dlqEl.textContent = '—';
+                dlqSub.textContent = 'No data';
+            } else {
+                const visible = Number(dlq.visible || 0);
+                const notVisible = Number(dlq.not_visible || 0);
+                dlqEl.textContent = `${fmtN(visible)} / ${fmtN(notVisible)}`;
+                dlqSub.textContent = (dlq.queue_name || 'async-dlq') + ' · visible / not visible';
+                if (visible > 0) {
+                    dlqSub.innerHTML =
+                        `<span class="pill warn">messages waiting</span> · ${dlq.queue_name || 'async-dlq'}`;
+                    dlqCard.style.borderColor = 'rgba(245, 197, 66, 0.45)';
+                } else {
+                    dlqCard.style.borderColor = '';
+                }
+            }
+
+            // Geocode breaker
+            const geo = data.geocode || {};
+            const geoEl = document.getElementById('ops-geocode');
+            const geoSub = document.getElementById('ops-geocode-sub');
+            const geoCard = document.getElementById('ops-geocode-card');
+            if (geo.month_total == null && geo.ceiling == null) {
+                geoEl.textContent = '—';
+                geoSub.textContent = 'No data';
+            } else {
+                geoEl.textContent = `${fmtN(geo.month_total)} / ${fmtN(geo.ceiling)}`;
+                const tripped = !!geo.breaker_tripped;
+                geoSub.innerHTML =
+                    (tripped
+                        ? '<span class="pill warn">tripped</span>'
+                        : '<span class="pill ok">ok</span>')
+                    + (geo.month_key ? ` · ${geo.month_key}` : ' · month total / ceiling');
+                geoCard.style.borderColor = tripped ? 'rgba(245, 197, 66, 0.45)' : '';
+            }
+
+            // Partiful last scrape
+            const ps = data.partiful_sync;
+            const psEl = document.getElementById('ops-partiful');
+            const psSub = document.getElementById('ops-partiful-sub');
+            if (!ps || ps.present === false) {
+                psEl.textContent = '—';
+                psSub.textContent = ps && ps.error ? `Error: ${ps.error}` : 'No scrape recorded yet';
+            } else {
+                psEl.textContent = fmtWhen(ps.finished_at);
+                const stats = ps.stats || {};
+                const bits = [
+                    stats.regions_ok != null && `regions ok ${fmtN(stats.regions_ok)}`,
+                    stats.regions_failed != null && `failed ${fmtN(stats.regions_failed)}`,
+                    stats.pins_new != null && `pins new ${fmtN(stats.pins_new)}`,
+                    stats.pins_updated != null && `updated ${fmtN(stats.pins_updated)}`,
+                    stats.events_seen != null && `events ${fmtN(stats.events_seen)}`,
+                    ps.stage && `stage ${ps.stage}`,
+                ].filter(Boolean);
+                psSub.textContent = bits.join(' · ') || 'No stats';
+            }
+
+            // Crons table — shape: { window_hours, functions: { name: {...} }, error }
+            const crons = data.crons || {};
+            const fnMap = crons.functions || (typeof crons === 'object' && !crons.window_hours ? crons : {});
+            const entries = Object.entries(fnMap).filter(([k]) =>
+                k !== 'window_hours' && k !== 'error' && k !== 'functions'
+            );
+            const tbody = document.getElementById('ops-cron-rows');
+            if (crons.error) {
+                tbody.innerHTML =
+                    `<tr><td colspan="4" class="muted"><span class="pill warn">error</span> ${crons.error}</td></tr>`;
+            } else if (!entries.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="muted">No cron metrics</td></tr>';
+            } else {
+                tbody.innerHTML = entries.map(([name, row]) => {
+                    const inv = row.invocations_24h ?? row.invocations ?? 0;
+                    const err = row.errors_24h ?? row.errors ?? 0;
+                    const last = row.last_invocation_bucket
+                        ? fmtWhen(row.last_invocation_bucket)
+                        : '—';
+                    const errCell = Number(err) > 0
+                        ? `<span class="pill warn">${fmtN(err)}</span>`
+                        : fmtN(err);
+                    return `<tr>
+                        <td><code>${name}</code></td>
+                        <td class="num">${fmtN(inv)}</td>
+                        <td class="num">${errCell}</td>
+                        <td class="muted">${last}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
         function loadPage() {
             loadUsers().catch(e => showError('Users: ' + e.message));
             loadCosts().catch(e => showError('Costs: ' + e.message));
             loadCrashes().catch(e => showError('Crashes: ' + e.message));
             loadLevers().catch(e => showError('Levers: ' + e.message));
+            loadOps().catch(e => showError('Ops: ' + e.message));
         }
 
         AdminShell.init({ active: 'index.html', onReady: loadPage });

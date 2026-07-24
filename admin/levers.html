@@ -63,6 +63,40 @@
         }
         .toggle-state.on { color: #3dd68c; }
         .toggle-state.off { color: rgba(255, 255, 255, 0.45); }
+        .announce-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 560px;
+        }
+        .announce-fields input[type="text"],
+        .announce-fields textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--line-strong);
+            color: var(--ink);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-family: var(--body);
+            font-size: 0.9rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .announce-fields textarea {
+            min-height: 96px;
+            resize: vertical;
+            border-radius: 12px;
+        }
+        .announce-fields input:focus,
+        .announce-fields textarea:focus {
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+        .announce-targets {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -105,11 +139,28 @@
             <h2>Force upgrade<span class="hint">queues a push to targets</span></h2>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
                 <input type="text" id="min-version" placeholder="Minimum version, e.g. 1.0.155">
+                <input type="text" id="user-ids" placeholder="User ids, comma-separated">
                 <label class="muted" style="font-size:0.85rem">
-                    <input type="checkbox" id="broadcast"> broadcast to all users
+                    <input type="checkbox" id="broadcast"> Broadcast to all users
                 </label>
                 <button class="btn" id="push-version">Queue force upgrade</button>
                 <span class="muted" id="version-result"></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Broadcast announcement<span class="hint">visible FCM push · super admin</span></h2>
+            <div class="announce-fields">
+                <input type="text" id="announce-title" placeholder="Title" maxlength="80">
+                <textarea id="announce-body" placeholder="Body" maxlength="500"></textarea>
+                <div class="announce-targets">
+                    <input type="text" id="announce-user-ids" placeholder="User ids, comma-separated">
+                    <label class="muted" style="font-size:0.85rem">
+                        <input type="checkbox" id="announce-broadcast"> Broadcast to all users
+                    </label>
+                    <button class="btn" id="send-announce">Send announcement</button>
+                    <span class="muted" id="announce-result"></span>
+                </div>
             </div>
         </div>
     </div>
@@ -196,16 +247,78 @@
         document.getElementById('paywall-toggle').addEventListener('click', togglePaywall);
 
         document.addEventListener('click', e => {
-            if (e.target.id !== 'push-version') return;
-            const minVersion = document.getElementById('min-version').value.trim();
-            const broadcast = document.getElementById('broadcast').checked;
-            const resultEl = document.getElementById('version-result');
-            if (!minVersion) { resultEl.textContent = 'Enter a version.'; return; }
-            if (!broadcast) { resultEl.textContent = 'Check broadcast (per-user targeting not wired in this UI).'; return; }
-            if (!confirm(`Queue force-upgrade push to ALL users requiring ${minVersion}?`)) return;
+            if (e.target.id === 'push-version') {
+                const minVersion = document.getElementById('min-version').value.trim();
+                const broadcast = document.getElementById('broadcast').checked;
+                const resultEl = document.getElementById('version-result');
+                if (!minVersion) { resultEl.textContent = 'Enter a version.'; return; }
+
+                let payload;
+                let confirmMsg;
+                if (broadcast) {
+                    payload = { min_version: minVersion, broadcast: true };
+                    confirmMsg = `Queue force-upgrade push to all users requiring ${minVersion}?`;
+                } else {
+                    const userIds = document.getElementById('user-ids').value
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    if (!userIds.length) {
+                        resultEl.textContent = 'Enter user ids, or check broadcast.';
+                        return;
+                    }
+                    payload = { min_version: minVersion, user_ids: userIds };
+                    confirmMsg = `Queue force-upgrade push to ${userIds.length} user(s) requiring ${minVersion}?`;
+                }
+                if (!confirm(confirmMsg)) return;
+
+                e.target.disabled = true;
+                AdminShell.api('realtime', '/admin/set_min_version', payload)
+                    .then(data => { resultEl.textContent = `Queued for ${data.users_queued} users.`; })
+                    .catch(err => { resultEl.textContent = err.message; })
+                    .finally(() => { e.target.disabled = false; });
+                return;
+            }
+
+            if (e.target.id !== 'send-announce') return;
+            const title = document.getElementById('announce-title').value.trim();
+            const body = document.getElementById('announce-body').value.trim();
+            const broadcast = document.getElementById('announce-broadcast').checked;
+            const resultEl = document.getElementById('announce-result');
+            if (!title) { resultEl.textContent = 'Enter a title.'; return; }
+            if (!body) { resultEl.textContent = 'Enter a body.'; return; }
+
+            let payload;
+            let confirmMsg;
+            if (broadcast) {
+                payload = { title, body, broadcast: true };
+                confirmMsg = `Send announcement “${title}” to all users?`;
+            } else {
+                const userIds = document.getElementById('announce-user-ids').value
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                if (!userIds.length) {
+                    resultEl.textContent = 'Enter user ids, or check broadcast.';
+                    return;
+                }
+                payload = { title, body, user_ids: userIds };
+                confirmMsg = `Send announcement “${title}” to ${userIds.length} user(s)?`;
+            }
+            if (!confirm(confirmMsg)) return;
+
             e.target.disabled = true;
-            AdminShell.api('realtime', '/admin/set_min_version', { min_version: minVersion, broadcast: true })
-                .then(data => { resultEl.textContent = `Queued for ${data.users_queued} users.`; })
+            resultEl.textContent = 'Sending…';
+            AdminShell.api('realtime', '/admin/push/announce', payload)
+                .then(data => {
+                    const sent = data.users_sent ?? data.users_queued ?? 0;
+                    const failed = data.users_failed ?? 0;
+                    const targeted = data.users_targeted;
+                    let msg = `Sent ${sent}`;
+                    if (failed) msg += ` · failed ${failed}`;
+                    if (targeted != null) msg += ` · targeted ${targeted}`;
+                    resultEl.textContent = msg + '.';
+                })
                 .catch(err => { resultEl.textContent = err.message; })
                 .finally(() => { e.target.disabled = false; });
         });

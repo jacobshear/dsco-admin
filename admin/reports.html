@@ -3,145 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Reports</title>
+    <title>Reports — DSCO Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #fff;
-            min-height: 100vh;
-        }
-
-        .header {
-            background: #16213e;
-            padding: 20px;
-            border-bottom: 1px solid #ffffff20;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 1.5rem;
-            letter-spacing: 0.2em;
-        }
-
-        .header-nav {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .header-nav a {
-            color: #ffffff80;
-            text-decoration: none;
-            font-size: 0.9rem;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .header-nav a:hover {
-            color: #fff;
-            background: #ffffff10;
-        }
-
-        .header-nav a.active {
-            color: #fff;
-            background: #3182ce;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions button {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid #ffffff30;
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .header-actions .logout-btn:hover {
-            background: #e53e3e;
-            border-color: #e53e3e;
-        }
-
-        .header-actions .changepw-btn:hover {
-            background: #3182ce;
-            border-color: #3182ce;
-        }
-
-        .success-msg {
-            color: #68d391;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            display: none;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .login-form {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: #16213e;
-            border-radius: 12px;
-        }
-
-        .login-form h2 {
-            margin-bottom: 20px;
-        }
-
-        .login-form input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ffffff30;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .login-form button {
-            width: 100%;
-            padding: 14px;
-            background: #3182ce;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .login-form button:hover {
-            background: #2c5aa0;
-        }
-
-        .login-form button:disabled {
-            background: #4a5568;
-            cursor: not-allowed;
-        }
-
-        .login-error {
-            color: #fc8181;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            display: none;
-        }
-
         .filters {
             display: flex;
             gap: 10px;
@@ -151,18 +19,21 @@
 
         .filters button {
             padding: 8px 16px;
-            border: 1px solid #ffffff30;
+            border: 1px solid var(--line-strong);
             background: transparent;
-            color: #fff;
-            border-radius: 20px;
+            color: var(--ink);
+            border-radius: var(--pill);
             cursor: pointer;
             transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.9rem;
         }
 
         .filters button:hover,
         .filters button.active {
-            background: #3182ce;
-            border-color: #3182ce;
+            background: var(--info);
+            border-color: var(--info);
+            color: #0a0a0c;
         }
 
         .stats {
@@ -173,26 +44,27 @@
         }
 
         .stat-card {
-            background: #16213e;
+            background: var(--panel);
             padding: 20px;
-            border-radius: 12px;
+            border-radius: var(--radius);
             text-align: center;
+            border: 1px solid var(--line);
         }
 
         .stat-card .number {
             font-size: 2rem;
             font-weight: bold;
-            color: #3182ce;
+            color: var(--info);
         }
 
         .stat-card .label {
-            color: #ffffff80;
+            color: var(--ink-50);
             font-size: 0.85rem;
             margin-top: 5px;
         }
 
-        .stat-card.pending .number { color: #f6ad55; }
-        .stat-card.actioned .number { color: #68d391; }
+        .stat-card.pending .number { color: var(--warn); }
+        .stat-card.actioned .number { color: var(--good); }
 
         .reports-list {
             display: flex;
@@ -201,14 +73,15 @@
         }
 
         .report-card {
-            background: #16213e;
-            border-radius: 12px;
+            background: var(--panel);
+            border-radius: var(--radius);
             padding: 20px;
-            border-left: 4px solid #f6ad55;
+            border: 1px solid var(--line);
+            border-left: 4px solid var(--warn);
         }
 
         .report-card.actioned {
-            border-left-color: #68d391;
+            border-left-color: var(--good);
             opacity: 0.7;
         }
 
@@ -225,7 +98,7 @@
         }
 
         .report-time {
-            color: #ffffff60;
+            color: var(--ink-35);
             font-size: 0.85rem;
         }
 
@@ -237,7 +110,7 @@
         }
 
         .user-info label {
-            color: #ffffff60;
+            color: var(--ink-35);
             font-size: 0.8rem;
             display: block;
             margin-bottom: 5px;
@@ -250,15 +123,15 @@
         .user-info .user-id {
             font-family: monospace;
             font-size: 0.75rem;
-            color: #ffffff60;
+            color: var(--ink-35);
         }
 
         .report-details {
-            background: #1a1a2e;
+            background: var(--panel-2);
             padding: 12px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             margin-bottom: 15px;
-            color: #ffffffcc;
+            color: var(--ink-70);
         }
 
         .report-details:empty {
@@ -277,31 +150,33 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
+            font-family: inherit;
             transition: all 0.2s;
         }
 
         .btn-dismiss {
-            background: #4a5568;
-            color: #fff;
+            background: var(--accent-dim);
+            border: 1px solid var(--line-strong);
+            color: var(--ink);
         }
 
         .btn-reviewed {
-            background: #3182ce;
-            color: #fff;
+            background: var(--info);
+            color: #0a0a0c;
         }
 
         .btn-warn {
-            background: #f6ad55;
-            color: #1a1a2e;
+            background: var(--warn);
+            color: #0a0a0c;
         }
 
         .btn-suspend {
-            background: #fc8181;
-            color: #1a1a2e;
+            background: var(--orange);
+            color: #0a0a0c;
         }
 
         .btn-ban {
-            background: #e53e3e;
+            background: var(--bad);
             color: #fff;
         }
 
@@ -313,22 +188,13 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #ffffff60;
-        }
-
-        .error {
-            background: #e53e3e20;
-            border: 1px solid #e53e3e;
-            color: #fc8181;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            color: var(--ink-35);
         }
 
         .empty {
             text-align: center;
             padding: 60px 20px;
-            color: #ffffff60;
+            color: var(--ink-35);
         }
 
         .empty-icon {
@@ -361,11 +227,12 @@
         }
 
         .modal-content {
-            background: #16213e;
-            border-radius: 12px;
+            background: var(--panel);
+            border-radius: var(--radius);
             padding: 24px;
             max-width: 450px;
             width: 90%;
+            border: 1px solid var(--line);
         }
 
         .modal h3 {
@@ -378,7 +245,7 @@
         .modal .close-btn {
             background: none;
             border: none;
-            color: #fff;
+            color: var(--ink);
             font-size: 1.5rem;
             cursor: pointer;
         }
@@ -387,7 +254,7 @@
             display: block;
             margin-bottom: 6px;
             font-size: 0.85rem;
-            color: #ffffff80;
+            color: var(--ink-50);
         }
 
         .modal select,
@@ -395,15 +262,16 @@
             width: 100%;
             padding: 12px;
             margin-bottom: 16px;
-            border: 1px solid #ffffff30;
+            border: 1px solid var(--line-strong);
             border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
+            background: var(--panel-2);
+            color: var(--ink);
             font-size: 14px;
+            font-family: inherit;
         }
 
         .modal select option {
-            background: #1a1a2e;
+            background: var(--panel-2);
         }
 
         .modal textarea {
@@ -425,30 +293,31 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
+            font-family: inherit;
         }
 
         .modal-actions .btn-cancel {
-            background: #ffffff10;
-            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--ink);
         }
 
         .modal-actions .btn-confirm {
-            background: #e53e3e;
+            background: var(--bad);
             color: #fff;
         }
 
         .modal-actions .btn-confirm.warn {
-            background: #f6ad55;
-            color: #1a1a2e;
+            background: var(--warn);
+            color: #0a0a0c;
         }
 
         .modal-actions .btn-confirm.suspend {
-            background: #fc8181;
-            color: #1a1a2e;
+            background: var(--orange);
+            color: #0a0a0c;
         }
 
         .modal-actions .btn-confirm:disabled {
-            background: #4a5568;
+            background: var(--line-strong);
             cursor: not-allowed;
         }
 
@@ -461,94 +330,39 @@
             margin-left: 8px;
         }
 
-        .action-type-badge.warn { background: #f6ad5520; color: #f6ad55; }
-        .action-type-badge.suspend { background: #fc818120; color: #fc8181; }
-        .action-type-badge.ban { background: #e53e3e20; color: #e53e3e; }
+        .action-type-badge.warned { background: var(--warn-bg); color: var(--warn); }
+        .action-type-badge.suspended { background: var(--orange-bg); color: var(--orange); }
+        .action-type-badge.banned { background: var(--bad-bg); color: var(--bad); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
-        <div class="header-nav">
-            <a href="index.html">Overview</a>
-            <a href="reports.html" class="active">Reports</a>
-            <a href="users.html">Users</a>
-            <a href="appeals.html">Appeals</a>
-            <a href="content.html">Content</a>
-            <a href="audit.html">Audit</a>
-            <a href="transparency.html">Transparency</a>
-            <a href="levers.html">Levers</a>
-            <a href="costs.html">Costs</a>
-            <a href="crashes.html">Crashes</a>
-        </div>
-        <div class="header-actions" id="header-actions" style="display: none;">
-            <button class="changepw-btn" onclick="showChangePassword()">Change Password</button>
-            <button class="logout-btn" onclick="logout()">Sign Out</button>
-        </div>
-    </div>
-
     <div class="container">
-        <!-- Login Form -->
-        <div id="login-section" class="login-form" style="display: none;">
-            <h2>Admin Login</h2>
-            <p style="color: #ffffff80; margin-bottom: 20px;">Sign in with your Cognito admin account.</p>
-            <div id="login-error" class="login-error"></div>
-            <input type="email" id="email-input" placeholder="Email address">
-            <input type="password" id="password-input" placeholder="Password">
-            <button id="login-btn" onclick="login()">Sign In</button>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number" id="total-count">-</div>
+                <div class="label">Total reports</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="number" id="pending-count">-</div>
+                <div class="label">Pending</div>
+            </div>
+            <div class="stat-card actioned">
+                <div class="number" id="actioned-count">-</div>
+                <div class="label">Actioned</div>
+            </div>
         </div>
 
-        <!-- New Password Required (first-time login) -->
-        <div id="new-password-section" class="login-form" style="display: none;">
-            <h2>Set New Password</h2>
-            <p style="color: #ffffff80; margin-bottom: 20px;">Your account requires a new password.</p>
-            <div id="new-pw-error" class="login-error"></div>
-            <input type="password" id="new-password-input" placeholder="New password (8+ chars, uppercase, lowercase, number)">
-            <button id="new-pw-btn" onclick="completeNewPassword()">Set Password & Sign In</button>
+        <div class="filters">
+            <button class="active" onclick="filterReports('all')">All</button>
+            <button onclick="filterReports('pending')">Pending</button>
+            <button onclick="filterReports('actioned')">Actioned</button>
+            <button onclick="loadReports()" style="margin-left: auto;">↻ Refresh</button>
         </div>
 
-        <!-- Change Password -->
-        <div id="change-password-section" class="login-form" style="display: none;">
-            <h2>Change Password</h2>
-            <p style="color: #ffffff80; margin-bottom: 20px;">Enter your current and new password.</p>
-            <div id="changepw-error" class="login-error"></div>
-            <div id="changepw-success" class="success-msg"></div>
-            <input type="password" id="current-password-input" placeholder="Current password">
-            <input type="password" id="new-password-input-change" placeholder="New password (8+ chars)">
-            <input type="password" id="confirm-password-input" placeholder="Confirm new password">
-            <button id="changepw-btn" onclick="changePassword()">Change Password</button>
-            <button onclick="showDashboard(); loadReports();" style="background: transparent; border: 1px solid #ffffff30; margin-top: 10px;">Cancel</button>
-        </div>
+        <div class="error-banner" id="error-message"></div>
 
-        <!-- Reports Dashboard -->
-        <div id="dashboard-section" style="display: none;">
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="number" id="total-count">-</div>
-                    <div class="label">Total Reports</div>
-                </div>
-                <div class="stat-card pending">
-                    <div class="number" id="pending-count">-</div>
-                    <div class="label">Pending</div>
-                </div>
-                <div class="stat-card actioned">
-                    <div class="number" id="actioned-count">-</div>
-                    <div class="label">Actioned</div>
-                </div>
-            </div>
-
-            <div class="filters">
-                <button class="active" onclick="filterReports('all')">All</button>
-                <button onclick="filterReports('pending')">Pending</button>
-                <button onclick="filterReports('actioned')">Actioned</button>
-                <button onclick="loadReports()" style="margin-left: auto;">↻ Refresh</button>
-            </div>
-
-            <div id="error-message" class="error" style="display: none;"></div>
-
-            <div id="reports-container" class="reports-list">
-                <div class="loading">Loading reports...</div>
-            </div>
+        <div id="reports-container" class="reports-list">
+            <div class="loading">Loading reports...</div>
         </div>
     </div>
 
@@ -559,8 +373,8 @@
                 <span id="modal-title">Take Action</span>
                 <button class="close-btn" onclick="closeActionModal()">&times;</button>
             </h3>
-            <p id="modal-desc" style="margin-bottom: 16px; color: #ffffff80;"></p>
-            <label>Reason Code <span style="color: #fc8181;">*</span></label>
+            <p id="modal-desc" style="margin-bottom: 16px; color: var(--ink-50);"></p>
+            <label>Reason Code <span style="color: var(--bad);">*</span></label>
             <select id="action-reason-code">
                 <option value="">Select reason...</option>
                 <option value="HARASSMENT">Harassment</option>
@@ -584,21 +398,8 @@
         </div>
     </div>
 
+    <script src="assets/admin.js"></script>
     <script>
-        // --- Cognito Configuration ---
-        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
-        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
-        const SOCIAL_API_BASE = 'https://api.dsco.dev/social';
-        const REALTIME_API_BASE = 'https://api.dsco.dev/realtime';
-
-        const poolData = {
-            UserPoolId: COGNITO_USER_POOL_ID,
-            ClientId: COGNITO_CLIENT_ID,
-        };
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
-
-        let cognitoUser = null;  // Set during login or session restore
-        let idToken = '';        // JWT sent as Authorization header
         let allReports = [];
         let currentFilter = 'all';
         let pendingAction = null; // {reportId, action, targetUserId}
@@ -612,243 +413,11 @@
             'other': 'Other'
         };
 
-        const DSA_REASON_LABELS = {
-            'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate Speech',
-            'SEXUAL_CONTENT': 'Sexual Content',
-            'MINOR_SAFETY': 'Minor Safety',
-            'SPAM': 'Spam',
-            'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-Harm',
-            'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal Content',
-            'PRIVACY_VIOLATION': 'Privacy Violation',
-            'OTHER': 'Other'
-        };
-
         const ACTION_LABELS = {
             'warned': 'Warn User',
             'suspended': 'Suspend User',
             'banned': 'Ban User'
         };
-
-        // --- Auth ---
-
-        function init() {
-            // Check for existing valid session
-            cognitoUser = userPool.getCurrentUser();
-            if (cognitoUser) {
-                cognitoUser.getSession((err, session) => {
-                    if (err || !session || !session.isValid()) {
-                        showLogin();
-                        return;
-                    }
-                    idToken = session.getIdToken().getJwtToken();
-                    showDashboard();
-                    loadReports();
-                });
-            } else {
-                showLogin();
-            }
-        }
-
-        function hideAllSections() {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('new-password-section').style.display = 'none';
-            document.getElementById('change-password-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('header-actions').style.display = 'none';
-        }
-
-        function showLogin() {
-            hideAllSections();
-            document.getElementById('login-section').style.display = 'block';
-        }
-
-        function showDashboard() {
-            hideAllSections();
-            document.getElementById('dashboard-section').style.display = 'block';
-            document.getElementById('header-actions').style.display = 'flex';
-        }
-
-        function showChangePassword() {
-            hideAllSections();
-            document.getElementById('change-password-section').style.display = 'block';
-            document.getElementById('header-actions').style.display = 'flex';
-            document.getElementById('changepw-error').style.display = 'none';
-            document.getElementById('changepw-success').style.display = 'none';
-            document.getElementById('current-password-input').value = '';
-            document.getElementById('new-password-input-change').value = '';
-            document.getElementById('confirm-password-input').value = '';
-        }
-
-        function login() {
-            const email = document.getElementById('email-input').value.trim();
-            const password = document.getElementById('password-input').value;
-            const errorEl = document.getElementById('login-error');
-            const btn = document.getElementById('login-btn');
-
-            if (!email || !password) {
-                errorEl.textContent = 'Please enter email and password.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Signing in...';
-
-            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-                Username: email,
-                Password: password,
-            });
-
-            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: email,
-                Pool: userPool,
-            });
-
-            cognitoUser.authenticateUser(authDetails, {
-                onSuccess: (result) => {
-                    idToken = result.getIdToken().getJwtToken();
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    showDashboard();
-                    loadReports();
-                },
-                onFailure: (err) => {
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    errorEl.textContent = err.message || 'Authentication failed.';
-                    errorEl.style.display = 'block';
-                },
-                newPasswordRequired: (userAttributes) => {
-                    // First-time login — Cognito requires a new password
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    document.getElementById('login-section').style.display = 'none';
-                    document.getElementById('new-password-section').style.display = 'block';
-                },
-            });
-        }
-
-        function completeNewPassword() {
-            const newPassword = document.getElementById('new-password-input').value;
-            const errorEl = document.getElementById('new-pw-error');
-            const btn = document.getElementById('new-pw-btn');
-
-            if (!newPassword || newPassword.length < 8) {
-                errorEl.textContent = 'Password must be at least 8 characters.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Setting password...';
-
-            cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
-                onSuccess: (result) => {
-                    idToken = result.getIdToken().getJwtToken();
-                    btn.disabled = false;
-                    btn.textContent = 'Set Password & Sign In';
-                    showDashboard();
-                    loadReports();
-                },
-                onFailure: (err) => {
-                    btn.disabled = false;
-                    btn.textContent = 'Set Password & Sign In';
-                    errorEl.textContent = err.message || 'Failed to set password.';
-                    errorEl.style.display = 'block';
-                },
-            });
-        }
-
-        function changePassword() {
-            const currentPw = document.getElementById('current-password-input').value;
-            const newPw = document.getElementById('new-password-input-change').value;
-            const confirmPw = document.getElementById('confirm-password-input').value;
-            const errorEl = document.getElementById('changepw-error');
-            const successEl = document.getElementById('changepw-success');
-            const btn = document.getElementById('changepw-btn');
-
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-
-            if (!currentPw || !newPw) {
-                errorEl.textContent = 'Please fill in all fields.';
-                errorEl.style.display = 'block';
-                return;
-            }
-            if (newPw.length < 8) {
-                errorEl.textContent = 'New password must be at least 8 characters.';
-                errorEl.style.display = 'block';
-                return;
-            }
-            if (newPw !== confirmPw) {
-                errorEl.textContent = 'New passwords do not match.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = 'Changing...';
-
-            cognitoUser.changePassword(currentPw, newPw, (err, result) => {
-                btn.disabled = false;
-                btn.textContent = 'Change Password';
-
-                if (err) {
-                    errorEl.textContent = err.message || 'Failed to change password.';
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                successEl.textContent = 'Password changed successfully.';
-                successEl.style.display = 'block';
-                document.getElementById('current-password-input').value = '';
-                document.getElementById('new-password-input-change').value = '';
-                document.getElementById('confirm-password-input').value = '';
-
-                setTimeout(() => {
-                    showDashboard();
-                    loadReports();
-                }, 1500);
-            });
-        }
-
-        function logout() {
-            if (cognitoUser) {
-                cognitoUser.signOut();
-            }
-            cognitoUser = null;
-            idToken = '';
-            allReports = [];
-            showLogin();
-        }
-
-        /** Get a valid ID token, refreshing if expired. */
-        function getValidToken() {
-            return new Promise((resolve, reject) => {
-                if (!cognitoUser) {
-                    reject(new Error('Not authenticated'));
-                    return;
-                }
-                cognitoUser.getSession((err, session) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (!session.isValid()) {
-                        reject(new Error('Session expired'));
-                        return;
-                    }
-                    resolve(session.getIdToken().getJwtToken());
-                });
-            });
-        }
-
-        // --- Reports ---
 
         async function loadReports() {
             const container = document.getElementById('reports-container');
@@ -856,45 +425,15 @@
             hideError();
 
             try {
-                const token = await getValidToken();
                 // Backend registers GET /reports/list (query params for filters).
                 // POST is not allowed — CORS preflight only lists OPTIONS,GET.
-                const response = await fetch(`${SOCIAL_API_BASE}/reports/list`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-
-                if (response.status === 401) {
-                    showError('Session expired. Please log in again.');
-                    setTimeout(logout, 2000);
-                    return;
-                }
-
-                if (response.status === 403) {
-                    showError('Access denied. Your account is not authorized as admin.');
-                    setTimeout(logout, 3000);
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
+                const data = await AdminShell.api('social', '/reports/list', null, { method: 'GET' });
                 allReports = data.reports || [];
                 updateStats();
                 renderReports();
-
             } catch (error) {
                 console.error('Error loading reports:', error);
-                if (error.message === 'Not authenticated' || error.message === 'Session expired') {
-                    logout();
-                } else {
-                    // TypeError "Failed to fetch" is almost always CORS / network.
-                    showError(`Failed to load reports: ${error.message || 'check your connection'}`);
-                }
+                showError(`Failed to load reports: ${error.message || 'check your connection'}`);
             }
         }
 
@@ -969,7 +508,7 @@
                             <button class="btn-ban" onclick="takeAction('${report.report_id}', 'banned', '${report.reported_id}')">Ban</button>
                         </div>
                     ` : `
-                        <div style="color: #68d391;">✓ ${report.action_taken || 'Actioned'}</div>
+                        <div style="color: var(--good);">✓ ${report.action_taken || 'Actioned'}</div>
                     `}
                 </div>
             `).join('');
@@ -1048,41 +587,20 @@
             );
 
             btn.disabled = false;
-            btn.textContent = ACTION_LABELS[pendingAction.action] || 'Confirm';
+            btn.textContent = ACTION_LABELS[pendingAction?.action] || 'Confirm';
             closeActionModal();
         }
 
         async function executeAction(reportId, action, targetUserId, reasonCode, notes) {
             try {
-                const token = await getValidToken();
-                const response = await fetch(`${SOCIAL_API_BASE}/reports/action`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        report_id: reportId,
-                        action: action,
-                        target_user_id: targetUserId,
-                        reason_code: reasonCode,
-                        admin_notes: notes || ''
-                    })
+                await AdminShell.api('social', '/reports/action', {
+                    report_id: reportId,
+                    action: action,
+                    target_user_id: targetUserId,
+                    reason_code: reasonCode,
+                    admin_notes: notes || ''
                 });
-
-                if (response.status === 401) {
-                    showError('Session expired. Please log in again.');
-                    setTimeout(logout, 2000);
-                    return;
-                }
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.message || `HTTP ${response.status}`);
-                }
-
                 loadReports();
-
             } catch (error) {
                 console.error('Error taking action:', error);
                 showError(`Failed to process action: ${error.message}`);
@@ -1111,26 +629,15 @@
             document.getElementById('error-message').style.display = 'none';
         }
 
-        // Handle keyboard events
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeActionModal();
-            }
-            if (e.key === 'Enter') {
-                if (document.getElementById('login-section').style.display !== 'none') {
-                    login();
-                } else if (document.getElementById('new-password-section').style.display !== 'none') {
-                    completeNewPassword();
-                }
-            }
+            if (e.key === 'Escape') closeActionModal();
         });
 
-        // Click outside modal to close
         document.getElementById('action-modal').addEventListener('click', (e) => {
             if (e.target.id === 'action-modal') closeActionModal();
         });
 
-        init();
+        AdminShell.init({ active: 'reports.html', title: 'Reports', onReady: loadReports });
     </script>
 </body>
 </html>

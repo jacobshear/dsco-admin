@@ -3,166 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSCO Admin - Users</title>
+    <title>Users — DSCO Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #fff;
-            min-height: 100vh;
-        }
-
-        .header {
-            background: #16213e;
-            padding: 20px;
-            border-bottom: 1px solid #ffffff20;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 1.5rem;
-            letter-spacing: 0.2em;
-        }
-
-        .header-nav {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .header-nav a {
-            color: #ffffff80;
-            text-decoration: none;
-            font-size: 0.9rem;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .header-nav a:hover {
-            color: #fff;
-            background: #ffffff10;
-        }
-
-        .header-nav a.active {
-            color: #fff;
-            background: #3182ce;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions button {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid #ffffff30;
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .header-actions .logout-btn:hover {
-            background: #e53e3e;
-            border-color: #e53e3e;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .login-form {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: #16213e;
-            border-radius: 12px;
-        }
-
-        .login-form h2 { margin-bottom: 20px; }
-
-        .login-form input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ffffff30;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .login-form button {
-            width: 100%;
-            padding: 14px;
-            background: #3182ce;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .login-form button:hover { background: #2c5aa0; }
-        .login-form button:disabled { background: #4a5568; cursor: not-allowed; }
-
-        .login-error {
-            color: #fc8181;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            display: none;
-        }
-
         .search-section {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .search-box {
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .search-box input {
             flex: 1;
+            min-width: 200px;
             padding: 14px 18px;
-            border: 1px solid #ffffff30;
-            border-radius: 10px;
-            background: #16213e;
-            color: #fff;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            background: var(--panel);
+            color: var(--ink);
             font-size: 16px;
+            font-family: inherit;
         }
 
         .search-box input::placeholder {
-            color: #ffffff50;
+            color: var(--ink-35);
         }
 
         .search-box button {
             padding: 14px 24px;
-            background: #3182ce;
+            background: var(--accent);
             border: none;
-            color: #fff;
-            border-radius: 10px;
+            color: var(--room);
+            border-radius: var(--radius-sm);
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
+            font-family: inherit;
         }
 
         .search-box button:hover {
-            background: #2c5aa0;
+            opacity: 0.9;
+        }
+
+        .search-box button:disabled {
+            opacity: 0.45;
+            cursor: wait;
+        }
+
+        .search-box button.btn-secondary {
+            background: transparent;
+            border: 1px solid var(--line-strong);
+            color: var(--ink);
+        }
+
+        .search-box button.btn-secondary:hover {
+            background: var(--accent-dim);
+            opacity: 1;
+        }
+
+        .deletions-strip {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+
+        .deletions-strip .strip-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--ink-35);
+            margin-bottom: 10px;
+        }
+
+        .deletions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .deletion-row {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--panel-2);
+            cursor: pointer;
+            border: 1px solid transparent;
+            font-size: 0.85rem;
+            color: var(--ink-70);
+            text-align: left;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .deletion-row:hover {
+            border-color: var(--line-strong);
+            color: var(--ink);
+        }
+
+        .deletion-row .target-id {
+            font-family: monospace;
+            color: var(--info);
+            font-size: 0.8rem;
+        }
+
+        .deletion-row .meta {
+            color: var(--ink-35);
+            font-size: 0.8rem;
+        }
+
+        .results-section {
+            margin-bottom: 20px;
+        }
+
+        .results-table-wrap {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .results-table th {
+            text-align: left;
+            color: var(--ink-50);
+            font-weight: 600;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line-strong);
+            background: var(--panel-2);
+        }
+
+        .results-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink-90);
+            vertical-align: middle;
+        }
+
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .results-table tbody tr {
+            cursor: pointer;
+        }
+
+        .results-table tbody tr:hover {
+            background: var(--accent-dim);
+        }
+
+        .results-table .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .results-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--info-bg);
+            color: var(--info);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .results-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .results-table .uid {
+            font-family: monospace;
+            font-size: 0.78rem;
+            color: var(--ink-35);
+        }
+
+        .results-table .handle {
+            color: var(--info);
+            font-size: 0.85rem;
         }
 
         .user-card {
-            background: #16213e;
-            border-radius: 12px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
             padding: 24px;
             margin-bottom: 20px;
         }
@@ -173,7 +224,9 @@
             align-items: flex-start;
             margin-bottom: 20px;
             padding-bottom: 20px;
-            border-bottom: 1px solid #ffffff10;
+            border-bottom: 1px solid var(--line);
+            gap: 16px;
+            flex-wrap: wrap;
         }
 
         .user-info {
@@ -186,11 +239,21 @@
             width: 64px;
             height: 64px;
             border-radius: 50%;
-            background: #3182ce;
+            background: var(--info-bg);
+            color: var(--info);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
+            font-weight: 600;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .user-details h2 {
@@ -199,12 +262,12 @@
         }
 
         .user-details .username {
-            color: #63b3ed;
+            color: var(--info);
             font-size: 0.95rem;
         }
 
         .user-details .user-id {
-            color: #ffffff50;
+            color: var(--ink-35);
             font-size: 0.8rem;
             font-family: monospace;
             margin-top: 4px;
@@ -219,19 +282,31 @@
 
         .status-badge {
             padding: 6px 14px;
-            border-radius: 20px;
+            border-radius: var(--pill);
             font-size: 0.85rem;
             font-weight: 500;
+            text-transform: lowercase;
         }
 
-        .status-badge.verified { background: #68d39120; color: #68d391; }
-        .status-badge.warned { background: #f6ad5520; color: #f6ad55; }
-        .status-badge.suspended { background: #ed893620; color: #ed8936; }
-        .status-badge.banned { background: #e53e3e20; color: #e53e3e; }
+        .status-badge.verified { background: var(--good-bg); color: var(--good); }
+        .status-badge.warned { background: var(--warn-bg); color: var(--warn); }
+        .status-badge.suspended { background: var(--orange-bg); color: var(--orange); }
+        .status-badge.banned { background: var(--bad-bg); color: var(--bad); }
+        .status-badge.unknown { background: var(--accent-dim); color: var(--ink-50); }
+
+        .status-reason {
+            color: var(--ink-50);
+            font-size: 0.8rem;
+            max-width: 240px;
+            text-align: right;
+        }
 
         .user-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            max-width: 520px;
         }
 
         .user-actions button {
@@ -239,29 +314,77 @@
             border: none;
             border-radius: 6px;
             font-size: 0.85rem;
+            font-weight: 600;
             cursor: pointer;
+            font-family: inherit;
+        }
+
+        .user-actions button:disabled {
+            opacity: 0.45;
+            cursor: wait;
         }
 
         .user-actions .btn-warn {
-            background: #f6ad55;
-            color: #1a1a2e;
+            background: var(--warn);
+            color: var(--room);
         }
 
         .user-actions .btn-suspend {
-            background: #ed8936;
-            color: #fff;
+            background: var(--orange);
+            color: #0a0a0c;
         }
 
         .user-actions .btn-ban {
-            background: #e53e3e;
+            background: var(--bad);
             color: #fff;
+        }
+
+        .user-actions .btn-neutral {
+            background: var(--accent-dim);
+            color: var(--ink);
+            border: 1px solid var(--line-strong);
+        }
+
+        .user-actions .btn-info {
+            background: var(--info-bg);
+            color: var(--info);
+            border: 1px solid rgba(110, 182, 255, 0.25);
+        }
+
+        .user-actions .btn-danger {
+            background: var(--bad);
+            color: #fff;
+        }
+
+        .roam-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            padding: 14px;
+            background: var(--panel-2);
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+        }
+
+        .roam-stat .label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--ink-35);
+            margin-bottom: 4px;
+        }
+
+        .roam-stat .value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--ink);
         }
 
         .section-title {
             font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #ffffff50;
+            color: var(--ink-35);
             margin-bottom: 12px;
         }
 
@@ -276,8 +399,8 @@
             align-items: flex-start;
             gap: 14px;
             padding: 14px;
-            background: #0f1729;
-            border-radius: 8px;
+            background: var(--panel-2);
+            border-radius: var(--radius-sm);
         }
 
         .history-icon {
@@ -291,14 +414,15 @@
             flex-shrink: 0;
         }
 
-        .history-icon.warned { background: #f6ad5520; }
-        .history-icon.suspended { background: #ed893620; }
-        .history-icon.banned { background: #e53e3e20; }
-        .history-icon.reversed { background: #68d39120; }
-        .history-icon.content_removed { background: #805ad520; }
+        .history-icon.warned { background: var(--warn-bg); }
+        .history-icon.suspended { background: rgba(237, 137, 54, 0.12); }
+        .history-icon.banned { background: var(--bad-bg); }
+        .history-icon.reversed { background: var(--good-bg); }
+        .history-icon.content_removed { background: rgba(128, 90, 213, 0.12); }
 
         .history-content {
             flex: 1;
+            min-width: 0;
         }
 
         .history-content .action-type {
@@ -307,41 +431,31 @@
         }
 
         .history-content .reason {
-            color: #ffffff80;
+            color: var(--ink-70);
             font-size: 0.9rem;
         }
 
         .history-content .meta {
             font-size: 0.8rem;
-            color: #ffffff50;
+            color: var(--ink-35);
             margin-top: 6px;
         }
 
         .loading {
             text-align: center;
             padding: 40px;
-            color: #ffffff60;
+            color: var(--ink-50);
         }
 
         .empty {
             text-align: center;
             padding: 60px 20px;
-            color: #ffffff60;
+            color: var(--ink-50);
         }
 
         .empty-icon {
             font-size: 3rem;
             margin-bottom: 16px;
-        }
-
-        .error-message {
-            background: #e53e3e20;
-            border: 1px solid #e53e3e;
-            color: #fc8181;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
         }
 
         .action-modal {
@@ -351,7 +465,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -362,15 +476,29 @@
         }
 
         .action-modal-content {
-            background: #16213e;
-            border-radius: 12px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
             padding: 24px;
             max-width: 500px;
             width: 90%;
+            box-shadow: var(--shadow);
         }
 
         .action-modal h3 {
             margin-bottom: 16px;
+        }
+
+        .action-modal .modal-hint {
+            color: var(--ink-50);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .action-modal .modal-hint strong {
+            color: var(--ink);
+            font-family: monospace;
         }
 
         .action-modal select,
@@ -378,16 +506,17 @@
         .action-modal textarea {
             width: 100%;
             padding: 12px;
-            border: 1px solid #ffffff30;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: #fff;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            background: var(--room);
+            color: var(--ink);
             font-size: 14px;
+            font-family: inherit;
             margin-bottom: 12px;
         }
 
         .action-modal select option {
-            background: #1a1a2e;
+            background: var(--room);
         }
 
         .action-modal textarea {
@@ -405,345 +534,471 @@
         .action-modal button {
             padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
+            font-family: inherit;
+        }
+
+        .action-modal button:disabled {
+            opacity: 0.45;
+            cursor: wait;
         }
 
         .action-modal .btn-cancel {
             background: transparent;
-            border: 1px solid #ffffff30;
+            border: 1px solid var(--line-strong);
+            color: var(--ink);
+        }
+
+        .action-modal .btn-confirm-danger {
+            background: var(--bad);
             color: #fff;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>DSCO <span style="color: #3182ce;">ADMIN</span></h1>
-        <div class="header-nav">
-            <a href="index.html">Overview</a>
-            <a href="reports.html">Reports</a>
-            <a href="users.html" class="active">Users</a>
-            <a href="appeals.html">Appeals</a>
-            <a href="content.html">Content</a>
-            <a href="audit.html">Audit</a>
-            <a href="transparency.html">Transparency</a>
-            <a href="levers.html">Levers</a>
-            <a href="costs.html">Costs</a>
-            <a href="crashes.html">Crashes</a>
-        </div>
-        <div class="header-actions" id="header-actions" style="display: none;">
-            <button class="logout-btn" onclick="logout()">Sign Out</button>
-        </div>
-    </div>
+    <div class="container">
+        <div class="error-banner" id="error-message"></div>
 
-    <!-- Login Section -->
-    <div id="login-section" style="display: none;">
-        <div class="login-form">
-            <h2>Admin Sign In</h2>
-            <div class="login-error" id="login-error"></div>
-            <input type="email" id="email-input" placeholder="Email" autocomplete="email">
-            <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
-            <button id="login-btn" onclick="login()">Sign In</button>
-        </div>
-    </div>
-
-    <!-- Dashboard Section -->
-    <div id="dashboard-section" style="display: none;">
-        <div class="container">
-            <div class="error-message" id="error-message"></div>
-
-            <div class="search-section">
-                <div class="search-box">
-                    <input type="text" id="search-input" placeholder="Enter user ID or username...">
-                    <button onclick="searchUser()">Search User</button>
-                </div>
+        <div class="deletions-strip" id="deletions-strip">
+            <div class="strip-title">Recent account deletions</div>
+            <div class="deletions-list" id="deletions-list">
+                <div class="meta" style="color: var(--ink-35); font-size: 0.85rem;">Loading…</div>
             </div>
+        </div>
 
-            <div id="user-container">
-                <div class="empty">
-                    <div class="empty-icon">🔍</div>
-                    <p>Search for a user by ID or username</p>
-                </div>
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search by handle, name, or user id" autocomplete="off">
+                <button type="button" id="search-btn">Search</button>
+                <button type="button" class="btn-secondary" id="recent-signups-btn">Recent signups</button>
+            </div>
+        </div>
+
+        <div id="results-container" class="results-section" hidden></div>
+
+        <div id="user-container">
+            <div class="empty">
+                <div class="empty-icon">🔍</div>
+                <p>Search for a user by handle, name, or user id</p>
             </div>
         </div>
     </div>
 
-    <!-- Action Modal -->
+    <!-- Moderation action modal -->
     <div class="action-modal" id="action-modal">
         <div class="action-modal-content">
-            <h3 id="action-modal-title">Take Action</h3>
+            <h3 id="action-modal-title">Take action</h3>
             <select id="action-type">
-                <option value="warned">Warn User</option>
-                <option value="suspended">Suspend User</option>
-                <option value="banned">Ban User</option>
+                <option value="warned">Warn user</option>
+                <option value="suspended">Suspend user</option>
+                <option value="banned">Ban user</option>
             </select>
             <select id="reason-code">
                 <option value="">Select reason...</option>
                 <option value="HARASSMENT">Harassment</option>
-                <option value="HATE_SPEECH">Hate Speech</option>
-                <option value="SEXUAL_CONTENT">Sexual Content</option>
-                <option value="MINOR_SAFETY">Minor Safety</option>
+                <option value="HATE_SPEECH">Hate speech</option>
+                <option value="SEXUAL_CONTENT">Sexual content</option>
+                <option value="MINOR_SAFETY">Minor safety</option>
                 <option value="SPAM">Spam</option>
                 <option value="IMPERSONATION">Impersonation</option>
-                <option value="SELF_HARM">Self-Harm</option>
+                <option value="SELF_HARM">Self-harm</option>
                 <option value="VIOLENCE">Violence</option>
-                <option value="ILLEGAL_CONTENT">Illegal Content</option>
-                <option value="PRIVACY_VIOLATION">Privacy Violation</option>
+                <option value="ILLEGAL_CONTENT">Illegal content</option>
+                <option value="PRIVACY_VIOLATION">Privacy violation</option>
                 <option value="OTHER">Other</option>
             </select>
             <input type="number" id="duration-hours" placeholder="Duration (hours, optional for suspension)">
             <textarea id="reason-text" placeholder="Explain the reason for this action..."></textarea>
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeActionModal()">Cancel</button>
-                <button id="action-confirm-btn" onclick="confirmAction()">Confirm</button>
+                <button type="button" class="btn-cancel" id="action-cancel-btn">Cancel</button>
+                <button type="button" id="action-confirm-btn">Confirm</button>
             </div>
         </div>
     </div>
 
+    <!-- Delete account modal (double-confirm) -->
+    <div class="action-modal" id="delete-modal">
+        <div class="action-modal-content">
+            <h3>Delete account</h3>
+            <p class="modal-hint">
+                This permanently deletes the account and purges user data.
+                Type the username <strong id="delete-confirm-username"></strong> to confirm.
+            </p>
+            <input type="text" id="delete-username-input" placeholder="Type username to confirm" autocomplete="off">
+            <textarea id="delete-reason-text" placeholder="Reason for deletion..."></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="delete-cancel-btn">Cancel</button>
+                <button type="button" class="btn-confirm-danger" id="delete-confirm-btn">Delete account</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/admin.js"></script>
     <script>
-        // --- Configuration ---
-        const COGNITO_USER_POOL_ID = 'us-west-1_3Z2uwqvBT';
-        const COGNITO_CLIENT_ID = 'p5g5ou0a6r9la6it2c92tlje5';
-        const API_BASE = 'https://api.dsco.dev/realtime';
-        const CORE_API_BASE = 'https://api.dsco.dev/core';
-
-        const poolData = {
-            UserPoolId: COGNITO_USER_POOL_ID,
-            ClientId: COGNITO_CLIENT_ID,
-        };
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
-
-        let cognitoUser = null;
-        let idToken = '';
         let currentUserId = null;
         let currentUser = null;
+        let actionInFlight = false;
+
+        const UUID_RE = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32,})$/i;
 
         const REASON_LABELS = {
             'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate Speech',
-            'SEXUAL_CONTENT': 'Sexual Content',
-            'MINOR_SAFETY': 'Minor Safety',
+            'HATE_SPEECH': 'Hate speech',
+            'SEXUAL_CONTENT': 'Sexual content',
+            'MINOR_SAFETY': 'Minor safety',
             'SPAM': 'Spam',
             'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-Harm',
+            'SELF_HARM': 'Self-harm',
             'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal Content',
-            'PRIVACY_VIOLATION': 'Privacy Violation',
+            'ILLEGAL_CONTENT': 'Illegal content',
+            'PRIVACY_VIOLATION': 'Privacy violation',
             'OTHER': 'Other'
         };
 
-        // --- Auth ---
-
-        function init() {
-            // Check URL params for user ID
-            const params = new URLSearchParams(window.location.search);
-            const userId = params.get('id');
-
-            cognitoUser = userPool.getCurrentUser();
-            if (cognitoUser) {
-                cognitoUser.getSession((err, session) => {
-                    if (err || !session || !session.isValid()) {
-                        showLogin();
-                        return;
-                    }
-                    idToken = session.getIdToken().getJwtToken();
-                    showDashboard();
-                    if (userId) {
-                        document.getElementById('search-input').value = userId;
-                        searchUser();
-                    }
-                });
-            } else {
-                showLogin();
-            }
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
         }
 
-        function showLogin() {
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('header-actions').style.display = 'none';
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
         }
 
-        function showDashboard() {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'block';
-            document.getElementById('header-actions').style.display = 'flex';
+        function looksLikeUuid(query) {
+            return UUID_RE.test((query || '').trim());
         }
 
-        function login() {
-            const email = document.getElementById('email-input').value.trim();
-            const password = document.getElementById('password-input').value;
-            const errorEl = document.getElementById('login-error');
-            const btn = document.getElementById('login-btn');
-
-            if (!email || !password) {
-                errorEl.textContent = 'Please enter email and password.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Signing in...';
-
-            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-                Username: email,
-                Password: password,
-            });
-
-            cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                Username: email,
-                Pool: userPool,
-            });
-
-            cognitoUser.authenticateUser(authDetails, {
-                onSuccess: (result) => {
-                    idToken = result.getIdToken().getJwtToken();
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    showDashboard();
-                },
-                onFailure: (err) => {
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                    errorEl.textContent = err.message || 'Authentication failed.';
-                    errorEl.style.display = 'block';
-                },
-            });
+        function normalizeUsers(data) {
+            if (!data) return [];
+            if (Array.isArray(data.users)) return data.users;
+            if (Array.isArray(data.results)) return data.results;
+            if (Array.isArray(data.items)) return data.items;
+            if (Array.isArray(data)) return data;
+            return [];
         }
 
-        function logout() {
-            if (cognitoUser) cognitoUser.signOut();
-            cognitoUser = null;
-            idToken = '';
-            showLogin();
+        function setSearchBusy(busy) {
+            document.getElementById('search-btn').disabled = busy;
+            document.getElementById('recent-signups-btn').disabled = busy;
         }
 
-        function getValidToken() {
-            return new Promise((resolve, reject) => {
-                if (!cognitoUser) {
-                    reject(new Error('Not authenticated'));
-                    return;
-                }
-                cognitoUser.getSession((err, session) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (!session.isValid()) {
-                        reject(new Error('Session expired'));
-                        return;
-                    }
-                    resolve(session.getIdToken().getJwtToken());
-                });
-            });
-        }
-
-        // --- User Search ---
-
-        async function searchUser() {
+        async function searchUsers() {
             const query = document.getElementById('search-input').value.trim();
             if (!query) {
-                showError('Please enter a user ID or username');
+                showError('Please enter a handle, name, or user id');
                 return;
             }
 
+            const resultsEl = document.getElementById('results-container');
             const container = document.getElementById('user-container');
-            container.innerHTML = '<div class="loading">Searching...</div>';
+            resultsEl.hidden = false;
+            resultsEl.innerHTML = '<div class="loading">Searching…</div>';
+            container.innerHTML = '';
+            hideError();
+            setSearchBusy(true);
+
+            try {
+                const data = await AdminShell.api('realtime', '/admin/users/search', {
+                    query,
+                    mode: 'search',
+                    limit: 25
+                });
+                const users = normalizeUsers(data);
+
+                if (users.length === 1) {
+                    resultsEl.hidden = true;
+                    resultsEl.innerHTML = '';
+                    await loadUserDetail(users[0].user_id);
+                    return;
+                }
+
+                if (looksLikeUuid(query)) {
+                    try {
+                        resultsEl.hidden = true;
+                        resultsEl.innerHTML = '';
+                        await loadUserDetail(query);
+                        return;
+                    } catch (histErr) {
+                        // Fall through to show search results if any
+                        console.warn('History lookup for UUID failed, showing search results', histErr);
+                    }
+                }
+
+                renderSearchResults(users, 'Search results');
+                if (users.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty">
+                            <div class="empty-icon">👤</div>
+                            <p>No users found</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="empty" style="padding: 30px 20px;">
+                            <p>Select a user from the results above</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error searching users:', error);
+                showError(error.message || 'Failed to search users.');
+                resultsEl.innerHTML = '';
+                resultsEl.hidden = true;
+                container.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">⚠️</div>
+                        <p>Error searching users</p>
+                    </div>
+                `;
+            } finally {
+                setSearchBusy(false);
+            }
+        }
+
+        async function loadRecentSignups() {
+            const resultsEl = document.getElementById('results-container');
+            const container = document.getElementById('user-container');
+            resultsEl.hidden = false;
+            resultsEl.innerHTML = '<div class="loading">Loading recent signups…</div>';
+            hideError();
+            setSearchBusy(true);
+
+            try {
+                const data = await AdminShell.api('realtime', '/admin/users/search', {
+                    mode: 'recent',
+                    limit: 25
+                });
+                const users = normalizeUsers(data);
+                renderSearchResults(users, 'Recent signups');
+                if (users.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty">
+                            <div class="empty-icon">👤</div>
+                            <p>No recent signups</p>
+                        </div>
+                    `;
+                } else if (!currentUserId) {
+                    container.innerHTML = `
+                        <div class="empty" style="padding: 30px 20px;">
+                            <p>Select a user from the results above</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading recent signups:', error);
+                showError(error.message || 'Failed to load recent signups.');
+                resultsEl.innerHTML = '';
+                resultsEl.hidden = true;
+            } finally {
+                setSearchBusy(false);
+            }
+        }
+
+        function renderSearchResults(users, title) {
+            const resultsEl = document.getElementById('results-container');
+            resultsEl.hidden = false;
+
+            if (!users.length) {
+                resultsEl.innerHTML = `
+                    <div class="section-title">${escapeHtml(title)} (0)</div>
+                    <div class="empty" style="padding: 24px;"><p>No results</p></div>
+                `;
+                return;
+            }
+
+            resultsEl.innerHTML = `
+                <div class="section-title">${escapeHtml(title)} (${users.length})</div>
+                <div class="results-table-wrap">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Signed up</th>
+                                <th>User id</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map((u, i) => {
+                                const initials = (u.screen_name || u.username || 'U').substring(0, 2).toUpperCase();
+                                const avatar = u.avatar_url
+                                    ? `<img src="${escapeHtml(u.avatar_url)}" alt="">`
+                                    : initials;
+                                return `
+                                    <tr data-user-index="${i}" data-user-id="${escapeHtml(u.user_id || '')}">
+                                        <td>
+                                            <div class="user-cell">
+                                                <div class="results-avatar">${avatar}</div>
+                                                <div>
+                                                    <div>${escapeHtml(u.screen_name || 'Unknown')}</div>
+                                                    <div class="handle">@${escapeHtml(u.username || 'unknown')}</div>
+                                                    ${u.email ? `<div class="meta" style="color:var(--ink-35);font-size:0.78rem;">${escapeHtml(u.email)}</div>` : ''}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="status-badge ${escapeHtml(u.account_status || 'unknown')}">${escapeHtml(u.account_status || 'unknown')}</span></td>
+                                        <td>${formatTime(u.signup_completed_at)}</td>
+                                        <td class="uid">${escapeHtml(u.user_id || '')}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            resultsEl.querySelectorAll('tbody tr[data-user-id]').forEach(row => {
+                row.addEventListener('click', () => {
+                    const uid = row.getAttribute('data-user-id');
+                    if (uid) loadUserDetail(uid);
+                });
+            });
+        }
+
+        async function loadUserDetail(userId) {
+            const container = document.getElementById('user-container');
+            container.innerHTML = '<div class="loading">Loading user…</div>';
             hideError();
 
             try {
-                const token = await getValidToken();
+                const data = await AdminShell.api('realtime', '/admin/users/history', { user_id: userId });
+                currentUserId = data.user_id || userId;
+                currentUser = data.user || {};
 
-                // Get user history (which includes user info)
-                const response = await fetch(`${API_BASE}/admin/users/history`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ user_id: query })
-                });
+                let roamData = null;
+                try {
+                    roamData = await AdminShell.api('realtime', '/admin/users/roam', {
+                        user_id: currentUserId,
+                        action: 'get'
+                    });
+                } catch (roamErr) {
+                    console.warn('Roam fetch failed', roamErr);
+                }
 
-                if (response.status === 404) {
+                renderUser(data, roamData);
+
+                // Keep deep-link shareable without forcing a reload.
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('id', currentUserId);
+                    window.history.replaceState({}, '', url);
+                } catch (_) { /* ignore */ }
+            } catch (error) {
+                console.error('Error loading user:', error);
+                const msg = error.message || '';
+                if (/not found|404/i.test(msg)) {
                     container.innerHTML = `
                         <div class="empty">
                             <div class="empty-icon">👤</div>
                             <p>User not found</p>
                         </div>
                     `;
-                    return;
+                    throw error;
                 }
-
-                if (response.status === 401 || response.status === 403) {
-                    showError('Access denied. Please check your permissions.');
-                    setTimeout(logout, 2000);
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
-                currentUserId = query;
-                currentUser = data.user || {};
-                renderUser(data);
-
-            } catch (error) {
-                console.error('Error searching user:', error);
-                showError('Failed to search user.');
+                showError(msg || 'Failed to load user.');
                 container.innerHTML = `
                     <div class="empty">
                         <div class="empty-icon">⚠️</div>
                         <p>Error loading user</p>
                     </div>
                 `;
+                throw error;
             }
         }
 
-        function renderUser(data) {
+        function formatPremiumUntil(epoch) {
+            const n = Number(epoch);
+            if (!n || n <= 0) return 'none';
+            // Accept seconds or milliseconds.
+            const ms = n > 1e12 ? n : n * 1000;
+            const d = new Date(ms);
+            if (Number.isNaN(d.getTime())) return 'none';
+            if (d.getTime() < Date.now()) return `expired ${d.toLocaleString()}`;
+            return d.toLocaleString();
+        }
+
+        function renderUser(data, roamData) {
             const container = document.getElementById('user-container');
             const user = data.user || {};
-            const history = data.actions || [];
+            const history = data.history || data.actions || [];
             const appeals = data.appeals || [];
-
-            const status = user.account_status || 'verified';
+            const status = data.account_status || user.account_status || 'unknown';
+            const statusReason = data.account_status_reason || user.account_status_reason || '';
+            const displayId = data.user_id || user.user_id || currentUserId;
             const initials = (user.screen_name || user.username || 'U').substring(0, 2).toUpperCase();
+            const avatarHtml = user.avatar_url
+                ? `<img src="${escapeHtml(user.avatar_url)}" alt="">`
+                : initials;
+
+            const premiumUntil = roamData
+                ? formatPremiumUntil(roamData.premium_until)
+                : '—';
+            const referralCount = roamData && roamData.referral_count != null
+                ? roamData.referral_count
+                : '—';
+            const roamGate = roamData && roamData.roam_gate_mode
+                ? roamData.roam_gate_mode
+                : (roamData ? 'off' : '—');
 
             container.innerHTML = `
                 <div class="user-card">
                     <div class="user-header">
                         <div class="user-info">
-                            <div class="user-avatar">${initials}</div>
+                            <div class="user-avatar">${avatarHtml}</div>
                             <div class="user-details">
                                 <h2>${escapeHtml(user.screen_name || 'Unknown')}</h2>
                                 <div class="username">@${escapeHtml(user.username || 'unknown')}</div>
-                                <div class="user-id">${currentUserId}</div>
+                                <div class="user-id">${escapeHtml(displayId || '')}</div>
                             </div>
                         </div>
                         <div class="user-status">
-                            <span class="status-badge ${status}">${status}</span>
+                            <span class="status-badge ${escapeHtml(status)}">${escapeHtml(status)}</span>
+                            ${statusReason ? `<div class="status-reason">${escapeHtml(statusReason)}</div>` : ''}
                             <div class="user-actions">
-                                <button class="btn-warn" onclick="showActionModal('warned')">Warn</button>
-                                <button class="btn-suspend" onclick="showActionModal('suspended')">Suspend</button>
-                                <button class="btn-ban" onclick="showActionModal('banned')">Ban</button>
+                                <button type="button" class="btn-warn" data-action="warned">Warn</button>
+                                <button type="button" class="btn-suspend" data-action="suspended">Suspend</button>
+                                <button type="button" class="btn-ban" data-action="banned">Ban</button>
+                                <button type="button" class="btn-neutral" data-cmd="force-signout">Force sign-out</button>
+                                <button type="button" class="btn-neutral" data-cmd="reset-avatar">Reset avatar</button>
+                                <button type="button" class="btn-info" data-cmd="comp-roam">Comp roam (7d)</button>
+                                <button type="button" class="btn-info" data-cmd="revoke-roam">Revoke roam</button>
+                                <button type="button" class="btn-neutral" data-cmd="export">Export data</button>
+                                <button type="button" class="btn-danger" data-cmd="delete">Delete account</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="section-title">Moderation History (${history.length})</div>
+                    <div class="section-title">Roam</div>
+                    <div class="roam-panel" id="roam-panel">
+                        <div class="roam-stat">
+                            <div class="label">Premium until</div>
+                            <div class="value">${escapeHtml(String(premiumUntil))}</div>
+                        </div>
+                        <div class="roam-stat">
+                            <div class="label">Referral count</div>
+                            <div class="value">${escapeHtml(String(referralCount))}</div>
+                        </div>
+                        <div class="roam-stat">
+                            <div class="label">Roam gate mode</div>
+                            <div class="value">${escapeHtml(String(roamGate))}</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Moderation history (${history.length})</div>
                     ${history.length > 0 ? `
                         <div class="history-list">
                             ${history.map(action => `
                                 <div class="history-item">
-                                    <div class="history-icon ${action.action_type}">${getActionIcon(action.action_type)}</div>
+                                    <div class="history-icon ${escapeHtml(action.action_type || '')}">${getActionIcon(action.action_type)}</div>
                                     <div class="history-content">
-                                        <div class="action-type">${action.action_type}</div>
-                                        <div class="reason">${REASON_LABELS[action.reason_code] || action.reason_code || '-'}: ${escapeHtml(action.reason_text || '')}</div>
+                                        <div class="action-type">${escapeHtml(action.action_type || '')}</div>
+                                        <div class="reason">${REASON_LABELS[action.reason_code] || escapeHtml(action.reason_code || '-')}: ${escapeHtml(action.reason_text || '')}</div>
                                         <div class="meta">
-                                            ${formatTime(action.created_at)} · by ${action.actor_role || 'admin'}
+                                            ${formatTime(action.created_at)} · by ${escapeHtml(action.actor_role || 'admin')}
                                             ${action.expires_at ? ` · expires ${formatTime(action.expires_at)}` : ''}
                                         </div>
                                     </div>
@@ -759,7 +1014,7 @@
                                 <div class="history-item">
                                     <div class="history-icon ${appeal.status === 'approved' ? 'reversed' : appeal.status === 'denied' ? 'banned' : 'warned'}">📝</div>
                                     <div class="history-content">
-                                        <div class="action-type">Appeal ${appeal.status}</div>
+                                        <div class="action-type">Appeal ${escapeHtml(appeal.status || '')}</div>
                                         <div class="reason">${escapeHtml(appeal.reason || appeal.statement || '')}</div>
                                         <div class="meta">${formatTime(appeal.created_at)}</div>
                                     </div>
@@ -769,6 +1024,183 @@
                     ` : ''}
                 </div>
             `;
+
+            container.querySelectorAll('.user-actions [data-action]').forEach(btn => {
+                btn.addEventListener('click', () => showActionModal(btn.dataset.action));
+            });
+            container.querySelectorAll('.user-actions [data-cmd]').forEach(btn => {
+                btn.addEventListener('click', () => handleUserCommand(btn.dataset.cmd, btn));
+            });
+        }
+
+        function setActionButtonsDisabled(disabled) {
+            document.querySelectorAll('.user-actions button').forEach(btn => {
+                btn.disabled = disabled;
+            });
+        }
+
+        async function handleUserCommand(cmd, btn) {
+            if (!currentUserId || actionInFlight) return;
+
+            if (cmd === 'force-signout') {
+                if (!confirm('Force sign-out this user from all sessions?')) return;
+                await runUserAction(btn, async () => {
+                    await AdminShell.api('realtime', '/admin/users/force_signout', {
+                        user_id: currentUserId
+                    });
+                }, 'Signed out all sessions.');
+                return;
+            }
+
+            if (cmd === 'reset-avatar') {
+                if (!confirm('Reset this user\'s avatar?')) return;
+                await runUserAction(btn, async () => {
+                    await AdminShell.api('realtime', '/admin/content/remove', {
+                        content_type: 'avatar',
+                        content_id: currentUserId,
+                        reason_code: 'OTHER',
+                        reason_text: 'Admin avatar reset'
+                    });
+                    await loadUserDetail(currentUserId);
+                });
+                return;
+            }
+
+            if (cmd === 'comp-roam') {
+                if (!confirm('Comp 7 days of roam for this user?')) return;
+                await runUserAction(btn, async () => {
+                    await AdminShell.api('realtime', '/admin/users/roam', {
+                        user_id: currentUserId,
+                        action: 'comp',
+                        days: 7
+                    });
+                    await loadUserDetail(currentUserId);
+                });
+                return;
+            }
+
+            if (cmd === 'revoke-roam') {
+                if (!confirm('Revoke roam entitlement for this user?')) return;
+                await runUserAction(btn, async () => {
+                    await AdminShell.api('realtime', '/admin/users/roam', {
+                        user_id: currentUserId,
+                        action: 'revoke'
+                    });
+                    await loadUserDetail(currentUserId);
+                });
+                return;
+            }
+
+            if (cmd === 'export') {
+                await runUserAction(btn, async () => {
+                    const data = await AdminShell.api('realtime', '/admin/users/export', {
+                        user_id: currentUserId
+                    });
+                    downloadJson(data, `user-export-${currentUserId}.json`);
+                }, null, 'Exporting…');
+                return;
+            }
+
+            if (cmd === 'delete') {
+                openDeleteModal();
+            }
+        }
+
+        async function runUserAction(btn, fn, successMsg, busyLabel) {
+            actionInFlight = true;
+            setActionButtonsDisabled(true);
+            const original = btn ? btn.textContent : '';
+            if (btn && busyLabel) btn.textContent = busyLabel;
+            hideError();
+            try {
+                await fn();
+                if (successMsg) {
+                    // Non-blocking feedback via error banner slot is wrong; leave quiet or use console.
+                    // Prefer soft reload of detail for mutations already done by callers.
+                }
+            } catch (error) {
+                console.error('User action failed:', error);
+                showError(error.message || 'Action failed.');
+            } finally {
+                actionInFlight = false;
+                setActionButtonsDisabled(false);
+                if (btn && busyLabel) btn.textContent = original;
+            }
+        }
+
+        function downloadJson(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function openDeleteModal() {
+            const username = (currentUser && (currentUser.username || currentUser.UsernamePK)) || '';
+            document.getElementById('delete-confirm-username').textContent = username || currentUserId;
+            document.getElementById('delete-username-input').value = '';
+            document.getElementById('delete-reason-text').value = '';
+            document.getElementById('delete-modal').classList.add('active');
+            document.getElementById('delete-username-input').focus();
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+        }
+
+        async function confirmDeleteAccount() {
+            if (!currentUserId || actionInFlight) return;
+
+            const expected = ((currentUser && (currentUser.username || currentUser.UsernamePK)) || currentUserId || '').trim();
+            const typed = document.getElementById('delete-username-input').value.trim();
+            const reasonText = document.getElementById('delete-reason-text').value.trim();
+
+            if (!typed || typed.toLowerCase() !== expected.toLowerCase()) {
+                showError('Username confirmation does not match.');
+                return;
+            }
+            if (!reasonText) {
+                showError('Please provide a reason for deletion.');
+                return;
+            }
+            if (!confirm(`Final confirmation: permanently delete @${expected}?`)) {
+                return;
+            }
+
+            const btn = document.getElementById('delete-confirm-btn');
+            actionInFlight = true;
+            btn.disabled = true;
+            btn.textContent = 'Deleting…';
+            hideError();
+
+            try {
+                await AdminShell.api('realtime', '/admin/users/delete', {
+                    user_id: currentUserId,
+                    reason_text: reasonText
+                });
+                closeDeleteModal();
+                currentUserId = null;
+                currentUser = null;
+                document.getElementById('user-container').innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">🗑️</div>
+                        <p>Account deleted</p>
+                    </div>
+                `;
+                loadRecentDeletions();
+            } catch (error) {
+                console.error('Delete failed:', error);
+                showError(error.message || 'Failed to delete account.');
+            } finally {
+                actionInFlight = false;
+                btn.disabled = false;
+                btn.textContent = 'Delete account';
+            }
         }
 
         function getActionIcon(actionType) {
@@ -777,7 +1209,8 @@
                 'suspended': '⏸️',
                 'banned': '🔨',
                 'reversed': '↩️',
-                'content_removed': '🗑️'
+                'content_removed': '🗑️',
+                'account_deleted': '🗑️'
             };
             return icons[actionType] || '📋';
         }
@@ -790,14 +1223,14 @@
 
             const btn = document.getElementById('action-confirm-btn');
             if (actionType === 'warned') {
-                btn.style.background = '#f6ad55';
-                btn.style.color = '#1a1a2e';
+                btn.style.background = 'var(--warn)';
+                btn.style.color = '#0A0A0C';
             } else if (actionType === 'suspended') {
-                btn.style.background = '#ed8936';
-                btn.style.color = '#fff';
+                btn.style.background = 'var(--orange)';
+                btn.style.color = '#0A0A0C';
             } else {
-                btn.style.background = '#e53e3e';
-                btn.style.color = '#fff';
+                btn.style.background = 'var(--bad)';
+                btn.style.color = '#0A0A0C';
             }
 
             document.getElementById('action-modal').classList.add('active');
@@ -823,36 +1256,28 @@
                 return;
             }
 
+            if (!currentUserId) {
+                showError('No user selected');
+                return;
+            }
+
             const btn = document.getElementById('action-confirm-btn');
             btn.disabled = true;
-            btn.textContent = 'Processing...';
+            btn.textContent = 'Processing…';
+            hideError();
 
             try {
-                const token = await getValidToken();
-                const response = await fetch(`${API_BASE}/admin/moderation/action`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        target_type: 'user',
-                        target_id: currentUserId,
-                        action_type: actionType,
-                        reason_code: reasonCode,
-                        reason_text: reasonText,
-                        duration_hours: durationHours ? parseInt(durationHours) : null
-                    })
+                await AdminShell.api('realtime', '/admin/moderation/action', {
+                    target_type: 'user',
+                    target_id: currentUserId,
+                    action_type: actionType,
+                    reason_code: reasonCode,
+                    reason_text: reasonText,
+                    duration_hours: durationHours ? parseInt(durationHours, 10) : null
                 });
 
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.message || `HTTP ${response.status}`);
-                }
-
                 closeActionModal();
-                searchUser(); // Refresh the user view
-
+                await loadUserDetail(currentUserId);
             } catch (error) {
                 console.error('Error taking action:', error);
                 showError(`Failed to take action: ${error.message}`);
@@ -862,39 +1287,102 @@
             }
         }
 
+        async function loadRecentDeletions() {
+            const list = document.getElementById('deletions-list');
+            try {
+                const data = await AdminShell.api('realtime', '/admin/audit', {
+                    action_type: 'account_deleted',
+                    limit: 10
+                });
+                const items = Array.isArray(data.items) ? data.items
+                    : (Array.isArray(data.actions) ? data.actions : []);
+
+                if (!items.length) {
+                    list.innerHTML = '<div style="color: var(--ink-35); font-size: 0.85rem;">No recent deletions</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map((item, i) => `
+                    <button type="button" class="deletion-row" data-deletion-index="${i}" data-target-id="${escapeHtml(item.target_id || '')}">
+                        <span class="meta">${escapeHtml(formatTime(item.created_at))}</span>
+                        <span class="target-id">${escapeHtml(item.target_id || '—')}</span>
+                        <span class="meta">${escapeHtml(item.actor_role || 'admin')}</span>
+                    </button>
+                `).join('');
+
+                list.querySelectorAll('.deletion-row').forEach(row => {
+                    row.addEventListener('click', async () => {
+                        const tid = row.getAttribute('data-target-id');
+                        if (!tid) return;
+                        try {
+                            await loadUserDetail(tid);
+                        } catch (_) {
+                            showError('User history not available (account may be fully purged).');
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading deletions:', error);
+                list.innerHTML = `<div style="color: var(--bad); font-size: 0.85rem;">Failed to load deletions</div>`;
+            }
+        }
+
         function formatTime(isoString) {
             if (!isoString) return 'Unknown';
+            // Support epoch seconds/ms
+            if (typeof isoString === 'number' || /^\d+$/.test(String(isoString))) {
+                const n = Number(isoString);
+                const ms = n > 1e12 ? n : n * 1000;
+                const d = new Date(ms);
+                return Number.isNaN(d.getTime()) ? 'Unknown' : d.toLocaleString();
+            }
             const date = new Date(isoString);
-            return date.toLocaleString();
+            return Number.isNaN(date.getTime()) ? String(isoString) : date.toLocaleString();
         }
 
         function escapeHtml(text) {
-            if (!text) return '';
+            if (text == null || text === '') return '';
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = String(text);
             return div.innerHTML;
         }
 
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
+        function onReady() {
+            loadRecentDeletions();
+
+            const params = new URLSearchParams(window.location.search);
+            const userId = params.get('id');
+            if (userId) {
+                document.getElementById('search-input').value = userId;
+                loadUserDetail(userId).catch(() => { /* error already rendered */ });
+            }
         }
 
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
+        document.getElementById('search-btn').addEventListener('click', searchUsers);
+        document.getElementById('recent-signups-btn').addEventListener('click', loadRecentSignups);
+        document.getElementById('action-cancel-btn').addEventListener('click', closeActionModal);
+        document.getElementById('action-confirm-btn').addEventListener('click', confirmAction);
+        document.getElementById('delete-cancel-btn').addEventListener('click', closeDeleteModal);
+        document.getElementById('delete-confirm-btn').addEventListener('click', confirmDeleteAccount);
 
-        // Handle Enter key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeActionModal();
+            if (e.key === 'Escape') {
+                closeActionModal();
+                closeDeleteModal();
+                return;
+            }
             if (e.key === 'Enter') {
-                if (document.getElementById('login-section').style.display !== 'none') {
-                    login();
-                } else if (document.getElementById('action-modal').classList.contains('active')) {
-                    // Don't search on enter in modal
-                } else {
-                    searchUser();
+                if (document.getElementById('action-modal').classList.contains('active')) return;
+                if (document.getElementById('delete-modal').classList.contains('active')) {
+                    if (e.target && e.target.id === 'delete-username-input') {
+                        confirmDeleteAccount();
+                    }
+                    return;
+                }
+                const tag = (e.target && e.target.tagName) || '';
+                if (tag === 'TEXTAREA') return;
+                if (e.target && e.target.id === 'search-input') {
+                    searchUsers();
                 }
             }
         });
@@ -902,8 +1390,11 @@
         document.getElementById('action-modal').addEventListener('click', (e) => {
             if (e.target.id === 'action-modal') closeActionModal();
         });
+        document.getElementById('delete-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'delete-modal') closeDeleteModal();
+        });
 
-        init();
+        AdminShell.init({ active: 'users.html', title: 'Users', onReady });
     </script>
 </body>
 </html>
