@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <base href="/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy — DSCO</title>
@@ -13,6 +14,7 @@
     <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
+    <div style="background:#3a2a00;color:#ffcf6b;padding:10px 16px;text-align:center;font:600 13px system-ui,sans-serif">Archived snapshot of version 2026-07-15. <a href="/privacy.html" style="color:#ffcf6b;text-decoration:underline">See the current privacy policy</a>.</div>
     <header class="topbar">
         <a class="wordmark" href="index.html">DSCO</a>
         <nav>
@@ -24,7 +26,7 @@
 
     <main class="prose-page">
         <h1>Privacy Policy</h1>
-        <div class="updated">Version 2026-07-17 · Last updated: July 17, 2026 · <a href="versions/">Previous versions</a></div>
+        <div class="updated">Version 2026-07-15 · Last updated: July 15, 2026</div>
 
         <p class="lede">DSCO is a location-based social app for adults 18 and over. This policy describes what we collect, why, and the control you have over it. The short version: location sharing is the core of the product, you decide who can see you, and we don't sell your data.</p>
 
@@ -35,17 +37,16 @@
             <li><strong>Contacts</strong> — only if you opt in to contact matching. See "Contacts" below for exactly what happens to them.</li>
             <li><strong>Content</strong> — photos, videos, stories, messages, pins, and notes you create.</li>
             <li><strong>Device and diagnostics</strong> — push notification tokens, device identifiers, and crash/performance data so we can fix problems.</li>
-            <li><strong>Usage analytics</strong> — which screens and features you use and in-app events (for example, that you sent a message or created a pin), tied to a pseudonymous app-install identifier, so we can understand how the app is used and improve it. This is interaction data, not the content of your messages, photos, or notes.</li>
         </ul>
 
         <h2>Age</h2>
         <p>DSCO is for adults only. You must be at least 18 to create an account or use the app.</p>
         <p>We ask for your date of birth at signup and block the account if it puts you under 18. We check this on our servers, not just in the app. We do not keep your date of birth — we record only that the check ran and passed, and when.</p>
-        <p>We want to be precise about what that is and isn't: it is a self-declared date of birth, not identity verification. We do not check it against a government ID or any outside source, and we do not describe it as verification.</p>
+        <p>We want to be precise about what that is and isn't: it is a self-declared date of birth, not identity verification. We do not check it against a government ID or any outside source, and we do not describe it as verification. Where the App Store or Google Play tells us an account belongs to someone under 18, we use that signal and it overrides what was self-declared.</p>
         <p>We do not knowingly collect personal information from anyone under 18. If we learn an account belongs to someone under 18, we will remove it and delete the associated data promptly. If you believe a minor is using DSCO, email <a href="mailto:jacob@dsco.dev">jacob@dsco.dev</a>.</p>
 
         <h2>How your location is shared</h2>
-        <p>Your visibility is controlled by your discoverability setting (everyone, friends only, or hidden). On "friends only" you're visible to your friends and to people you share a group or boundary with. When hidden, you don't appear on anyone's map. Blocking someone makes you invisible to each other throughout the app, in both directions, until you unblock them.</p>
+        <p>Your visibility is controlled by your discoverability setting (everyone, friends only, or hidden). When hidden, you don't appear on anyone's map. Blocking someone makes you invisible to each other throughout the app, in both directions, until you unblock them.</p>
         <p>Your location is shared with other DSCO users according to that setting. It is not shared with advertisers, data brokers, or anyone else for their own purposes.</p>
 
         <h2>How long we keep it</h2>
@@ -54,9 +55,8 @@
             <li><strong>Stories</strong> — expire 24 hours after posting.</li>
             <li><strong>Map notes</strong> — expire 24 hours after posting.</li>
             <li><strong>Account information, profile, and social graph</strong> — kept while your account is active, and deleted when you delete your account.</li>
-            <li><strong>Messages</strong> — kept while your account is active. Messages you sent in group chats remain visible to those groups.</li>
+            <li><strong>Messages</strong> — kept while your account is active. Messages you sent to other people remain visible to those people.</li>
             <li><strong>Crash and diagnostic data</strong> — retained by our crash reporting provider on their standard schedule, generally up to 90 days.</li>
-            <li><strong>Safety and moderation records</strong> — if you're reported, or if we take a moderation action on your account (a warning, suspension, or ban), we keep the report and the record of that action, including after your account is deleted, so we can enforce our rules, handle appeals, and meet legal obligations.</li>
         </ul>
         <p>Backups and logs may hold copies for a short period after deletion while they age out on their normal cycle.</p>
 
@@ -64,7 +64,7 @@
         <p>We use service providers to run the app:</p>
         <ul>
             <li><strong>Amazon Web Services</strong> — hosting, database, and media storage.</li>
-            <li><strong>Google Firebase</strong> — chat, push notifications, crash reporting, and usage analytics (Google Analytics for Firebase). We have configured Firebase Analytics not to use your data for Google's advertising, and we do not enable Google's ad-personalization features.</li>
+            <li><strong>Google Firebase</strong> — chat, push notifications, and crash reporting.</li>
             <li><strong>Mapbox</strong> — map rendering and place lookup.</li>
             <li><strong>Spotify</strong> — only if you link your Spotify account, and only to show what you're listening to.</li>
         </ul>
@@ -86,10 +86,10 @@
         <h2>Your controls</h2>
         <ul>
             <li>Set your discoverability to everyone, friends only, or hidden.</li>
-            <li>Turn background location on or off, or switch between While Using and Always in iOS Settings. Location access is required for DSCO to work — if you revoke it, the app won't function until you grant it again. To use DSCO without appearing on anyone's map, set your discoverability to hidden.</li>
+            <li>Turn background location on or off, and revoke location access entirely in iOS Settings. The app still works without it — you can place yourself on the map manually.</li>
             <li>Turn contact matching off, which deletes the numbers we hold from your address book.</li>
             <li>Block anyone, in both directions, at any time.</li>
-            <li>Delete your account and its data from inside the app (Settings → Account), or by emailing us. Deletion removes your profile, content, location, and social graph. Messages you sent in group chats stay in those groups; your one-on-one conversations are removed for both people. Safety and moderation records are kept as described above.</li>
+            <li>Delete your account and its data from inside the app (Settings → Account), or by emailing us. Deletion removes your profile, content, location, and social graph. It does not remove messages you sent that are already in other people's chats.</li>
         </ul>
 
         <h2>Do Not Track</h2>
