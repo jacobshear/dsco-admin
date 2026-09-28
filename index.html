@@ -269,6 +269,85 @@
             text-wrap: balance;
         }
 
+        .encore-copy {
+            color: var(--ink-50);
+            font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+            max-width: 520px;
+            line-height: 1.6;
+            text-wrap: balance;
+        }
+
+        .waitlist {
+            width: 100%;
+            max-width: 680px;
+            margin-top: 32px;
+        }
+        .wl-row {
+            display: flex;
+            gap: 10px;
+        }
+        .wl-field {
+            flex: 1 1 0;
+            min-width: 0;
+            height: 52px;
+            padding: 0 22px;
+            border-radius: var(--pill);
+            border: 1px solid var(--ink-22);
+            background: var(--ink-06);
+            color: var(--ink);
+            font-family: var(--body);
+            font-size: 16px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .wl-field#wl-email { flex-grow: 1.4; }
+        .wl-field::placeholder { color: var(--ink-30); }
+        .wl-field:hover { border-color: var(--ink-30); }
+        .wl-field:focus { outline: none; border-color: var(--ink-70); background: var(--ink-12); }
+        .wl-field[aria-invalid="true"] { border-color: rgba(255, 138, 128, 0.7); }
+        .waitlist button[disabled] { opacity: 0.6; cursor: default; }
+        .wl-status {
+            min-height: 1.5em;
+            margin-top: 14px;
+            font-size: 0.95rem;
+            color: var(--ink-70);
+        }
+        .wl-status.error { color: rgba(255, 138, 128, 0.95); }
+        .wl-fine {
+            font-size: 0.8rem;
+            color: var(--ink-30);
+        }
+        .wl-fine a { color: var(--ink-50); text-underline-offset: 3px; }
+        .wl-trap {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+        .wl-done { margin-top: 32px; }
+        .wl-done-title {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+        .wl-alt {
+            margin-top: 28px;
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
         .reveal {
             opacity: 0;
             transform: translateY(26px);
@@ -278,6 +357,12 @@
 
         @media (max-width: 780px) {
             .pillars { grid-template-columns: 1fr; text-align: center; }
+        }
+
+        @media (max-width: 640px) {
+            .wl-row { flex-direction: column; }
+            .wl-field { flex: 0 0 auto; width: 100%; }
+            .wl-row .pill-btn { width: 100%; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -305,13 +390,13 @@
             <h1>DSCO</h1>
             <p class="tagline">A live map of everyone nearby. Discover people by proximity, make real friends, and share moments where they're happening.</p>
             <div class="cta-row">
-                <a class="pill-btn solid" href="#download">
+                <a class="pill-btn solid" href="https://testflight.apple.com/join/g5nj2Pkx">
                     <svg width="18" height="18" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-                    Request TestFlight
+                    Download the beta
                 </a>
-                <a class="pill-btn quiet" href="contact.html">Get in touch</a>
+                <a class="pill-btn quiet" href="#waitlist">Join the waitlist</a>
             </div>
-            <div class="appstore-note">Launching soon on the App Store</div>
+            <div class="appstore-note">Free iPhone beta on TestFlight · App Store launch coming soon</div>
         </div>
     </header>
 
@@ -344,11 +429,31 @@
         <a class="pill-btn quiet reveal" href="privacy.html" style="margin-top: 32px">Read the privacy policy</a>
     </section>
 
-    <section class="encore" id="download">
-        <div class="kicker reveal">Coming soon</div>
+    <section class="encore" id="waitlist">
+        <div class="kicker reveal">App Store launch</div>
         <h2 class="reveal">The map is warming up.</h2>
-        <div class="cta-row reveal" style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center">
-            <a class="pill-btn solid" href="mailto:jacob@dsco.dev?subject=TestFlight%20invite">Request a TestFlight invite</a>
+        <p class="encore-copy reveal">The beta is open on TestFlight today. Leave your email and we'll tell you the day DSCO lands on the App Store.</p>
+
+        <form class="waitlist reveal" id="waitlist-form" novalidate>
+            <div class="wl-row">
+                <label class="sr-only" for="wl-email">Email</label>
+                <input class="wl-field" id="wl-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Email" maxlength="254" required>
+                <label class="sr-only" for="wl-city">City (optional)</label>
+                <input class="wl-field" id="wl-city" name="city" type="text" autocomplete="address-level2" placeholder="City (optional)" maxlength="80">
+                <button class="pill-btn solid" type="submit">Notify me</button>
+            </div>
+            <input class="wl-trap" name="company" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <p class="wl-status" role="status" aria-live="polite"></p>
+            <p class="wl-fine">We'll only email you about DSCO's launch. Want off the list? Email <a href="mailto:jacob@dsco.dev">jacob@dsco.dev</a>. <a href="privacy.html#waitlist">Privacy</a></p>
+        </form>
+
+        <div class="wl-done" id="waitlist-done" hidden>
+            <p class="wl-done-title">You're on the list.</p>
+            <p class="encore-copy">We'll email you the day DSCO is on the App Store.</p>
+        </div>
+
+        <div class="cta-row reveal wl-alt">
+            <a class="pill-btn quiet" href="https://testflight.apple.com/join/g5nj2Pkx">Download the beta now</a>
             <a class="pill-btn quiet" href="contact.html">Contact</a>
         </div>
     </section>
@@ -425,6 +530,84 @@
                 if (!reduced) requestAnimationFrame(paint);
             }
             requestAnimationFrame(paint);
+        })();
+
+        (() => {
+            // App Store launch waitlist → link-api POST /waitlist. Prod from
+            // the live site; dev from a local preview.
+            const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+            const API = local ? 'https://api.dsco.dev/waitlist' : 'https://api-prod.dsco.dev/waitlist';
+            const JOINED_KEY = 'dsco_waitlist_joined';
+
+            const form = document.getElementById('waitlist-form');
+            const done = document.getElementById('waitlist-done');
+            const email = form.elements.email;
+            const status = form.querySelector('.wl-status');
+            const button = form.querySelector('button[type="submit"]');
+
+            const showDone = () => { form.hidden = true; done.hidden = false; };
+            try { if (localStorage.getItem(JOINED_KEY)) showDone(); } catch (_) {}
+
+            // Where the visitor came from: ?utm_source= / ?ref=, else the
+            // referring site's host. Server reduces it to a slug.
+            const source = (() => {
+                const params = new URLSearchParams(location.search);
+                const tagged = params.get('utm_source') || params.get('ref');
+                if (tagged) return tagged;
+                try {
+                    const host = document.referrer ? new URL(document.referrer).hostname : '';
+                    return host && !host.endsWith('dsco.dev') ? host : '';
+                } catch (_) { return ''; }
+            })();
+
+            const say = (text, isError) => {
+                status.textContent = text;
+                status.classList.toggle('error', !!isError);
+            };
+
+            email.addEventListener('input', () => email.removeAttribute('aria-invalid'));
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const value = email.value.trim();
+                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
+                    email.setAttribute('aria-invalid', 'true');
+                    say("That email doesn't look right.", true);
+                    email.focus();
+                    return;
+                }
+
+                button.disabled = true;
+                say('Adding you…');
+                try {
+                    const response = await fetch(API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: value,
+                            city: form.elements.city.value.trim(),
+                            source,
+                            company: form.elements.company.value,
+                        }),
+                    });
+                    const body = await response.json().catch(() => ({}));
+                    if (response.ok && body.ok) {
+                        try { localStorage.setItem(JOINED_KEY, '1'); } catch (_) {}
+                        say('');
+                        showDone();
+                        return;
+                    }
+                    if (body.error === 'invalid_email') {
+                        email.setAttribute('aria-invalid', 'true');
+                        say("That email doesn't look right.", true);
+                    } else {
+                        say("Couldn't add you just now. Try again in a minute.", true);
+                    }
+                } catch (_) {
+                    say("Couldn't reach us. Check your connection and try again.", true);
+                }
+                button.disabled = false;
+            });
         })();
 
         (() => {

@@ -25,7 +25,7 @@
 
     <main class="prose-page">
         <h1>Privacy Policy</h1>
-        <div class="updated">Version 2026-09-12 · Last updated: September 12, 2026 · <a href="versions/">Previous versions</a></div>
+        <div class="updated">Version 2026-09-12 · Last updated: September 28, 2026 · <a href="versions/">Previous versions</a></div>
 
         <p class="lede">DSCO is a location-based social app for adults 18 and over. This policy describes what we collect, why, and the control you have over it. The short version: location sharing is the core of the product, you decide who can see you, and we don't sell your data.</p>
 
@@ -37,6 +37,7 @@
             <li><strong>Content</strong> — photos, videos, stories, messages, pins, and notes you create.</li>
             <li><strong>Device and diagnostics</strong> — push notification tokens, device identifiers, and crash/performance data so we can fix problems.</li>
             <li><strong>Usage analytics</strong> — which screens and features you use and in-app events (for example, that you sent a message or created a pin), tied to a pseudonymous app-install identifier, so we can understand how the app is used and improve it. This is interaction data, not the content of your messages, photos, or notes.</li>
+            <li><strong>Waitlist sign-ups</strong> — only if you join the launch waitlist on our website: your email address, your city if you choose to give it, the kind of device you signed up from, and the link that sent you. See "Launch waitlist" below.</li>
         </ul>
 
         <h2>Age</h2>
@@ -57,6 +58,7 @@
             <li><strong>Account information, profile, and social graph</strong> — kept while your account is active, and deleted when you delete your account.</li>
             <li><strong>Messages</strong> — kept while your account is active. Messages you sent in group chats remain visible to those groups.</li>
             <li><strong>Crash and diagnostic data</strong> — retained by our crash reporting provider on their standard schedule, generally up to 90 days.</li>
+            <li><strong>Waitlist entries</strong> — kept until you ask us to remove yours, or until we no longer need the list for the launch announcement.</li>
             <li><strong>Safety and moderation records</strong> — if you're reported, or if we take a moderation action on your account (a warning, suspension, or ban), we keep the report and the record of that action, including after your account is deleted, so we can enforce our rules, handle appeals, and meet legal obligations.</li>
         </ul>
         <p>Backups and logs may hold copies for a short period after deletion while they age out on their normal cycle.</p>
@@ -81,6 +83,10 @@
         <p>If you opt in, the app converts each phone number in your address book into a one-way hash on your device and uploads only those hashes, so we can tell you which of your contacts are already on DSCO. We never receive or store the numbers themselves, and we do not upload names, email addresses, photos, or any other field from your contact records. Before storing anything, our servers hash each value again with a secret key, so a stored value cannot be turned back into a phone number without that key.</p>
         <p>Your own phone number is handled the same way. When you turn on contact matching, the app sends us a hash of your number, never the number, and we store only the keyed form of that hash. It exists so that people who already have your number in their address book can find you, and for nothing else.</p>
         <p>We keep the hashes from your address book for up to 90 days from your last upload so that if someone in your contacts joins DSCO later, we can let you know that they joined. That means a hash derived from the number of someone who is not a DSCO user may sit in our system as a result of you sharing your address book. We do not text, email, or otherwise contact those people, and we do not use these values for anything except matching. You can turn off contact matching in Settings, which deletes the hashes we hold from your address book and the hash of your own number.</p>
+
+        <h2 id="waitlist">Launch waitlist</h2>
+        <p>If you join the waitlist on dsco.dev, we collect the email address you enter, your city if you choose to give it, the kind of device you signed up from (iPhone, Android, or computer, read from your browser rather than asked), and the link or site that sent you to the page. We do not record your IP address, and a waitlist entry is not connected to a DSCO account.</p>
+        <p>We use your email only to tell you when DSCO launches on the App Store, and the city and device only to understand where people want DSCO and on which phones. Every email we send will include a way to unsubscribe. To be removed from the list at any time, email <a href="mailto:jacob@dsco.dev">jacob@dsco.dev</a>.</p>
 
         <h2>Security</h2>
         <p>Data is encrypted in transit, and our database and media storage are encrypted at rest by the platforms we run on. Access to production data is limited to the people who operate the service. No system is perfectly secure, and we don't claim ours is.</p>
