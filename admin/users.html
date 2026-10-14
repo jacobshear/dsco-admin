@@ -3,670 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Users · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        .search-section {
-            margin-bottom: 20px;
-        }
-
-        .search-box {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .search-box input {
-            flex: 1;
-            min-width: 200px;
-            padding: 14px 18px;
-            border: 1px solid var(--line-strong);
-            border-radius: var(--radius-sm);
-            background: var(--panel);
-            color: var(--ink);
-            font-size: 16px;
-            font-family: inherit;
-        }
-
-        .search-box input::placeholder {
-            color: var(--ink-35);
-        }
-
-        .search-box button {
-            padding: 14px 24px;
-            background: var(--accent);
-            border: none;
-            color: var(--room);
-            border-radius: var(--radius-sm);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-            font-family: inherit;
-        }
-
-        .search-box button:hover {
-            opacity: 0.9;
-        }
-
-        .search-box button:disabled {
-            opacity: 0.45;
-            cursor: wait;
-        }
-
-        .search-box button.btn-secondary {
-            background: transparent;
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-        }
-
-        .search-box button.btn-secondary:hover {
-            background: var(--accent-dim);
-            opacity: 1;
-        }
-
-        .deletions-strip {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 16px 18px;
-            margin-bottom: 20px;
-        }
-
-        .deletions-strip .strip-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--ink-35);
-            margin-bottom: 10px;
-        }
-
-        .deletions-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .deletion-row {
-            display: flex;
-            gap: 14px;
-            align-items: center;
-            flex-wrap: wrap;
-            padding: 8px 10px;
-            border-radius: var(--radius-sm);
-            background: var(--panel-2);
-            cursor: pointer;
-            border: 1px solid transparent;
-            font-size: 0.85rem;
-            color: var(--ink-70);
-            text-align: left;
-            width: 100%;
-            font-family: inherit;
-        }
-
-        .deletion-row:hover {
-            border-color: var(--line-strong);
-            color: var(--ink);
-        }
-
-        .deletion-row .target-id {
-            font-family: monospace;
-            color: var(--info);
-            font-size: 0.8rem;
-        }
-
-        .deletion-row .meta {
-            color: var(--ink-35);
-            font-size: 0.8rem;
-        }
-
-        .results-section {
-            margin-bottom: 20px;
-        }
-
-        .results-table-wrap {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        .results-table th {
-            text-align: left;
-            color: var(--ink-50);
-            font-weight: 600;
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--line-strong);
-            background: var(--panel-2);
-        }
-
-        .results-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--line);
-            color: var(--ink-90);
-            vertical-align: middle;
-        }
-
-        .results-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .results-table tbody tr {
-            cursor: pointer;
-        }
-
-        .results-table tbody tr:hover {
-            background: var(--accent-dim);
-        }
-
-        .results-table .user-cell {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .results-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--info-bg);
-            color: var(--info);
+        /* Page-specific: initials avatar, the profile header and history meta. */
+        .person .avatar.initials {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
+            font-size: 12px;
             font-weight: 600;
-            flex-shrink: 0;
-            overflow: hidden;
+            color: var(--text-2);
         }
 
-        .results-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .results-table .uid {
-            font-family: monospace;
-            font-size: 0.78rem;
-            color: var(--ink-35);
-        }
-
-        .results-table .handle {
-            color: var(--info);
-            font-size: 0.85rem;
-        }
-
-        .user-card {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-
-        .user-header {
+        .profile-head {
             display: flex;
+            align-items: flex-start;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--line);
             gap: 16px;
             flex-wrap: wrap;
+            margin-bottom: 18px;
         }
 
-        .user-info {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
+        .profile-head .person { gap: 14px; }
+        .profile-head .person .avatar { width: 56px; height: 56px; }
+        .profile-head .person .avatar.initials { font-size: 18px; }
+        .profile-head .name { font-size: 18px; line-height: 1.25; }
+        .profile-head .handle { font-size: 13px; }
 
-        .user-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: var(--info-bg);
-            color: var(--info);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 600;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .user-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .user-details h2 {
-            font-size: 1.3rem;
-            margin-bottom: 4px;
-        }
-
-        .user-details .username {
-            color: var(--info);
-            font-size: 0.95rem;
-        }
-
-        .user-details .user-id {
-            color: var(--ink-35);
-            font-size: 0.8rem;
-            font-family: monospace;
-            margin-top: 4px;
-        }
-
-        .user-status {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 8px;
-        }
-
-        .status-badge {
-            padding: 6px 14px;
-            border-radius: var(--pill);
-            font-size: 0.85rem;
-            font-weight: 500;
-            text-transform: lowercase;
-        }
-
-        .status-badge.verified { background: var(--good-bg); color: var(--good); }
-        .status-badge.warned { background: var(--warn-bg); color: var(--warn); }
-        .status-badge.suspended { background: var(--orange-bg); color: var(--orange); }
-        .status-badge.banned { background: var(--bad-bg); color: var(--bad); }
-        .status-badge.unknown { background: var(--accent-dim); color: var(--ink-50); }
-
-        .status-reason {
-            color: var(--ink-50);
-            font-size: 0.8rem;
-            max-width: 240px;
-            text-align: right;
-        }
-
-        .user-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-            max-width: 520px;
-        }
-
-        .user-actions button {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-        }
-
-        .user-actions button:disabled {
-            opacity: 0.45;
-            cursor: wait;
-        }
-
-        .user-actions .btn-warn {
-            background: var(--warn);
-            color: var(--room);
-        }
-
-        .user-actions .btn-suspend {
-            background: var(--orange);
-            color: #0a0a0c;
-        }
-
-        .user-actions .btn-ban {
-            background: var(--bad);
-            color: #fff;
-        }
-
-        .user-actions .btn-neutral {
-            background: var(--accent-dim);
-            color: var(--ink);
-            border: 1px solid var(--line-strong);
-        }
-
-        .user-actions .btn-info {
-            background: var(--info-bg);
-            color: var(--info);
-            border: 1px solid rgba(110, 182, 255, 0.25);
-        }
-
-        .user-actions .btn-danger {
-            background: var(--bad);
-            color: #fff;
-        }
-
-        .roam-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            padding: 14px;
-            background: var(--panel-2);
-            border-radius: var(--radius-sm);
-            margin-bottom: 20px;
-        }
-
-        .roam-stat .label {
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--ink-35);
-            margin-bottom: 4px;
-        }
-
-        .roam-stat .value {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--ink);
-        }
-
-        .section-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--ink-35);
-            margin-bottom: 12px;
-        }
-
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .history-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            padding: 14px;
-            background: var(--panel-2);
-            border-radius: var(--radius-sm);
-        }
-
-        .history-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-
-        .history-icon.warned { background: var(--warn-bg); }
-        .history-icon.suspended { background: rgba(237, 137, 54, 0.12); }
-        .history-icon.banned { background: var(--bad-bg); }
-        .history-icon.reversed { background: var(--good-bg); }
-        .history-icon.content_removed { background: rgba(128, 90, 213, 0.12); }
-
-        .history-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .history-content .action-type {
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-
-        .history-content .reason {
-            color: var(--ink-70);
-            font-size: 0.9rem;
-        }
-
-        .history-content .meta {
-            font-size: 0.8rem;
-            color: var(--ink-35);
-            margin-top: 6px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--ink-50);
-        }
-
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--ink-50);
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-        }
-
-        .action-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .action-modal.active {
-            display: flex;
-        }
-
-        .action-modal-content {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: var(--shadow);
-        }
-
-        .action-modal h3 {
-            margin-bottom: 16px;
-        }
-
-        .action-modal .modal-hint {
-            color: var(--ink-50);
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-
-        .action-modal .modal-hint strong {
-            color: var(--ink);
-            font-family: monospace;
-        }
-
-        .action-modal select,
-        .action-modal input,
-        .action-modal textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--line-strong);
-            border-radius: var(--radius-sm);
-            background: var(--room);
-            color: var(--ink);
-            font-size: 14px;
-            font-family: inherit;
-            margin-bottom: 12px;
-        }
-
-        .action-modal select option {
-            background: var(--room);
-        }
-
-        .action-modal textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .action-modal .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
+        .meta-line {
             margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-3);
         }
 
-        .action-modal button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-        }
+        /* The "find a person" prompt is redundant once a result list is on screen. */
+        #results:not([hidden]) ~ #user .find-prompt { display: none; }
 
-        .action-modal button:disabled {
-            opacity: 0.45;
-            cursor: wait;
-        }
+        /* Opening a profile from far down the page scrolls it into view. */
+        #user { scroll-margin-top: 16px; }
 
-        .action-modal .btn-cancel {
-            background: transparent;
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-        }
-
-        .action-modal .btn-confirm-danger {
-            background: var(--bad);
-            color: #fff;
+        @media (max-width: 900px) {
+            #user { scroll-margin-top: 64px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error-message"></div>
-
-        <div class="deletions-strip" id="deletions-strip">
-            <div class="strip-title">Recent account deletions</div>
-            <div class="deletions-list" id="deletions-list">
-                <div class="meta" style="color: var(--ink-35); font-size: 0.85rem;">Loading…</div>
+        <form class="toolbar" id="search-form" role="search">
+            <div class="search">
+                <input type="text" id="search-input" aria-label="Search people" placeholder="Search by handle, name or user id" autocomplete="off">
             </div>
-        </div>
+            <button type="submit" class="btn primary" id="search-btn">Search</button>
+            <button type="button" class="btn" id="recent-signups-btn">Recent signups</button>
+        </form>
 
-        <div class="search-section">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search by handle, name, or user id" autocomplete="off">
-                <button type="button" id="search-btn">Search</button>
-                <button type="button" class="btn-secondary" id="recent-signups-btn">Recent signups</button>
+        <section class="panel" id="results" hidden></section>
+
+        <div id="user"></div>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Recent account deletions</h2>
+                <span class="hint">Select one to see its history.</span>
             </div>
-        </div>
-
-        <div id="results-container" class="results-section" hidden></div>
-
-        <div id="user-container">
-            <div class="empty">
-                <div class="empty-icon">🔍</div>
-                <p>Search for a user by handle, name, or user id</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Moderation action modal -->
-    <div class="action-modal" id="action-modal">
-        <div class="action-modal-content">
-            <h3 id="action-modal-title">Take action</h3>
-            <select id="action-type">
-                <option value="warned">Warn user</option>
-                <option value="suspended">Suspend user</option>
-                <option value="banned">Ban user</option>
-            </select>
-            <select id="reason-code">
-                <option value="">Select reason...</option>
-                <option value="HARASSMENT">Harassment</option>
-                <option value="HATE_SPEECH">Hate speech</option>
-                <option value="SEXUAL_CONTENT">Sexual content</option>
-                <option value="MINOR_SAFETY">Minor safety</option>
-                <option value="SPAM">Spam</option>
-                <option value="IMPERSONATION">Impersonation</option>
-                <option value="SELF_HARM">Self-harm</option>
-                <option value="VIOLENCE">Violence</option>
-                <option value="ILLEGAL_CONTENT">Illegal content</option>
-                <option value="PRIVACY_VIOLATION">Privacy violation</option>
-                <option value="OTHER">Other</option>
-            </select>
-            <input type="number" id="duration-hours" placeholder="Duration (hours, optional for suspension)">
-            <textarea id="reason-text" placeholder="Explain the reason for this action..."></textarea>
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" id="action-cancel-btn">Cancel</button>
-                <button type="button" id="action-confirm-btn">Confirm</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete account modal (double-confirm) -->
-    <div class="action-modal" id="delete-modal">
-        <div class="action-modal-content">
-            <h3>Delete account</h3>
-            <p class="modal-hint">
-                This permanently deletes the account and purges user data.
-                Type the username <strong id="delete-confirm-username"></strong> to confirm.
-            </p>
-            <input type="text" id="delete-username-input" placeholder="Type username to confirm" autocomplete="off">
-            <textarea id="delete-reason-text" placeholder="Reason for deletion..."></textarea>
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" id="delete-cancel-btn">Cancel</button>
-                <button type="button" class="btn-confirm-danger" id="delete-confirm-btn">Delete account</button>
-            </div>
-        </div>
+            <div id="deletions"></div>
+        </section>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
         let currentUserId = null;
         let currentUser = null;
         let actionInFlight = false;
+        let detailSeq = 0;
 
         const UUID_RE = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32,})$/i;
 
         const REASON_LABELS = {
-            'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate speech',
-            'SEXUAL_CONTENT': 'Sexual content',
-            'MINOR_SAFETY': 'Minor safety',
-            'SPAM': 'Spam',
-            'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-harm',
-            'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal content',
-            'PRIVACY_VIOLATION': 'Privacy violation',
-            'OTHER': 'Other'
+            HARASSMENT: 'Harassment',
+            HATE_SPEECH: 'Hate speech',
+            SEXUAL_CONTENT: 'Sexual content',
+            MINOR_SAFETY: 'Minor safety',
+            SPAM: 'Spam',
+            IMPERSONATION: 'Impersonation',
+            SELF_HARM: 'Self-harm',
+            VIOLENCE: 'Violence',
+            ILLEGAL_CONTENT: 'Illegal content',
+            PRIVACY_VIOLATION: 'Privacy violation',
+            OTHER: 'Other',
         };
 
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
+        const REASON_CODES = Object.entries(REASON_LABELS);
 
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
+        // Badge tone per account status; anything else renders neutral.
+        const STATUS_TONES = { verified: 'good', warned: 'warn', suspended: 'orange', banned: 'bad' };
+
+        // Label and badge tone per moderation history entry.
+        const HISTORY_TYPES = {
+            warned: { label: 'Warned', tone: 'warn' },
+            suspended: { label: 'Suspended', tone: 'orange' },
+            banned: { label: 'Banned', tone: 'bad' },
+            reversed: { label: 'Reversed', tone: 'good' },
+            content_removed: { label: 'Content removed', tone: 'purple' },
+            account_deleted: { label: 'Account deleted', tone: 'bad' },
+        };
+
+        // Moderation actions. Titles are questions, buttons keep the verb.
+        // timed: the backend sets an end date from duration_hours (warn and suspend only).
+        const MODERATION = {
+            warned: {
+                title: (who) => `Warn ${who}?`,
+                body: 'They get a warning notification.',
+                confirmLabel: 'Warn',
+                verb: 'warn',
+                destructive: false,
+                timed: true,
+            },
+            suspended: {
+                title: (who) => `Suspend ${who}?`,
+                body: 'They lose access until the suspension ends.',
+                confirmLabel: 'Suspend',
+                verb: 'suspend',
+                destructive: true,
+                timed: true,
+            },
+            banned: {
+                title: (who) => `Ban ${who}?`,
+                body: 'They lose access permanently.',
+                confirmLabel: 'Ban',
+                verb: 'ban',
+                destructive: true,
+                timed: false,
+            },
+        };
+
+        // The other account actions. run() gets the user id captured when the
+        // button was pressed; reload refreshes the profile afterwards.
+        const COMMANDS = {
+            'force-signout': {
+                title: (who) => `Sign ${who} out everywhere?`,
+                body: 'Every active session ends and they have to sign in again.',
+                confirmLabel: 'Force sign-out',
+                destructive: true,
+                failure: (who) => `Couldn't sign out ${who}`,
+                run: (userId) => AdminShell.api('realtime', '/admin/users/force_signout', {
+                    user_id: userId,
+                }),
+                success: 'Signed out all sessions.',
+            },
+            'reset-avatar': {
+                title: (who) => `Reset the avatar for ${who}?`,
+                body: 'Removes their current avatar.',
+                confirmLabel: 'Reset avatar',
+                destructive: true,
+                failure: (who) => `Couldn't reset the avatar for ${who}`,
+                run: (userId) => AdminShell.api('realtime', '/admin/content/remove', {
+                    content_type: 'avatar',
+                    content_id: userId,
+                    reason_code: 'OTHER',
+                    reason_text: 'Admin avatar reset',
+                }),
+                reload: true,
+                success: 'Avatar reset.',
+            },
+            'comp-roam': {
+                title: (who) => `Comp 7 days of Roam for ${who}?`,
+                body: 'Gives them 7 days of Roam.',
+                confirmLabel: 'Comp 7 days',
+                destructive: false,
+                failure: (who) => `Couldn't comp Roam for ${who}`,
+                run: (userId) => AdminShell.api('realtime', '/admin/users/roam', {
+                    user_id: userId,
+                    action: 'comp',
+                    days: 7,
+                }),
+                reload: true,
+            },
+            'revoke-roam': {
+                title: (who) => `Revoke Roam for ${who}?`,
+                body: 'They lose their Roam entitlement.',
+                confirmLabel: 'Revoke',
+                destructive: true,
+                failure: (who) => `Couldn't revoke Roam for ${who}`,
+                run: (userId) => AdminShell.api('realtime', '/admin/users/roam', {
+                    user_id: userId,
+                    action: 'revoke',
+                }),
+                reload: true,
+            },
+            export: {
+                title: (who) => `Export data for ${who}?`,
+                body: 'Downloads a JSON file with this account\'s data.',
+                confirmLabel: 'Export',
+                destructive: false,
+                failure: (who) => `Couldn't export data for ${who}`,
+                run: async (userId) => {
+                    const data = await AdminShell.api('realtime', '/admin/users/export', {
+                        user_id: userId,
+                    });
+                    downloadJson(data, `user-export-${userId}.json`);
+                },
+                success: (userId) => `Export saved as user-export-${userId}.json.`,
+            },
+        };
+
+        const searchForm = document.getElementById('search-form');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const recentBtn = document.getElementById('recent-signups-btn');
+        const resultsEl = document.getElementById('results');
+        const userEl = document.getElementById('user');
+        const deletionsEl = document.getElementById('deletions');
+
+        // ---- Small helpers ----
 
         function looksLikeUuid(query) {
             return UUID_RE.test((query || '').trim());
@@ -681,451 +240,46 @@
             return [];
         }
 
-        function setSearchBusy(busy) {
-            document.getElementById('search-btn').disabled = busy;
-            document.getElementById('recent-signups-btn').disabled = busy;
+        // Own keys only: statuses and codes come from the server, so a value
+        // like "constructor" must not resolve to something on Object.prototype.
+        function lookup(map, key) {
+            return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : undefined;
         }
 
-        async function searchUsers() {
-            const query = document.getElementById('search-input').value.trim();
-            if (!query) {
-                showError('Please enter a handle, name, or user id');
-                return;
-            }
-
-            const resultsEl = document.getElementById('results-container');
-            const container = document.getElementById('user-container');
-            resultsEl.hidden = false;
-            resultsEl.innerHTML = '<div class="loading">Searching…</div>';
-            container.innerHTML = '';
-            hideError();
-            setSearchBusy(true);
-
-            try {
-                const data = await AdminShell.api('realtime', '/admin/users/search', {
-                    query,
-                    mode: 'search',
-                    limit: 25
-                });
-                const users = normalizeUsers(data);
-
-                if (users.length === 1) {
-                    resultsEl.hidden = true;
-                    resultsEl.innerHTML = '';
-                    await loadUserDetail(users[0].user_id);
-                    return;
-                }
-
-                if (looksLikeUuid(query)) {
-                    try {
-                        resultsEl.hidden = true;
-                        resultsEl.innerHTML = '';
-                        await loadUserDetail(query);
-                        return;
-                    } catch (histErr) {
-                        // Fall through to show search results if any
-                        console.warn('History lookup for UUID failed, showing search results', histErr);
-                    }
-                }
-
-                renderSearchResults(users, 'Search results');
-                if (users.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty">
-                            <div class="empty-icon">👤</div>
-                            <p>No users found</p>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `
-                        <div class="empty" style="padding: 30px 20px;">
-                            <p>Select a user from the results above</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error searching users:', error);
-                showError(error.message || 'Failed to search users.');
-                resultsEl.innerHTML = '';
-                resultsEl.hidden = true;
-                container.innerHTML = `
-                    <div class="empty">
-                        <div class="empty-icon">⚠️</div>
-                        <p>Error searching users</p>
-                    </div>
-                `;
-            } finally {
-                setSearchBusy(false);
-            }
+        function sentence(value) {
+            const text = String(value ?? '').replace(/_/g, ' ').trim();
+            return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
         }
 
-        async function loadRecentSignups() {
-            const resultsEl = document.getElementById('results-container');
-            const container = document.getElementById('user-container');
-            resultsEl.hidden = false;
-            resultsEl.innerHTML = '<div class="loading">Loading recent signups…</div>';
-            hideError();
-            setSearchBusy(true);
-
-            try {
-                const data = await AdminShell.api('realtime', '/admin/users/search', {
-                    mode: 'recent',
-                    limit: 25
-                });
-                const users = normalizeUsers(data);
-                renderSearchResults(users, 'Recent signups');
-                if (users.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty">
-                            <div class="empty-icon">👤</div>
-                            <p>No recent signups</p>
-                        </div>
-                    `;
-                } else if (!currentUserId) {
-                    container.innerHTML = `
-                        <div class="empty" style="padding: 30px 20px;">
-                            <p>Select a user from the results above</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading recent signups:', error);
-                showError(error.message || 'Failed to load recent signups.');
-                resultsEl.innerHTML = '';
-                resultsEl.hidden = true;
-            } finally {
-                setSearchBusy(false);
-            }
+        function roleLabel(role) {
+            return String(role || 'admin').replace(/_/g, ' ');
         }
 
-        function renderSearchResults(users, title) {
-            const resultsEl = document.getElementById('results-container');
-            resultsEl.hidden = false;
-
-            if (!users.length) {
-                resultsEl.innerHTML = `
-                    <div class="section-title">${escapeHtml(title)} (0)</div>
-                    <div class="empty" style="padding: 24px;"><p>No results</p></div>
-                `;
-                return;
-            }
-
-            resultsEl.innerHTML = `
-                <div class="section-title">${escapeHtml(title)} (${users.length})</div>
-                <div class="results-table-wrap">
-                    <table class="results-table">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Status</th>
-                                <th>Signed up</th>
-                                <th>User id</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${users.map((u, i) => {
-                                const initials = (u.screen_name || u.username || 'U').substring(0, 2).toUpperCase();
-                                const avatar = u.avatar_url
-                                    ? `<img src="${escapeHtml(u.avatar_url)}" alt="">`
-                                    : initials;
-                                return `
-                                    <tr data-user-index="${i}" data-user-id="${escapeHtml(u.user_id || '')}">
-                                        <td>
-                                            <div class="user-cell">
-                                                <div class="results-avatar">${avatar}</div>
-                                                <div>
-                                                    <div>${escapeHtml(u.screen_name || 'Unknown')}</div>
-                                                    <div class="handle">@${escapeHtml(u.username || 'unknown')}</div>
-                                                    ${u.email ? `<div class="meta" style="color:var(--ink-35);font-size:0.78rem;">${escapeHtml(u.email)}</div>` : ''}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="status-badge ${escapeHtml(u.account_status || 'unknown')}">${escapeHtml(u.account_status || 'unknown')}</span></td>
-                                        <td>${formatTime(u.signup_completed_at)}</td>
-                                        <td class="uid">${escapeHtml(u.user_id || '')}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            resultsEl.querySelectorAll('tbody tr[data-user-id]').forEach(row => {
-                row.addEventListener('click', () => {
-                    const uid = row.getAttribute('data-user-id');
-                    if (uid) loadUserDetail(uid);
-                });
-            });
+        function shortId(id) {
+            return String(id || '').slice(0, 8);
         }
 
-        async function loadUserDetail(userId) {
-            const container = document.getElementById('user-container');
-            container.innerHTML = '<div class="loading">Loading user…</div>';
-            hideError();
-
-            try {
-                const data = await AdminShell.api('realtime', '/admin/users/history', { user_id: userId });
-                currentUserId = data.user_id || userId;
-                currentUser = data.user || {};
-
-                let roamData = null;
-                try {
-                    roamData = await AdminShell.api('realtime', '/admin/users/roam', {
-                        user_id: currentUserId,
-                        action: 'get'
-                    });
-                } catch (roamErr) {
-                    console.warn('Roam fetch failed', roamErr);
-                }
-
-                renderUser(data, roamData);
-
-                // Keep deep-link shareable without forcing a reload.
-                try {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('id', currentUserId);
-                    window.history.replaceState({}, '', url);
-                } catch (_) { /* ignore */ }
-            } catch (error) {
-                console.error('Error loading user:', error);
-                const msg = error.message || '';
-                if (/not found|404/i.test(msg)) {
-                    container.innerHTML = `
-                        <div class="empty">
-                            <div class="empty-icon">👤</div>
-                            <p>User not found</p>
-                        </div>
-                    `;
-                    throw error;
-                }
-                showError(msg || 'Failed to load user.');
-                container.innerHTML = `
-                    <div class="empty">
-                        <div class="empty-icon">⚠️</div>
-                        <p>Error loading user</p>
-                    </div>
-                `;
-                throw error;
-            }
+        function statusBadge(status) {
+            const tone = lookup(STATUS_TONES, status) || '';
+            return `<span class="badge ${tone}">${esc(sentence(status || 'unknown'))}</span>`;
         }
 
-        function formatPremiumUntil(epoch) {
-            const n = Number(epoch);
-            if (!n || n <= 0) return 'none';
-            // Accept seconds or milliseconds.
-            const ms = n > 1e12 ? n : n * 1000;
-            const d = new Date(ms);
-            if (Number.isNaN(d.getTime())) return 'none';
-            if (d.getTime() < Date.now()) return `expired ${d.toLocaleString()}`;
-            return d.toLocaleString();
-        }
-
-        function renderUser(data, roamData) {
-            const container = document.getElementById('user-container');
-            const user = data.user || {};
-            const history = data.history || data.actions || [];
-            const appeals = data.appeals || [];
-            const status = data.account_status || user.account_status || 'unknown';
-            const statusReason = data.account_status_reason || user.account_status_reason || '';
-            const displayId = data.user_id || user.user_id || currentUserId;
+        function avatarHtml(user) {
+            if (user.avatar_url) return `<img class="avatar" src="${esc(user.avatar_url)}" alt="">`;
             const initials = (user.screen_name || user.username || 'U').substring(0, 2).toUpperCase();
-            const avatarHtml = user.avatar_url
-                ? `<img src="${escapeHtml(user.avatar_url)}" alt="">`
-                : initials;
-
-            const premiumUntil = roamData
-                ? formatPremiumUntil(roamData.premium_until)
-                : '—';
-            const referralCount = roamData && roamData.referral_count != null
-                ? roamData.referral_count
-                : '—';
-            const roamGate = roamData && roamData.roam_gate_mode
-                ? roamData.roam_gate_mode
-                : (roamData ? 'off' : '—');
-
-            container.innerHTML = `
-                <div class="user-card">
-                    <div class="user-header">
-                        <div class="user-info">
-                            <div class="user-avatar">${avatarHtml}</div>
-                            <div class="user-details">
-                                <h2>${escapeHtml(user.screen_name || 'Unknown')}</h2>
-                                <div class="username">@${escapeHtml(user.username || 'unknown')}</div>
-                                <div class="user-id">${escapeHtml(displayId || '')}</div>
-                            </div>
-                        </div>
-                        <div class="user-status">
-                            <span class="status-badge ${escapeHtml(status)}">${escapeHtml(status)}</span>
-                            ${statusReason ? `<div class="status-reason">${escapeHtml(statusReason)}</div>` : ''}
-                            <div class="user-actions">
-                                <button type="button" class="btn-warn" data-action="warned">Warn</button>
-                                <button type="button" class="btn-suspend" data-action="suspended">Suspend</button>
-                                <button type="button" class="btn-ban" data-action="banned">Ban</button>
-                                <button type="button" class="btn-neutral" data-cmd="force-signout">Force sign-out</button>
-                                <button type="button" class="btn-neutral" data-cmd="reset-avatar">Reset avatar</button>
-                                <button type="button" class="btn-info" data-cmd="comp-roam">Comp roam (7d)</button>
-                                <button type="button" class="btn-info" data-cmd="revoke-roam">Revoke roam</button>
-                                <button type="button" class="btn-neutral" data-cmd="export">Export data</button>
-                                <button type="button" class="btn-danger" data-cmd="delete">Delete account</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section-title">Roam</div>
-                    <div class="roam-panel" id="roam-panel">
-                        <div class="roam-stat">
-                            <div class="label">Premium until</div>
-                            <div class="value">${escapeHtml(String(premiumUntil))}</div>
-                        </div>
-                        <div class="roam-stat">
-                            <div class="label">Referral count</div>
-                            <div class="value">${escapeHtml(String(referralCount))}</div>
-                        </div>
-                        <div class="roam-stat">
-                            <div class="label">Roam gate mode</div>
-                            <div class="value">${escapeHtml(String(roamGate))}</div>
-                        </div>
-                    </div>
-
-                    <div class="section-title">Moderation history (${history.length})</div>
-                    ${history.length > 0 ? `
-                        <div class="history-list">
-                            ${history.map(action => `
-                                <div class="history-item">
-                                    <div class="history-icon ${escapeHtml(action.action_type || '')}">${getActionIcon(action.action_type)}</div>
-                                    <div class="history-content">
-                                        <div class="action-type">${escapeHtml(action.action_type || '')}</div>
-                                        <div class="reason">${REASON_LABELS[action.reason_code] || escapeHtml(action.reason_code || '-')}: ${escapeHtml(action.reason_text || '')}</div>
-                                        <div class="meta">
-                                            ${formatTime(action.created_at)} · by ${escapeHtml(action.actor_role || 'admin')}
-                                            ${action.expires_at ? ` · expires ${formatTime(action.expires_at)}` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : '<div class="empty" style="padding: 20px;"><p>No moderation history</p></div>'}
-
-                    ${appeals.length > 0 ? `
-                        <div class="section-title" style="margin-top: 24px;">Appeals (${appeals.length})</div>
-                        <div class="history-list">
-                            ${appeals.map(appeal => `
-                                <div class="history-item">
-                                    <div class="history-icon ${appeal.status === 'approved' ? 'reversed' : appeal.status === 'denied' ? 'banned' : 'warned'}">📝</div>
-                                    <div class="history-content">
-                                        <div class="action-type">Appeal ${escapeHtml(appeal.status || '')}</div>
-                                        <div class="reason">${escapeHtml(appeal.reason || appeal.statement || '')}</div>
-                                        <div class="meta">${formatTime(appeal.created_at)}</div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-
-            container.querySelectorAll('.user-actions [data-action]').forEach(btn => {
-                btn.addEventListener('click', () => showActionModal(btn.dataset.action));
-            });
-            container.querySelectorAll('.user-actions [data-cmd]').forEach(btn => {
-                btn.addEventListener('click', () => handleUserCommand(btn.dataset.cmd, btn));
-            });
+            return `<span class="avatar initials" aria-hidden="true">${esc(initials)}</span>`;
         }
 
-        function setActionButtonsDisabled(disabled) {
-            document.querySelectorAll('.user-actions button').forEach(btn => {
-                btn.disabled = disabled;
-            });
+        // A state (loading, empty, error) needs a panel to sit in when it
+        // replaces the profile, which is itself several panels.
+        function panelIn(region) {
+            region.innerHTML = '<div class="panel"></div>';
+            return region.firstElementChild;
         }
 
-        async function handleUserCommand(cmd, btn) {
-            if (!currentUserId || actionInFlight) return;
-
-            if (cmd === 'force-signout') {
-                if (!confirm('Force sign-out this user from all sessions?')) return;
-                await runUserAction(btn, async () => {
-                    await AdminShell.api('realtime', '/admin/users/force_signout', {
-                        user_id: currentUserId
-                    });
-                }, 'Signed out all sessions.');
-                return;
-            }
-
-            if (cmd === 'reset-avatar') {
-                if (!confirm('Reset this user\'s avatar?')) return;
-                await runUserAction(btn, async () => {
-                    await AdminShell.api('realtime', '/admin/content/remove', {
-                        content_type: 'avatar',
-                        content_id: currentUserId,
-                        reason_code: 'OTHER',
-                        reason_text: 'Admin avatar reset'
-                    });
-                    await loadUserDetail(currentUserId);
-                });
-                return;
-            }
-
-            if (cmd === 'comp-roam') {
-                if (!confirm('Comp 7 days of roam for this user?')) return;
-                await runUserAction(btn, async () => {
-                    await AdminShell.api('realtime', '/admin/users/roam', {
-                        user_id: currentUserId,
-                        action: 'comp',
-                        days: 7
-                    });
-                    await loadUserDetail(currentUserId);
-                });
-                return;
-            }
-
-            if (cmd === 'revoke-roam') {
-                if (!confirm('Revoke roam entitlement for this user?')) return;
-                await runUserAction(btn, async () => {
-                    await AdminShell.api('realtime', '/admin/users/roam', {
-                        user_id: currentUserId,
-                        action: 'revoke'
-                    });
-                    await loadUserDetail(currentUserId);
-                });
-                return;
-            }
-
-            if (cmd === 'export') {
-                await runUserAction(btn, async () => {
-                    const data = await AdminShell.api('realtime', '/admin/users/export', {
-                        user_id: currentUserId
-                    });
-                    downloadJson(data, `user-export-${currentUserId}.json`);
-                }, null, 'Exporting…');
-                return;
-            }
-
-            if (cmd === 'delete') {
-                openDeleteModal();
-            }
-        }
-
-        async function runUserAction(btn, fn, successMsg, busyLabel) {
-            actionInFlight = true;
-            setActionButtonsDisabled(true);
-            const original = btn ? btn.textContent : '';
-            if (btn && busyLabel) btn.textContent = busyLabel;
-            hideError();
-            try {
-                await fn();
-                if (successMsg) {
-                    // Non-blocking feedback via error banner slot is wrong; leave quiet or use console.
-                    // Prefer soft reload of detail for mutations already done by callers.
-                }
-            } catch (error) {
-                console.error('User action failed:', error);
-                showError(error.message || 'Action failed.');
-            } finally {
-                actionInFlight = false;
-                setActionButtonsDisabled(false);
-                if (btn && busyLabel) btn.textContent = original;
-            }
+        function personLabel() {
+            const name = currentUser && currentUser.username;
+            return name ? `@${name}` : 'this person';
         }
 
         function downloadJson(data, filename) {
@@ -1140,258 +294,600 @@
             URL.revokeObjectURL(url);
         }
 
-        function openDeleteModal() {
-            const username = (currentUser && (currentUser.username || currentUser.UsernamePK)) || '';
-            document.getElementById('delete-confirm-username').textContent = username || currentUserId;
-            document.getElementById('delete-username-input').value = '';
-            document.getElementById('delete-reason-text').value = '';
-            document.getElementById('delete-modal').classList.add('active');
-            document.getElementById('delete-username-input').focus();
+        // Rows open with a click or Enter/Space. Bound once to a region that
+        // stays put while its contents are replaced.
+        function bindRows(region) {
+            const open = (e) => {
+                const row = e.target.closest('tr[data-user-id]');
+                if (!row || !region.contains(row) || !row.dataset.userId) return;
+                loadUserDetail(row.dataset.userId);
+                userEl.scrollIntoView({ block: 'start' });
+            };
+            region.addEventListener('click', open);
+            region.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                if (!e.target.matches('tr[data-user-id]')) return;
+                e.preventDefault();
+                open(e);
+            });
         }
 
-        function closeDeleteModal() {
-            document.getElementById('delete-modal').classList.remove('active');
+        // ---- Search ----
+
+        // Search and Recent signups share the toolbar: the one that ran shows
+        // the wait, the other waits its turn.
+        async function runSearch(button, fn) {
+            if (searchBtn.disabled || recentBtn.disabled) return;
+            [searchBtn, recentBtn].forEach(b => { if (b !== button) b.disabled = true; });
+            try {
+                await ui.busy(button, fn);
+            } finally {
+                [searchBtn, recentBtn].forEach(b => { b.disabled = false; });
+            }
         }
 
-        async function confirmDeleteAccount() {
-            if (!currentUserId || actionInFlight) return;
+        function hideResults() {
+            resultsEl.hidden = true;
+            resultsEl.innerHTML = '';
+        }
 
-            const expected = ((currentUser && (currentUser.username || currentUser.UsernamePK)) || currentUserId || '').trim();
-            const typed = document.getElementById('delete-username-input').value.trim();
-            const reasonText = document.getElementById('delete-reason-text').value.trim();
+        function clearProfile() {
+            detailSeq++;
+            currentUserId = null;
+            currentUser = null;
+            userEl.innerHTML = '';
+        }
 
-            if (!typed || typed.toLowerCase() !== expected.toLowerCase()) {
-                showError('Username confirmation does not match.');
+        function showFindPrompt() {
+            const panel = panelIn(userEl);
+            panel.classList.add('find-prompt');
+            ui.empty(panel, {
+                title: 'Find a person',
+                body: 'Search by handle, name or user id, or open the newest signups.',
+                icon: 'users',
+            });
+        }
+
+        async function searchUsers() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                ui.notice('Enter a handle, name or user id to search.');
+                searchInput.focus();
                 return;
             }
-            if (!reasonText) {
-                showError('Please provide a reason for deletion.');
-                return;
-            }
-            if (!confirm(`Final confirmation: permanently delete @${expected}?`)) {
-                return;
-            }
 
-            const btn = document.getElementById('delete-confirm-btn');
-            actionInFlight = true;
-            btn.disabled = true;
-            btn.textContent = 'Deleting…';
-            hideError();
+            resultsEl.hidden = false;
+            ui.loading(resultsEl, 'Searching…');
+            clearProfile();
 
             try {
-                await AdminShell.api('realtime', '/admin/users/delete', {
-                    user_id: currentUserId,
-                    reason_text: reasonText
+                const data = await AdminShell.api('realtime', '/admin/users/search', {
+                    query,
+                    mode: 'search',
+                    limit: 25,
                 });
-                closeDeleteModal();
+                const users = normalizeUsers(data);
+
+                if (users.length === 1 && users[0].user_id) {
+                    hideResults();
+                    await loadUserDetail(users[0].user_id);
+                    return;
+                }
+
+                if (looksLikeUuid(query)) {
+                    // A bare id may belong to someone search doesn't index (for
+                    // example a deleted account), so try its history directly.
+                    hideResults();
+                    if (await loadUserDetail(query, { renderErrors: false })) return;
+                    clearProfile();
+                }
+
+                renderSearchResults(users, {
+                    title: 'Search results',
+                    empty: {
+                        title: `No one matches "${query}"`,
+                        body: 'Try a handle, a name or the full user id.',
+                        actionLabel: 'Recent signups',
+                        onAction: () => runSearch(recentBtn, loadRecentSignups),
+                    },
+                });
+            } catch (error) {
+                ui.error(resultsEl, {
+                    title: "Couldn't search people",
+                    error,
+                    onRetry: () => runSearch(searchBtn, searchUsers),
+                });
+            }
+        }
+
+        async function loadRecentSignups() {
+            resultsEl.hidden = false;
+            ui.loading(resultsEl, 'Loading recent signups…');
+
+            try {
+                const data = await AdminShell.api('realtime', '/admin/users/search', {
+                    mode: 'recent',
+                    limit: 25,
+                });
+                renderSearchResults(normalizeUsers(data), {
+                    title: 'Recent signups',
+                    empty: {
+                        title: 'No recent signups',
+                        body: 'New accounts appear here as people finish signing up.',
+                    },
+                });
+            } catch (error) {
+                ui.error(resultsEl, {
+                    title: "Couldn't load recent signups",
+                    error,
+                    onRetry: () => runSearch(recentBtn, loadRecentSignups),
+                });
+            }
+        }
+
+        function renderSearchResults(users, { title, empty }) {
+            resultsEl.hidden = false;
+
+            if (!users.length) {
+                ui.empty(resultsEl, { ...empty, icon: 'users' });
+                return;
+            }
+
+            // Every field is untrusted (users type their own names), so all of
+            // it goes through esc(); rows carry the id in a data attribute.
+            resultsEl.innerHTML = `
+                <div class="panel-head">
+                    <h2>${esc(title)}</h2>
+                    <span class="hint">${esc(ui.number(users.length))} ${users.length === 1 ? 'person' : 'people'}. Select one to open their profile.</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Person</th>
+                                <th>Status</th>
+                                <th>Signed up</th>
+                                <th>User id</th>
+                            </tr>
+                        </thead>
+                        <tbody>${users.map(resultRow).join('')}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function resultRow(user) {
+            const id = user.user_id || '';
+            return `
+                <tr class="clickable" tabindex="0" data-user-id="${esc(id)}">
+                    <td>
+                        <div class="person">
+                            ${avatarHtml(user)}
+                            <div>
+                                <div class="name">${esc(user.screen_name || 'Unknown')}</div>
+                                <div class="handle">@${esc(user.username || 'unknown')}</div>
+                                ${user.email ? `<div class="handle">${esc(user.email)}</div>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td>${statusBadge(user.account_status)}</td>
+                    <td class="nowrap">${ui.timeTag(user.signup_completed_at)}</td>
+                    <td><span class="mono faint" title="${esc(id)}">${esc(shortId(id))}</span></td>
+                </tr>`;
+        }
+
+        // ---- Profile ----
+
+        // Resolves true once the profile is on screen. It never throws: a
+        // failure renders its own state (or a notice, when a refresh keeps the
+        // current profile visible), so callers only branch on the result.
+        async function loadUserDetail(userId, { quiet = false, renderErrors = true } = {}) {
+            const seq = ++detailSeq;
+            const keepOnScreen = quiet && !!userEl.querySelector('[data-profile]');
+            if (!keepOnScreen) {
                 currentUserId = null;
                 currentUser = null;
-                document.getElementById('user-container').innerHTML = `
-                    <div class="empty">
-                        <div class="empty-icon">🗑️</div>
-                        <p>Account deleted</p>
-                    </div>
-                `;
-                loadRecentDeletions();
-            } catch (error) {
-                console.error('Delete failed:', error);
-                showError(error.message || 'Failed to delete account.');
-            } finally {
-                actionInFlight = false;
-                btn.disabled = false;
-                btn.textContent = 'Delete account';
+                ui.loading(panelIn(userEl), 'Loading profile…');
             }
-        }
-
-        function getActionIcon(actionType) {
-            const icons = {
-                'warned': '⚠️',
-                'suspended': '⏸️',
-                'banned': '🔨',
-                'reversed': '↩️',
-                'content_removed': '🗑️',
-                'account_deleted': '🗑️'
-            };
-            return icons[actionType] || '📋';
-        }
-
-        function showActionModal(actionType) {
-            document.getElementById('action-type').value = actionType;
-            document.getElementById('reason-code').value = '';
-            document.getElementById('duration-hours').value = '';
-            document.getElementById('reason-text').value = '';
-
-            const btn = document.getElementById('action-confirm-btn');
-            if (actionType === 'warned') {
-                btn.style.background = 'var(--warn)';
-                btn.style.color = '#0A0A0C';
-            } else if (actionType === 'suspended') {
-                btn.style.background = 'var(--orange)';
-                btn.style.color = '#0A0A0C';
-            } else {
-                btn.style.background = 'var(--bad)';
-                btn.style.color = '#0A0A0C';
-            }
-
-            document.getElementById('action-modal').classList.add('active');
-        }
-
-        function closeActionModal() {
-            document.getElementById('action-modal').classList.remove('active');
-        }
-
-        async function confirmAction() {
-            const actionType = document.getElementById('action-type').value;
-            const reasonCode = document.getElementById('reason-code').value;
-            const durationHours = document.getElementById('duration-hours').value;
-            const reasonText = document.getElementById('reason-text').value.trim();
-
-            if (!reasonCode) {
-                showError('Please select a reason code');
-                return;
-            }
-
-            if (!reasonText) {
-                showError('Please provide a reason explanation');
-                return;
-            }
-
-            if (!currentUserId) {
-                showError('No user selected');
-                return;
-            }
-
-            const btn = document.getElementById('action-confirm-btn');
-            btn.disabled = true;
-            btn.textContent = 'Processing…';
-            hideError();
 
             try {
-                await AdminShell.api('realtime', '/admin/moderation/action', {
-                    target_type: 'user',
-                    target_id: currentUserId,
-                    action_type: actionType,
-                    reason_code: reasonCode,
-                    reason_text: reasonText,
-                    duration_hours: durationHours ? parseInt(durationHours, 10) : null
-                });
+                const data = await AdminShell.api('realtime', '/admin/users/history', { user_id: userId });
+                const id = data.user_id || userId;
 
-                closeActionModal();
-                await loadUserDetail(currentUserId);
+                let roam = null;
+                let roamError = null;
+                try {
+                    roam = await AdminShell.api('realtime', '/admin/users/roam', {
+                        user_id: id,
+                        action: 'get',
+                    });
+                } catch (error) {
+                    roamError = error;
+                }
+
+                if (seq !== detailSeq) return false;
+                currentUserId = id;
+                currentUser = data.user || {};
+                renderUser(data, roam, roamError);
+                syncUrl(id);
+                return true;
             } catch (error) {
-                console.error('Error taking action:', error);
-                showError(`Failed to take action: ${error.message}`);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Confirm';
+                if (seq !== detailSeq) return false;
+                if (keepOnScreen) {
+                    ui.notice(`Couldn't refresh this profile: ${error.message}`, { tone: 'bad' });
+                    return false;
+                }
+                if (!renderErrors) return false;
+                if (/not found|404/i.test(error.message || '')) {
+                    ui.empty(panelIn(userEl), {
+                        title: 'Person not found',
+                        body: 'No account matches that id. A deleted account may be fully purged.',
+                        icon: 'users',
+                    });
+                } else {
+                    ui.error(panelIn(userEl), {
+                        title: "Couldn't load this profile",
+                        error,
+                        onRetry: () => loadUserDetail(userId),
+                    });
+                }
+                return false;
             }
         }
 
+        // Keep the deep link shareable without forcing a reload.
+        function syncUrl(id) {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('id', id);
+                window.history.replaceState({}, '', url);
+            } catch (_) { /* the link is a convenience */ }
+        }
+
+        function premiumUntilHtml(epoch) {
+            const n = Number(epoch);
+            const date = n > 0 ? ui.toDate(n) : null;
+            if (!date) return '<span class="faint">None</span>';
+            if (date.getTime() < Date.now()) return `<span class="muted">Expired ${esc(ui.time(date))}</span>`;
+            return esc(ui.time(date));
+        }
+
+        function kvRows(rows) {
+            return rows.filter(Boolean).map(([label, html]) => `<dt>${esc(label)}</dt><dd>${html}</dd>`).join('');
+        }
+
+        function historyItem(action) {
+            const kind = lookup(HISTORY_TYPES, action.action_type)
+                || { label: sentence(action.action_type) || 'Action', tone: '' };
+            const reason = lookup(REASON_LABELS, action.reason_code) || action.reason_code || '';
+            return `
+                <article class="item">
+                    <div class="item-head">
+                        <div class="item-title">
+                            <span class="badge ${kind.tone}">${esc(kind.label)}</span>
+                            ${reason ? `<span>${esc(reason)}</span>` : ''}
+                        </div>
+                        <span class="item-time">${ui.timeTag(action.created_at)}</span>
+                    </div>
+                    ${action.reason_text ? `<div class="quote">${esc(action.reason_text)}</div>` : ''}
+                    <div class="meta-line">
+                        By ${esc(roleLabel(action.actor_role))}${action.expires_at ? ` · Expires ${ui.timeTag(action.expires_at)}` : ''}
+                    </div>
+                </article>`;
+        }
+
+        function appealItem(appeal) {
+            const tone = appeal.status === 'approved' ? 'good' : appeal.status === 'denied' ? 'bad' : 'warn';
+            const text = appeal.reason || appeal.statement || '';
+            return `
+                <article class="item">
+                    <div class="item-head">
+                        <div class="item-title">
+                            Appeal
+                            ${appeal.status ? `<span class="badge ${tone}">${esc(sentence(appeal.status))}</span>` : ''}
+                        </div>
+                        <span class="item-time">${ui.timeTag(appeal.created_at)}</span>
+                    </div>
+                    ${text ? `<div class="quote">${esc(text)}</div>` : ''}
+                </article>`;
+        }
+
+        function renderUser(data, roam, roamError) {
+            const user = data.user || {};
+            const history = Array.isArray(data.history) ? data.history
+                : (Array.isArray(data.actions) ? data.actions : []);
+            const appeals = Array.isArray(data.appeals) ? data.appeals : [];
+            const status = data.account_status || user.account_status || 'unknown';
+            const statusReason = data.account_status_reason || user.account_status_reason || '';
+            const id = data.user_id || user.user_id || currentUserId || '';
+
+            const referrals = roam && roam.referral_count != null
+                ? (typeof roam.referral_count === 'number' ? ui.number(roam.referral_count) : esc(roam.referral_count))
+                : '–';
+            const roamGate = roam ? esc(roam.roam_gate_mode || 'off') : '–';
+
+            userEl.innerHTML = `
+                <section class="panel" data-profile>
+                    <div class="profile-head">
+                        <div class="person">
+                            ${avatarHtml(user)}
+                            <div>
+                                <h2 class="name">${esc(user.screen_name || 'Unknown')}</h2>
+                                <div class="handle">@${esc(user.username || 'unknown')} · <span class="mono" title="${esc(id)}">${esc(shortId(id))}</span></div>
+                            </div>
+                        </div>
+                        ${statusBadge(status)}
+                    </div>
+
+                    <dl class="kv">${kvRows([
+                        statusReason ? ['Status reason', esc(statusReason)] : null,
+                        ['User id', `<span class="mono">${esc(id)}</span>`],
+                        user.email ? ['Email', esc(user.email)] : null,
+                        user.signup_completed_at ? ['Signed up', ui.timeTag(user.signup_completed_at)] : null,
+                    ])}</dl>
+
+                    <div class="item-actions">
+                        <button type="button" class="btn" data-action="warned">Warn</button>
+                        <button type="button" class="btn" data-action="export">${ui.icon('download')}Export data</button>
+                        <span class="spacer"></span>
+                        <button type="button" class="btn danger" data-action="force-signout">Force sign-out</button>
+                        <button type="button" class="btn danger" data-action="reset-avatar">Reset avatar</button>
+                        <button type="button" class="btn danger" data-action="suspended">Suspend</button>
+                        <button type="button" class="btn danger" data-action="banned">Ban</button>
+                        <button type="button" class="btn danger" data-action="delete">Delete account</button>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Roam</h2>
+                        <div class="panel-actions">
+                            <button type="button" class="btn sm" data-action="comp-roam">Comp 7 days</button>
+                            <button type="button" class="btn sm danger" data-action="revoke-roam">Revoke Roam</button>
+                        </div>
+                    </div>
+                    <dl class="kv">${kvRows([
+                        ['Premium until', roam ? premiumUntilHtml(roam.premium_until) : '–'],
+                        ['Referral count', referrals],
+                        ['Roam gate mode', roamGate],
+                    ])}</dl>
+                    ${roamError ? `<p class="meta-line">Couldn't load Roam details: ${esc(roamError.message)}</p>` : ''}
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Moderation history</h2>
+                        <span class="hint">${esc(ui.number(history.length))} ${history.length === 1 ? 'action' : 'actions'}</span>
+                    </div>
+                    <div id="moderation-history">${history.length ? `<div class="item-list">${history.map(historyItem).join('')}</div>` : ''}</div>
+                </section>
+
+                ${appeals.length ? `
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Appeals</h2>
+                            <span class="hint">${esc(ui.number(appeals.length))} ${appeals.length === 1 ? 'appeal' : 'appeals'}</span>
+                        </div>
+                        <div class="item-list">${appeals.map(appealItem).join('')}</div>
+                    </section>` : ''}`;
+
+            if (!history.length) {
+                ui.empty(document.getElementById('moderation-history'), {
+                    title: 'No moderation history',
+                    body: 'Warnings, suspensions and bans against this account appear here.',
+                    icon: 'list',
+                });
+            }
+        }
+
+        // ---- Account actions ----
+
+        function setActionsDisabled(disabled) {
+            userEl.querySelectorAll('button[data-action]').forEach(b => { b.disabled = disabled; });
+        }
+
+        // One action at a time. The pressed button shows the wait until the
+        // request (and the profile reload, when asked for) finishes.
+        async function perform(button, failure, fn, { reload = false } = {}) {
+            const userId = currentUserId;
+            actionInFlight = true;
+            setActionsDisabled(true);
+            try {
+                await ui.busy(button, async () => {
+                    await fn();
+                    if (reload) await loadUserDetail(userId, { quiet: true });
+                });
+                return true;
+            } catch (error) {
+                ui.notice(`${failure}: ${error.message}`, { tone: 'bad' });
+                return false;
+            } finally {
+                actionInFlight = false;
+                setActionsDisabled(false);
+            }
+        }
+
+        async function moderate(action, button) {
+            const spec = MODERATION[action];
+            const userId = currentUserId;
+            const who = personLabel();
+
+            const fields = [
+                { name: 'reason_code', label: 'Reason', type: 'select', options: REASON_CODES, required: true, placeholder: 'Choose a reason…' },
+            ];
+            if (spec.timed) {
+                fields.push({ name: 'duration', label: 'Duration in hours', type: 'text', placeholder: 'Optional', hint: 'Leave empty for no end date.' });
+            }
+            fields.push({ name: 'reason_text', label: 'Explanation', type: 'textarea', required: true, placeholder: 'Explain the reason for this action' });
+
+            const values = await ui.confirm({
+                title: spec.title(who),
+                body: esc(spec.body),
+                confirmLabel: spec.confirmLabel,
+                destructive: spec.destructive,
+                fields,
+            });
+            if (!values) return;
+
+            let durationHours = null;
+            if (values.duration) {
+                durationHours = parseInt(values.duration, 10);
+                if (!(durationHours > 0)) {
+                    ui.notice(`Couldn't ${spec.verb} ${who}: duration must be a whole number of hours.`, { tone: 'bad' });
+                    return;
+                }
+            }
+
+            await perform(button, `Couldn't ${spec.verb} ${who}`, () => AdminShell.api('realtime', '/admin/moderation/action', {
+                target_type: 'user',
+                target_id: userId,
+                action_type: action,
+                reason_code: values.reason_code,
+                reason_text: values.reason_text,
+                duration_hours: durationHours,
+            }), { reload: true });
+        }
+
+        async function runCommand(spec, button) {
+            const userId = currentUserId;
+            const who = personLabel();
+            const values = await ui.confirm({
+                title: spec.title(who),
+                body: esc(spec.body),
+                confirmLabel: spec.confirmLabel,
+                destructive: spec.destructive,
+            });
+            if (!values) return;
+
+            const ok = await perform(button, spec.failure(who), () => spec.run(userId), { reload: !!spec.reload });
+            if (ok && spec.success) {
+                ui.notice(typeof spec.success === 'function' ? spec.success(userId) : spec.success, { tone: 'good' });
+            }
+        }
+
+        async function deleteAccount(button) {
+            const userId = currentUserId;
+            const expected = ((currentUser && (currentUser.username || currentUser.UsernamePK)) || userId || '').trim();
+
+            const values = await ui.confirm({
+                title: 'Delete this account permanently?',
+                body: `This permanently deletes the account and purges user data. Type <span class="mono">${esc(expected)}</span> to confirm.`,
+                confirmLabel: 'Delete account',
+                destructive: true,
+                fields: [
+                    { name: 'username', label: 'Username', type: 'text', required: true, placeholder: 'Type the username to confirm' },
+                    { name: 'reason_text', label: 'Reason for deletion', type: 'textarea', required: true, placeholder: 'Why this account is being deleted' },
+                ],
+            });
+            if (!values) return;
+
+            const typed = values.username.replace(/^@/, '');
+            if (typed.toLowerCase() !== expected.toLowerCase()) {
+                ui.notice(`Couldn't delete @${expected}: the username you typed doesn't match.`, { tone: 'bad' });
+                return;
+            }
+
+            const ok = await perform(button, `Couldn't delete @${expected}`, () => AdminShell.api('realtime', '/admin/users/delete', {
+                user_id: userId,
+                reason_text: values.reason_text,
+            }));
+            if (!ok) return;
+
+            clearProfile();
+            ui.empty(panelIn(userEl), {
+                title: 'Account deleted',
+                body: `@${expected} was deleted and its data purged.`,
+                icon: 'check',
+            });
+            loadRecentDeletions();
+        }
+
+        function handleAction(action, button) {
+            if (!currentUserId || actionInFlight) return;
+            if (MODERATION[action]) return moderate(action, button);
+            if (action === 'delete') return deleteAccount(button);
+            if (COMMANDS[action]) return runCommand(COMMANDS[action], button);
+        }
+
+        // ---- Recent deletions ----
+
         async function loadRecentDeletions() {
-            const list = document.getElementById('deletions-list');
+            ui.loading(deletionsEl, 'Loading deletions…');
             try {
                 const data = await AdminShell.api('realtime', '/admin/audit', {
                     action_type: 'account_deleted',
-                    limit: 10
+                    limit: 10,
                 });
                 const items = Array.isArray(data.items) ? data.items
                     : (Array.isArray(data.actions) ? data.actions : []);
 
                 if (!items.length) {
-                    list.innerHTML = '<div style="color: var(--ink-35); font-size: 0.85rem;">No recent deletions</div>';
+                    ui.empty(deletionsEl, {
+                        title: 'No recent deletions',
+                        body: 'Deleted accounts appear here, newest first.',
+                        icon: 'inbox',
+                    });
                     return;
                 }
 
-                list.innerHTML = items.map((item, i) => `
-                    <button type="button" class="deletion-row" data-deletion-index="${i}" data-target-id="${escapeHtml(item.target_id || '')}">
-                        <span class="meta">${escapeHtml(formatTime(item.created_at))}</span>
-                        <span class="target-id">${escapeHtml(item.target_id || '—')}</span>
-                        <span class="meta">${escapeHtml(item.actor_role || 'admin')}</span>
-                    </button>
-                `).join('');
-
-                list.querySelectorAll('.deletion-row').forEach(row => {
-                    row.addEventListener('click', async () => {
-                        const tid = row.getAttribute('data-target-id');
-                        if (!tid) return;
-                        try {
-                            await loadUserDetail(tid);
-                        } catch (_) {
-                            showError('User history not available (account may be fully purged).');
-                        }
-                    });
-                });
+                deletionsEl.innerHTML = `
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Deleted</th>
+                                    <th>Account</th>
+                                    <th>By</th>
+                                </tr>
+                            </thead>
+                            <tbody>${items.map(item => {
+                                const id = item.target_id || '';
+                                return `
+                                    <tr${id ? ` class="clickable" tabindex="0" data-user-id="${esc(id)}"` : ''}>
+                                        <td class="nowrap">${ui.timeTag(item.created_at)}</td>
+                                        <td>${id ? `<span class="mono" title="${esc(id)}">${esc(shortId(id))}</span>` : '<span class="faint">Unknown</span>'}</td>
+                                        <td>${esc(roleLabel(item.actor_role))}</td>
+                                    </tr>`;
+                            }).join('')}</tbody>
+                        </table>
+                    </div>`;
             } catch (error) {
-                console.error('Error loading deletions:', error);
-                list.innerHTML = `<div style="color: var(--bad); font-size: 0.85rem;">Failed to load deletions</div>`;
+                ui.error(deletionsEl, {
+                    title: "Couldn't load recent deletions",
+                    error,
+                    onRetry: loadRecentDeletions,
+                });
             }
         }
 
-        function formatTime(isoString) {
-            if (!isoString) return 'Unknown';
-            // Support epoch seconds/ms
-            if (typeof isoString === 'number' || /^\d+$/.test(String(isoString))) {
-                const n = Number(isoString);
-                const ms = n > 1e12 ? n : n * 1000;
-                const d = new Date(ms);
-                return Number.isNaN(d.getTime()) ? 'Unknown' : d.toLocaleString();
-            }
-            const date = new Date(isoString);
-            return Number.isNaN(date.getTime()) ? String(isoString) : date.toLocaleString();
-        }
-
-        function escapeHtml(text) {
-            if (text == null || text === '') return '';
-            const div = document.createElement('div');
-            div.textContent = String(text);
-            return div.innerHTML;
-        }
+        // ---- Wiring ----
 
         function onReady() {
             loadRecentDeletions();
 
-            const params = new URLSearchParams(window.location.search);
-            const userId = params.get('id');
+            // reports.html links here with ?id=<userId>.
+            const userId = new URLSearchParams(window.location.search).get('id');
             if (userId) {
-                document.getElementById('search-input').value = userId;
-                loadUserDetail(userId).catch(() => { /* error already rendered */ });
+                searchInput.value = userId;
+                loadUserDetail(userId);
+            } else {
+                showFindPrompt();
             }
         }
 
-        document.getElementById('search-btn').addEventListener('click', searchUsers);
-        document.getElementById('recent-signups-btn').addEventListener('click', loadRecentSignups);
-        document.getElementById('action-cancel-btn').addEventListener('click', closeActionModal);
-        document.getElementById('action-confirm-btn').addEventListener('click', confirmAction);
-        document.getElementById('delete-cancel-btn').addEventListener('click', closeDeleteModal);
-        document.getElementById('delete-confirm-btn').addEventListener('click', confirmDeleteAccount);
+        document.querySelector('.search').insertAdjacentHTML('afterbegin', ui.icon('search'));
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeActionModal();
-                closeDeleteModal();
-                return;
-            }
-            if (e.key === 'Enter') {
-                if (document.getElementById('action-modal').classList.contains('active')) return;
-                if (document.getElementById('delete-modal').classList.contains('active')) {
-                    if (e.target && e.target.id === 'delete-username-input') {
-                        confirmDeleteAccount();
-                    }
-                    return;
-                }
-                const tag = (e.target && e.target.tagName) || '';
-                if (tag === 'TEXTAREA') return;
-                if (e.target && e.target.id === 'search-input') {
-                    searchUsers();
-                }
-            }
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            runSearch(searchBtn, searchUsers);
         });
+        recentBtn.addEventListener('click', () => runSearch(recentBtn, loadRecentSignups));
 
-        document.getElementById('action-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'action-modal') closeActionModal();
-        });
-        document.getElementById('delete-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'delete-modal') closeDeleteModal();
+        bindRows(resultsEl);
+        bindRows(deletionsEl);
+
+        userEl.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-action]');
+            if (button && userEl.contains(button)) handleAction(button.dataset.action, button);
         });
 
         AdminShell.init({ active: 'users.html', title: 'Users', onReady });

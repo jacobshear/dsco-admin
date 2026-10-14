@@ -3,540 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Content · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        /* Page-specific: tabs, content grid, remove/preview modals */
-
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
-            background: var(--panel);
-            padding: 6px;
-            border-radius: var(--radius-sm);
-            width: fit-content;
-            border: 1px solid var(--line);
-        }
-
-        .tab {
-            padding: 10px 20px;
-            background: transparent;
-            border: none;
-            color: var(--ink-50);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-family: inherit;
-        }
-
-        .tab:hover {
-            color: var(--ink);
-            background: var(--accent-dim);
-        }
-
-        .tab.active {
-            background: var(--info-bg);
-            color: var(--info);
-        }
-
+        /* Page-specific: the content card grid, its preview well, and the details dialog. */
         .content-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            gap: 16px;
         }
+
+        .content-grid > .state { grid-column: 1 / -1; }
 
         .content-card {
-            background: var(--panel);
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 1px solid var(--line);
-        }
-
-        .content-card-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--line);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            min-width: 0;
         }
 
-        .content-type-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
+        .content-card .item-head { align-items: center; }
+        .content-card .item-title { flex: none; }
+        .content-card .kv { margin-bottom: 14px; }
+        .content-card .item-actions { margin-top: auto; }
 
-        .content-type-badge.story { background: var(--purple-bg); color: var(--purple); }
-        .content-type-badge.pin { background: var(--info-bg); color: var(--info); }
-        .content-type-badge.message { background: var(--good-bg); color: var(--good); }
-
-        .report-count {
-            font-size: 0.8rem;
-            color: var(--bad);
+        .content-title {
+            min-width: 0;
+            overflow: hidden;
+            font-size: 13px;
+            color: var(--text-2);
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .content-preview {
-            padding: 16px;
-            min-height: 150px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--panel-2);
+            min-height: 160px;
+            margin-bottom: 14px;
+            padding: 8px;
+            overflow: hidden;
+            border-radius: var(--r);
+            background: var(--surface-2);
         }
 
-        .content-preview img {
+        .preview-btn {
+            position: relative;
+            display: flex;
+            max-width: 100%;
+            padding: 0;
+            border: none;
+            background: none;
+            color: inherit;
+            font: inherit;
+            cursor: zoom-in;
+        }
+
+        .preview-btn img,
+        .preview-btn video {
+            display: block;
             max-width: 100%;
             max-height: 200px;
-            border-radius: 8px;
+            border-radius: var(--r-sm);
         }
 
-        .content-preview .text-preview {
-            color: var(--ink-50);
-            font-style: italic;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .content-preview .no-preview {
-            color: var(--ink-35);
-            font-size: 0.9rem;
-        }
-
-        .content-meta {
-            padding: 16px;
-            border-top: 1px solid var(--line);
-        }
-
-        .meta-row {
+        .play-badge {
+            position: absolute;
+            inset: 0;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-        }
-
-        .meta-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .meta-label {
-            color: var(--ink-50);
-        }
-
-        .meta-value {
-            color: var(--ink);
-        }
-
-        .meta-value.user-link {
-            color: var(--info);
-            text-decoration: none;
-        }
-
-        .meta-value.user-link:hover {
-            text-decoration: underline;
-        }
-
-        .content-actions {
-            padding: 16px;
-            display: flex;
-            gap: 8px;
-            border-top: 1px solid var(--line);
-        }
-
-        .content-actions button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            font-family: inherit;
-        }
-
-        .btn-view {
-            background: var(--accent-dim);
-            color: var(--ink);
-        }
-
-        .btn-view:hover {
-            background: rgba(255, 255, 255, 0.14);
-        }
-
-        .btn-remove {
-            background: var(--bad);
-            color: #fff;
-        }
-
-        .btn-remove:hover {
-            filter: brightness(0.9);
-        }
-
-        .btn-dismiss {
-            background: var(--good);
-            color: #0a0a0c;
-        }
-
-        .btn-dismiss:hover {
-            filter: brightness(0.95);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: var(--ink-50);
-        }
-
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--ink-50);
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-        }
-
-        .error-message {
-            background: var(--bad-bg);
-            border: 1px solid var(--bad);
-            color: var(--bad);
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success-message {
-            background: var(--good-bg);
-            border: 1px solid var(--good);
-            color: var(--good);
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        /* Remove / Preview Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            align-items: center;
             justify-content: center;
-            align-items: center;
+            color: var(--text);
+            filter: drop-shadow(0 1px 3px var(--scrim));
+            pointer-events: none;
         }
 
-        .modal.active {
-            display: flex;
-        }
+        .play-badge .icon { width: 28px; height: 28px; fill: currentColor; stroke: none; }
 
-        .modal-content {
-            background: var(--panel);
-            border-radius: var(--radius);
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            border: 1px solid var(--line);
-            box-shadow: var(--shadow);
-        }
-
-        .modal h3 {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal .close-btn {
-            background: none;
-            border: none;
-            color: var(--ink);
-            font-size: 1.5rem;
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        .modal label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 0.85rem;
-            color: var(--ink-50);
-        }
-
-        .modal select,
-        .modal textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 16px;
-            border: 1px solid var(--line-strong);
-            border-radius: 8px;
-            background: var(--panel-2);
-            color: var(--ink);
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .modal select option {
-            background: var(--panel-2);
-        }
-
-        .modal textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 8px;
-        }
-
-        .modal-actions button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: inherit;
-        }
-
-        .modal-actions .btn-cancel {
-            background: var(--accent-dim);
-            color: var(--ink);
-        }
-
-        .modal-actions .btn-confirm {
-            background: var(--bad);
-            color: #fff;
-        }
-
-        .modal-actions .btn-confirm:hover {
-            filter: brightness(0.9);
-        }
-
-        .modal-actions .btn-confirm:disabled {
-            background: var(--ink-35);
-            cursor: not-allowed;
-            filter: none;
-        }
-
-        .preview-modal-content {
-            max-width: 700px;
-        }
-
-        .preview-modal-content .preview-area {
-            background: var(--panel-2);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 16px;
+        .text-preview {
+            padding: 8px;
+            color: var(--text);
             text-align: center;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
-        .preview-modal-content .preview-area img {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 8px;
-        }
+        .no-preview { font-size: 13px; color: var(--text-3); }
 
-        .preview-modal-content .preview-area video {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 8px;
-        }
-
-        .preview-modal-content .message-bubble {
-            background: var(--info-bg);
-            color: var(--info);
-            padding: 12px 16px;
-            border-radius: 16px;
-            display: inline-block;
-            max-width: 80%;
-            text-align: left;
-        }
-
-        .report-list {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--line);
-        }
-
-        .report-item {
-            background: var(--panel-2);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .report-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .report-header {
+        /* Details dialog */
+        .preview-area {
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding: 12px;
+            border-radius: var(--r);
+            background: var(--surface-2);
+        }
+
+        .preview-area img,
+        .preview-area video {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: var(--r-sm);
+        }
+
+        .dlg-body .quote { margin-bottom: 14px; }
+
+        .detail-heading {
+            margin: 18px 0 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .report-rows { display: flex; flex-direction: column; gap: 8px; }
+
+        .report-row {
+            padding: 10px 12px;
+            border-radius: var(--r);
+            background: var(--surface-2);
+        }
+
+        .report-row-head {
+            display: flex;
+            align-items: baseline;
             justify-content: space-between;
-            margin-bottom: 6px;
+            gap: 12px;
         }
 
-        .report-reason {
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .report-time {
-            font-size: 0.75rem;
-            color: var(--ink-50);
-        }
+        .report-reason { font-weight: 600; color: var(--text); }
 
         .report-details {
-            font-size: 0.85rem;
-            color: var(--ink-70);
+            margin-top: 6px;
+            color: var(--text-2);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
-        .pagination {
+        .pager {
             display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
             margin-top: 20px;
-        }
-
-        .pagination button {
-            padding: 8px 16px;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            color: var(--ink);
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-
-        .pagination button:hover:not(:disabled) {
-            background: var(--info-bg);
-            color: var(--info);
-            border-color: var(--info);
-        }
-
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-message" id="error-message"></div>
-        <div class="success-message" id="success-message"></div>
-
-        <div class="tabs">
-            <button class="tab active" data-type="all" onclick="switchTab('all')">All</button>
-            <button class="tab" data-type="story" onclick="switchTab('story')">Stories</button>
-            <button class="tab" data-type="pin" onclick="switchTab('pin')">Pins</button>
-            <button class="tab" data-type="message" onclick="switchTab('message')">Messages</button>
-            <button class="tab" data-type="recent_story" onclick="switchTab('recent_story')">Recent stories</button>
-            <button class="tab" data-type="recent_pin" onclick="switchTab('recent_pin')">Recent pins</button>
-        </div>
-
-        <div class="content-grid" id="content-grid">
-            <div class="loading">Loading reported content...</div>
-        </div>
-        <div class="pagination" id="pagination"></div>
-    </div>
-
-    <!-- Remove Content Modal -->
-    <div class="modal" id="remove-modal">
-        <div class="modal-content">
-            <h3>
-                Remove Content
-                <button class="close-btn" onclick="closeRemoveModal()">&times;</button>
-            </h3>
-            <p style="margin-bottom: 16px; color: var(--ink-50);">
-                This will permanently remove the content and notify the owner.
-            </p>
-            <label>Reason Code</label>
-            <select id="remove-reason-code">
-                <option value="">Select reason...</option>
-                <option value="HARASSMENT">Harassment</option>
-                <option value="HATE_SPEECH">Hate Speech</option>
-                <option value="SEXUAL_CONTENT">Sexual Content</option>
-                <option value="MINOR_SAFETY">Minor Safety</option>
-                <option value="SPAM">Spam</option>
-                <option value="IMPERSONATION">Impersonation</option>
-                <option value="SELF_HARM">Self-Harm</option>
-                <option value="VIOLENCE">Violence</option>
-                <option value="ILLEGAL_CONTENT">Illegal Content</option>
-                <option value="PRIVACY_VIOLATION">Privacy Violation</option>
-                <option value="OTHER">Other</option>
-            </select>
-            <label>Additional Notes (optional)</label>
-            <textarea id="remove-notes" placeholder="Explain the removal decision..."></textarea>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeRemoveModal()">Cancel</button>
-                <button class="btn-confirm" id="confirm-remove-btn" onclick="confirmRemove()">Remove Content</button>
+        <div class="toolbar" id="tabs">
+            <div class="seg" role="group" aria-label="Reported content">
+                <button type="button" data-type="all" aria-pressed="true">All <span class="count" data-count-for="all"></span></button>
+                <button type="button" data-type="story" aria-pressed="false">Stories <span class="count" data-count-for="story"></span></button>
+                <button type="button" data-type="pin" aria-pressed="false">Pins <span class="count" data-count-for="pin"></span></button>
+                <button type="button" data-type="message" aria-pressed="false">Messages <span class="count" data-count-for="message"></span></button>
+                <button type="button" data-type="channel" aria-pressed="false">Channels <span class="count" data-count-for="channel"></span></button>
+            </div>
+            <div class="seg" role="group" aria-label="Recent content">
+                <button type="button" data-type="recent_story" aria-pressed="false">Recent stories</button>
+                <button type="button" data-type="recent_pin" aria-pressed="false">Recent pins</button>
             </div>
         </div>
-    </div>
 
-    <!-- Preview Modal -->
-    <div class="modal" id="preview-modal">
-        <div class="modal-content preview-modal-content">
-            <h3>
-                <span id="preview-title">Content Preview</span>
-                <button class="close-btn" onclick="closePreviewModal()">&times;</button>
-            </h3>
-            <div class="preview-area" id="preview-area">
-                <!-- Content loaded dynamically -->
-            </div>
-            <div id="preview-meta"></div>
-            <div class="report-list" id="report-list">
-                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: var(--ink-50);">Reports</h4>
-                <!-- Reports loaded dynamically -->
-            </div>
-            <div class="modal-actions" style="margin-top: 16px;">
-                <button class="btn-dismiss" onclick="dismissReports()">Dismiss Reports</button>
-                <button class="btn-remove" onclick="showRemoveFromPreview()">Remove Content</button>
-            </div>
-        </div>
+        <div class="content-grid" id="content-grid"></div>
+        <div class="pager" id="pager" hidden></div>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
+        const grid = document.getElementById('content-grid');
+        const pager = document.getElementById('pager');
+
+        // Reported tabs read the pending-report queue grouped by content;
+        // recent tabs page through /admin/content/recent.
         let currentTab = 'all';
-        let reportedContent = [];
+        let reportedContent = null;     // null until the first successful load
+        let reportedLoading = false;
         let recentContent = [];
-        let selectedContent = null;
+        let recentSeq = 0;              // drops responses from a superseded recent load
+        let recentPage = 1;
         let storedLastKey = null;
-        let hasMore = false;
 
         const REASON_LABELS = {
-            'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate Speech',
-            'SEXUAL_CONTENT': 'Sexual Content',
-            'MINOR_SAFETY': 'Minor Safety',
-            'SPAM': 'Spam',
-            'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-Harm',
-            'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal Content',
-            'PRIVACY_VIOLATION': 'Privacy Violation',
-            'OTHER': 'Other'
+            HARASSMENT: 'Harassment',
+            HATE_SPEECH: 'Hate speech',
+            SEXUAL_CONTENT: 'Sexual content',
+            MINOR_SAFETY: 'Minor safety',
+            SPAM: 'Spam',
+            IMPERSONATION: 'Impersonation',
+            SELF_HARM: 'Self-harm',
+            VIOLENCE: 'Violence',
+            ILLEGAL_CONTENT: 'Illegal content',
+            PRIVACY_VIOLATION: 'Privacy violation',
+            OTHER: 'Other',
         };
 
-        // --- Content Management ---
+        // Older reports carry the app's lowercase category instead of a reason code.
+        const LEGACY_REASON_LABELS = {
+            harassment: 'Harassment or bullying',
+            spam: 'Spam or scam',
+            inappropriate: 'Inappropriate content',
+            underage: 'Underage user',
+            impersonation: 'Impersonation',
+            other: 'Other',
+        };
+
+        const REASON_OPTIONS = Object.entries(REASON_LABELS);
+
+        const TYPE_META = {
+            story: { label: 'Story', tone: 'purple' },
+            pin: { label: 'Pin', tone: 'info' },
+            message: { label: 'Message', tone: 'good' },
+            channel: { label: 'Channel', tone: 'warn' },
+        };
+
+        const REPORTED_EMPTY = {
+            all: { title: 'No reported content', body: 'Pending reports on stories, pins, messages and channels appear here.' },
+            story: { title: 'No reported stories', body: 'Pending story reports appear here.' },
+            pin: { title: 'No reported pins', body: 'Pending pin reports appear here.' },
+            message: { title: 'No reported messages', body: 'Pending message reports appear here.' },
+            channel: { title: 'No reported channels', body: 'Pending channel reports appear here.' },
+        };
+
+        const VIDEO_EXTS = new Set(['mp4', 'mov', 'm4v', 'webm', 'qt']);
+
+        // ---- Small helpers ----
+
+        function humanize(value) {
+            const text = String(value ?? '').replace(/_/g, ' ').toLowerCase();
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        function reasonLabel(code) {
+            if (!code) return 'Unknown';
+            return REASON_LABELS[code] || LEGACY_REASON_LABELS[code] || humanize(code);
+        }
+
+        function typeMeta(type) {
+            return TYPE_META[type] || { label: humanize(type || 'content'), tone: '' };
+        }
+
+        function typeBadge(type) {
+            const meta = typeMeta(type);
+            return `<span class="badge ${meta.tone}">${esc(meta.label)}</span>`;
+        }
+
+        function shortId(id) {
+            const text = String(id ?? '');
+            return text.length > 16 ? `${text.slice(0, 8)}…${text.slice(-4)}` : text;
+        }
+
+        function idLabel(id) {
+            if (!id) return '<span class="faint">Unknown</span>';
+            return `<span class="mono" title="${esc(id)}">${esc(shortId(id))}</span>`;
+        }
+
+        function ownerLink(id, full = false) {
+            if (!id) return '<span class="faint">Unknown</span>';
+            const href = `users.html?id=${encodeURIComponent(id)}&env=${AdminShell.env}`;
+            return `<a class="mono" href="${esc(href)}" title="${esc(id)}">${esc(full ? id : shortId(id))}</a>`;
+        }
+
+        // Only the backend's signed https URLs are ever loaded into the page.
+        function safeMediaUrl(url) {
+            return typeof url === 'string' && /^https:\/\//i.test(url) ? url : null;
+        }
+
+        function mediaKindOf(url) {
+            let ext = '';
+            try {
+                ext = new URL(url).pathname.split('.').pop().toLowerCase();
+            } catch (_) { /* not a URL: treat as image */ }
+            return VIDEO_EXTS.has(ext) || url.includes('.mp4') ? 'video' : 'image';
+        }
+
+        function contentKey(content) {
+            return `${content.content_type}:${content.content_id}`;
+        }
 
         function isRecentTab(type = currentTab) {
             return type === 'recent_story' || type === 'recent_pin';
@@ -546,20 +300,64 @@
             return type === 'recent_pin' ? 'pin' : 'story';
         }
 
-        function clearPagination() {
-            storedLastKey = null;
-            hasMore = false;
-            const pagination = document.getElementById('pagination');
-            if (pagination) pagination.innerHTML = '';
+        function recentNoun() {
+            return recentContentType() === 'pin' ? 'pins' : 'stories';
         }
 
-        async function loadContent() {
-            const grid = document.getElementById('content-grid');
-            grid.innerHTML = '<div class="loading">Loading reported content...</div>';
-            clearPagination();
-            hideError();
-            hideSuccess();
+        function getFilteredContent() {
+            if (isRecentTab()) return recentContent;
+            const all = reportedContent || [];
+            return currentTab === 'all' ? all : all.filter(c => c.content_type === currentTab);
+        }
 
+        // ---- Loading: reported content ----
+
+        function resolveContentId(report) {
+            // Prefer explicit content_id from reports/submit.
+            if (report.content_id) return report.content_id;
+            // Legacy story/pin clients stored the content primary key as reported_id
+            // with no content_id field. Never invent a path for messages: reported_id
+            // is the sender user id, not an RTDB path.
+            if (report.content_type === 'story' || report.content_type === 'pin') {
+                return report.reported_id || null;
+            }
+            return null;
+        }
+
+        function groupReportsByContent(reports) {
+            const grouped = {};
+
+            for (const report of reports) {
+                if (!report.content_type || report.content_type === 'user') continue;
+
+                const contentId = resolveContentId(report);
+                if (!contentId) continue;
+
+                const key = `${report.content_type}:${contentId}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        content_type: report.content_type,
+                        content_id: String(contentId),
+                        // reported_id is content owner for message reports; for legacy
+                        // story/pin it may still be the content primary key.
+                        content_owner_id: report.reported_id || report.reported_user_id || report.target_id,
+                        content_preview_url: report.content_preview_url,
+                        content_text: report.content_text,
+                        reports: [],
+                    };
+                }
+                grouped[key].reports.push(report);
+            }
+
+            return Object.values(grouped).sort((a, b) => b.reports.length - a.reports.length);
+        }
+
+        // A refresh keeps the current cards on screen (the button shows the wait).
+        async function loadContent({ quiet = false } = {}) {
+            reportedLoading = true;
+            if (!isRecentTab() && (!quiet || reportedContent === null)) {
+                ui.loading(grid, 'Loading reported content…');
+            }
             try {
                 // Backend is GET /reports/list?status=… (has_content filtered client-side).
                 const data = await AdminShell.api(
@@ -568,58 +366,30 @@
                     null,
                     { method: 'GET' }
                 );
-
-                reportedContent = data.reports || data.items || [];
-
-                // Group reports by content
-                reportedContent = groupReportsByContent(reportedContent);
-
+                reportedContent = groupReportsByContent(data.reports || data.items || []);
+                updateCounts();
                 if (!isRecentTab()) renderContent();
-
             } catch (error) {
-                console.error('Error loading content:', error);
-                showError(error.message || 'Failed to load reported content.');
                 if (!isRecentTab()) {
-                    grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load content</p></div>';
+                    ui.error(grid, { title: "Couldn't load reported content", error, onRetry: () => loadContent() });
                 }
+            } finally {
+                reportedLoading = false;
             }
         }
 
-        async function loadRecentContent(lastKey = null) {
-            const grid = document.getElementById('content-grid');
-            const contentType = recentContentType();
-            grid.innerHTML = `<div class="loading">Loading recent ${contentType === 'pin' ? 'pins' : 'stories'}...</div>`;
-            hideError();
-            hideSuccess();
-
-            const body = {
-                content_type: contentType,
-                limit: 20,
-            };
-            if (lastKey) body.last_key = lastKey;
-
-            try {
-                const data = await AdminShell.api('realtime', '/admin/content/recent', body);
-
-                const rawItems =
-                    data.items ||
-                    data.stories ||
-                    data.pins ||
-                    data.content ||
-                    [];
-
-                recentContent = rawItems.map(item => normalizeRecentItem(item, contentType));
-                storedLastKey = data.last_key || null;
-                hasMore = !!storedLastKey;
-
-                renderRecentContent();
-            } catch (error) {
-                console.error('Error loading recent content:', error);
-                showError(error.message || 'Failed to load recent content.');
-                grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load content</p></div>';
-                clearPagination();
-            }
+        function updateCounts() {
+            const all = reportedContent || [];
+            const counts = { all: all.length };
+            ['story', 'pin', 'message', 'channel'].forEach(type => {
+                counts[type] = all.filter(c => c.content_type === type).length;
+            });
+            document.querySelectorAll('[data-count-for]').forEach(el => {
+                el.textContent = reportedContent ? String(counts[el.dataset.countFor]) : '';
+            });
         }
+
+        // ---- Loading: recent stories and pins ----
 
         function normalizeRecentItem(item, contentType) {
             const contentId =
@@ -669,204 +439,164 @@
             };
         }
 
-        function loadRecentFirstPage() {
-            storedLastKey = null;
-            loadRecentContent(null);
-        }
-
-        function loadRecentNextPage() {
-            if (storedLastKey) loadRecentContent(storedLastKey);
-        }
-
-        function resolveContentId(report) {
-            // Prefer explicit content_id from reports/submit.
-            if (report.content_id) return report.content_id;
-            // Legacy story/pin clients stored the content primary key as reported_id
-            // with no content_id field. Never invent a path for messages — reported_id
-            // is the sender user id, not an RTDB path.
-            if (report.content_type === 'story' || report.content_type === 'pin') {
-                return report.reported_id || null;
-            }
-            return null;
-        }
-
-        function groupReportsByContent(reports) {
-            const grouped = {};
-
-            for (const report of reports) {
-                if (!report.content_type || report.content_type === 'user') continue;
-
-                const contentId = resolveContentId(report);
-                if (!contentId) continue;
-
-                const key = `${report.content_type}:${contentId}`;
-                if (!grouped[key]) {
-                    grouped[key] = {
-                        content_type: report.content_type,
-                        content_id: contentId,
-                        // reported_id is content owner for message reports; for legacy
-                        // story/pin it may still be the content primary key.
-                        content_owner_id: report.reported_id || report.reported_user_id || report.target_id,
-                        content_preview_url: report.content_preview_url,
-                        content_text: report.content_text,
-                        reports: []
-                    };
-                }
-                grouped[key].reports.push(report);
+        async function loadRecent({ lastKey = null, page = 1, quiet = false } = {}) {
+            const seq = ++recentSeq;
+            const contentType = recentContentType();
+            const noun = recentNoun();
+            if (!quiet || !recentContent.length) {
+                ui.loading(grid, `Loading recent ${noun}…`);
+                clearPager();
             }
 
-            return Object.values(grouped).sort((a, b) => b.reports.length - a.reports.length);
+            const body = { content_type: contentType, limit: 20 };
+            if (lastKey) body.last_key = lastKey;
+
+            try {
+                const data = await AdminShell.api('realtime', '/admin/content/recent', body);
+                if (seq !== recentSeq || !isRecentTab()) return;
+
+                const rawItems =
+                    data.items ||
+                    data.stories ||
+                    data.pins ||
+                    data.content ||
+                    [];
+
+                recentContent = rawItems.map(item => normalizeRecentItem(item, contentType));
+                storedLastKey = data.last_key || null;
+                recentPage = page;
+                renderRecent();
+            } catch (error) {
+                if (seq !== recentSeq || !isRecentTab()) return;
+                ui.error(grid, { title: `Couldn't load recent ${noun}`, error, onRetry: () => loadRecent({ lastKey, page }) });
+                clearPager();
+            }
         }
 
-        function switchTab(type) {
+        // ---- Tabs ----
+
+        function selectTab(type) {
             currentTab = type;
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.type === type);
+            document.querySelectorAll('#tabs button[data-type]').forEach(btn => {
+                btn.setAttribute('aria-pressed', String(btn.dataset.type === type));
             });
 
-            if (isRecentTab(type)) {
+            if (isRecentTab()) {
+                recentContent = [];
                 storedLastKey = null;
-                loadRecentContent(null);
-            } else {
-                clearPagination();
+                recentPage = 1;
+                loadRecent();
+                return;
+            }
+
+            clearPager();
+            if (reportedContent !== null) {
                 renderContent();
+            } else if (reportedLoading) {
+                ui.loading(grid, 'Loading reported content…');
+            } else {
+                loadContent();
             }
         }
+
+        // ---- Rendering ----
 
         function renderContent() {
-            const grid = document.getElementById('content-grid');
-
-            let filtered = reportedContent;
-            if (currentTab !== 'all') {
-                filtered = reportedContent.filter(c => c.content_type === currentTab);
-            }
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty" style="grid-column: 1 / -1;">
-                        <div class="empty-icon">✨</div>
-                        <p>No reported content to review</p>
-                    </div>
-                `;
+            const items = getFilteredContent();
+            if (!items.length) {
+                const next = { all: 'recent_story', story: 'recent_story', pin: 'recent_pin' }[currentTab];
+                ui.empty(grid, {
+                    ...REPORTED_EMPTY[currentTab],
+                    icon: 'flag',
+                    ...(next ? {
+                        actionLabel: next === 'recent_pin' ? 'Browse recent pins' : 'Browse recent stories',
+                        onAction: () => selectTab(next),
+                    } : {}),
+                });
                 return;
             }
-
-            grid.innerHTML = filtered.map((content, idx) => `
-                <div class="content-card" data-index="${idx}">
-                    <div class="content-card-header">
-                        <span class="content-type-badge ${content.content_type}">${content.content_type}</span>
-                        <span class="report-count">${content.reports.length} report${content.reports.length > 1 ? 's' : ''}</span>
-                    </div>
-                    <div class="content-preview">
-                        ${getPreviewHtml(content)}
-                    </div>
-                    <div class="content-meta">
-                        <div class="meta-row">
-                            <span class="meta-label">Content ID</span>
-                            <span class="meta-value" style="font-family:monospace;font-size:0.8rem;">${content.content_id.substring(0, 16)}...</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label">Owner</span>
-                            <a href="users.html?id=${content.content_owner_id}" class="meta-value user-link">${content.content_owner_id?.substring(0, 16) || 'Unknown'}...</a>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label">Top reason</span>
-                            <span class="meta-value">${getTopReason(content.reports)}</span>
-                        </div>
-                    </div>
-                    <div class="content-actions">
-                        <button class="btn-view" onclick="showPreview(${idx})">View details</button>
-                        <button class="btn-remove" onclick="showRemoveModal(${idx})">Remove</button>
-                    </div>
-                </div>
-            `).join('');
+            // Every field is untrusted, so all of it goes through esc(); actions
+            // read data attributes and find the content by key.
+            grid.innerHTML = items.map(renderReportedCard).join('');
         }
 
-        function renderRecentContent() {
-            const grid = document.getElementById('content-grid');
-            const contentType = recentContentType();
-
-            if (recentContent.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty" style="grid-column: 1 / -1;">
-                        <div class="empty-icon">📭</div>
-                        <p>No recent ${contentType === 'pin' ? 'pins' : 'stories'}</p>
-                    </div>
-                `;
-                document.getElementById('pagination').innerHTML = '';
-                return;
+        function renderRecent() {
+            if (!recentContent.length) {
+                const noun = recentNoun();
+                ui.empty(grid, {
+                    title: `No recent ${noun}`,
+                    body: `${humanize(noun)} appear here as people post them.`,
+                    icon: recentContentType() === 'pin' ? 'pin' : 'image',
+                });
+            } else {
+                grid.innerHTML = recentContent.map(renderRecentCard).join('');
             }
-
-            grid.innerHTML = recentContent.map((content, idx) => {
-                const idDisplay = content.content_id
-                    ? (content.content_id.length > 16
-                        ? content.content_id.substring(0, 16) + '...'
-                        : content.content_id)
-                    : 'Unknown';
-                const ownerDisplay = content.content_owner_id
-                    ? (content.content_owner_id.length > 16
-                        ? content.content_owner_id.substring(0, 16) + '...'
-                        : content.content_owner_id)
-                    : 'Unknown';
-                const titleDisplay = escapeHtml(String(content.title || contentType));
-
-                return `
-                <div class="content-card" data-index="${idx}">
-                    <div class="content-card-header">
-                        <span class="content-type-badge ${content.content_type}">${content.content_type}</span>
-                        <span class="meta-value" style="font-size:0.85rem;">${titleDisplay}</span>
-                    </div>
-                    <div class="content-preview">
-                        ${getPreviewHtml(content)}
-                    </div>
-                    <div class="content-meta">
-                        <div class="meta-row">
-                            <span class="meta-label">Content ID</span>
-                            <span class="meta-value" style="font-family:monospace;font-size:0.8rem;" title="${escapeHtml(content.content_id)}">${escapeHtml(idDisplay)}</span>
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label">Owner</span>
-                            ${content.content_owner_id
-                                ? `<a href="users.html?id=${encodeURIComponent(content.content_owner_id)}" class="meta-value user-link">${escapeHtml(ownerDisplay)}</a>`
-                                : `<span class="meta-value">Unknown</span>`}
-                        </div>
-                        <div class="meta-row">
-                            <span class="meta-label">Created</span>
-                            <span class="meta-value">${formatTime(content.created_at)}</span>
-                        </div>
-                    </div>
-                    <div class="content-actions">
-                        <button class="btn-remove" onclick="showRemoveModal(${idx})">Remove</button>
-                    </div>
-                </div>
-            `;
-            }).join('');
-
-            // Pagination — keys stay in JS (storedLastKey), never JSON-in-attribute
-            const pagination = document.getElementById('pagination');
-            pagination.innerHTML = `
-                <button type="button" id="page-first">First</button>
-                <button type="button" id="page-next" ${!hasMore ? 'disabled' : ''}>Next</button>
-            `;
-            document.getElementById('page-first').addEventListener('click', loadRecentFirstPage);
-            document.getElementById('page-next').addEventListener('click', loadRecentNextPage);
+            renderPager();
         }
 
-        function getPreviewHtml(content) {
-            if (content.content_preview_url) {
-                if (content.content_type === 'story') {
-                    return `<img src="${content.content_preview_url}" alt="Story preview" onerror="this.parentElement.innerHTML='<span class=\\'no-preview\\'>Preview unavailable</span>'">`;
-                }
-                return `<img src="${content.content_preview_url}" alt="Content preview" onerror="this.parentElement.innerHTML='<span class=\\'no-preview\\'>Preview unavailable</span>'">`;
-            }
+        function renderReportedCard(content) {
+            const count = content.reports.length;
+            return `
+                <article class="item content-card" data-key="${esc(contentKey(content))}">
+                    <div class="item-head">
+                        <div class="item-title">${typeBadge(content.content_type)}</div>
+                        <span class="badge bad">${count} report${count === 1 ? '' : 's'}</span>
+                    </div>
+                    <div class="content-preview" data-preview>${cardPreview(content)}</div>
+                    <dl class="kv">
+                        <dt>Content ID</dt><dd>${idLabel(content.content_id)}</dd>
+                        <dt>Owner</dt><dd>${ownerLink(content.content_owner_id)}</dd>
+                        <dt>Top reason</dt><dd>${esc(getTopReason(content.reports))}</dd>
+                    </dl>
+                    <div class="item-actions">
+                        <button type="button" class="btn sm" data-action="details">View details</button>
+                        <button type="button" class="btn sm" data-action="dismiss">Dismiss</button>
+                        <span class="spacer"></span>
+                        <button type="button" class="btn sm danger" data-action="remove">Remove</button>
+                    </div>
+                </article>`;
+        }
 
+        function renderRecentCard(content) {
+            const title = String(content.title || '');
+            const showTitle = title && title.toLowerCase() !== content.content_type;
+            return `
+                <article class="item content-card" data-key="${esc(contentKey(content))}">
+                    <div class="item-head">
+                        <div class="item-title">${typeBadge(content.content_type)}</div>
+                        ${showTitle ? `<span class="content-title" title="${esc(title)}">${esc(title)}</span>` : ''}
+                    </div>
+                    <div class="content-preview" data-preview>${cardPreview(content)}</div>
+                    <dl class="kv">
+                        <dt>Content ID</dt><dd>${idLabel(content.content_id)}</dd>
+                        <dt>Owner</dt><dd>${ownerLink(content.content_owner_id)}</dd>
+                        <dt>Created</dt><dd>${ui.timeTag(content.created_at)}</dd>
+                    </dl>
+                    <div class="item-actions">
+                        <span class="spacer"></span>
+                        <button type="button" class="btn sm danger" data-action="remove">Remove</button>
+                    </div>
+                </article>`;
+        }
+
+        // Card preview: media opens full size (ui.media); text is clipped.
+        function cardPreview(content) {
+            const url = safeMediaUrl(content.content_preview_url);
+            if (url) {
+                const kind = mediaKindOf(url);
+                const label = kind === 'video' ? 'Open video' : 'Open image';
+                const face = kind === 'video'
+                    ? `<video src="${esc(url)}" preload="metadata" muted playsinline></video><span class="play-badge">${ui.icon('play')}</span>`
+                    : `<img src="${esc(url)}" alt="" loading="lazy">`;
+                return `<button type="button" class="preview-btn" data-media-src="${esc(url)}" data-media-kind="${kind}"
+                            title="${label}" aria-label="${label}">${face}</button>`;
+            }
             if (content.content_text) {
-                const truncated = content.content_text.length > 100
-                    ? content.content_text.substring(0, 100) + '...'
-                    : content.content_text;
-                return `<div class="text-preview">"${escapeHtml(truncated)}"</div>`;
+                const text = String(content.content_text);
+                const shown = text.length > 100 ? `${text.slice(0, 100)}…` : text;
+                return `<div class="text-preview">"${esc(shown)}"</div>`;
             }
-
+            if (content.content_preview_url) return '<span class="no-preview">Preview unavailable</span>';
             return '<span class="no-preview">No preview available</span>';
         }
 
@@ -877,238 +607,213 @@
                 counts[reason] = (counts[reason] || 0) + 1;
             }
             const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-            return REASON_LABELS[top[0]] || top[0];
+            return top ? reasonLabel(top[0]) : 'Unknown';
         }
 
-        function showPreview(idx) {
-            const content = getFilteredContent()[idx];
-            if (!content) return;
+        // ---- Pager (recent tabs). Keys stay in JS (storedLastKey), never in the DOM. ----
 
-            selectedContent = content;
-
-            document.getElementById('preview-title').textContent =
-                `${content.content_type.charAt(0).toUpperCase() + content.content_type.slice(1)} preview`;
-
-            const previewArea = document.getElementById('preview-area');
-            if (content.content_preview_url) {
-                if (content.content_type === 'story' && content.content_preview_url.includes('.mp4')) {
-                    previewArea.innerHTML = `<video src="${content.content_preview_url}" controls></video>`;
-                } else {
-                    previewArea.innerHTML = `<img src="${content.content_preview_url}" alt="Preview" onerror="this.outerHTML='<span class=\\'no-preview\\'>Preview unavailable</span>'">`;
-                }
-            } else if (content.content_text) {
-                previewArea.innerHTML = `<div class="message-bubble">${escapeHtml(content.content_text)}</div>`;
-            } else {
-                previewArea.innerHTML = '<span class="no-preview">No preview available</span>';
-            }
-
-            document.getElementById('preview-meta').innerHTML = `
-                <div class="meta-row">
-                    <span class="meta-label">Content ID</span>
-                    <span class="meta-value" style="font-family:monospace;">${content.content_id}</span>
-                </div>
-                <div class="meta-row">
-                    <span class="meta-label">Content owner</span>
-                    <a href="users.html?id=${content.content_owner_id}" class="meta-value user-link">${content.content_owner_id}</a>
-                </div>
-            `;
-
-            const reportList = document.getElementById('report-list');
-            reportList.innerHTML = `
-                <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: var(--ink-50);">Reports (${content.reports.length})</h4>
-                ${content.reports.map(report => `
-                    <div class="report-item">
-                        <div class="report-header">
-                            <span class="report-reason">${REASON_LABELS[report.reason_code || report.reason] || report.reason_code || report.reason}</span>
-                            <span class="report-time">${formatTime(report.created_at)}</span>
-                        </div>
-                        ${report.details ? `<div class="report-details">${escapeHtml(report.details)}</div>` : ''}
-                    </div>
-                `).join('')}
-            `;
-
-            document.getElementById('preview-modal').classList.add('active');
+        function clearPager() {
+            pager.hidden = true;
+            pager.innerHTML = '';
         }
 
-        function closePreviewModal() {
-            document.getElementById('preview-modal').classList.remove('active');
-            selectedContent = null;
-        }
-
-        function showRemoveFromPreview() {
-            if (!selectedContent) return;
-            // Keep selection; only close preview (do not null selectedContent).
-            document.getElementById('preview-modal').classList.remove('active');
-            document.getElementById('remove-reason-code').value = '';
-            document.getElementById('remove-notes').value = '';
-            document.getElementById('remove-modal').classList.add('active');
-        }
-
-        function getFilteredContent() {
-            if (isRecentTab()) return recentContent;
-            if (currentTab === 'all') return reportedContent;
-            return reportedContent.filter(c => c.content_type === currentTab);
-        }
-
-        function showRemoveModal(idx) {
-            const content = getFilteredContent()[idx];
-            if (!content) return;
-
-            selectedContent = content;
-            document.getElementById('remove-reason-code').value = '';
-            document.getElementById('remove-notes').value = '';
-            document.getElementById('remove-modal').classList.add('active');
-        }
-
-        function closeRemoveModal() {
-            document.getElementById('remove-modal').classList.remove('active');
-        }
-
-        async function confirmRemove() {
-            if (!selectedContent) return;
-
-            const reasonCode = document.getElementById('remove-reason-code').value;
-            const notes = document.getElementById('remove-notes').value.trim();
-
-            if (!reasonCode) {
-                alert('Please select a reason code.');
+        function renderPager() {
+            if (recentPage <= 1 && !storedLastKey) {
+                clearPager();
                 return;
             }
+            pager.hidden = false;
+            pager.innerHTML = `
+                <button type="button" class="btn sm" data-page="first"${recentPage <= 1 ? ' disabled' : ''}>First page</button>
+                <span class="muted">Page ${recentPage}</span>
+                <button type="button" class="btn sm" data-page="next"${storedLastKey ? '' : ' disabled'}>Next page</button>`;
+        }
 
-            const btn = document.getElementById('confirm-remove-btn');
-            btn.disabled = true;
-            btn.textContent = 'Removing...';
+        // ---- Details dialog ----
 
-            const content = selectedContent;
+        function detailsBody(content) {
+            const url = safeMediaUrl(content.content_preview_url);
+            const reports = content.reports || [];
+            let preview = '';
+            if (url) {
+                const face = mediaKindOf(url) === 'video'
+                    ? `<video src="${esc(url)}" controls preload="metadata" playsinline></video>`
+                    : `<img src="${esc(url)}" alt="Reported content">`;
+                preview = `<div class="preview-area" data-preview>${face}</div>`;
+            } else if (content.content_preview_url) {
+                preview = '<div class="preview-area"><span class="no-preview">Preview unavailable</span></div>';
+            }
+            const text = content.content_text
+                ? `<div class="label-sm">Text</div><div class="quote">${esc(content.content_text)}</div>`
+                : '';
+            if (!preview && !text) {
+                preview = '<div class="preview-area"><span class="no-preview">No preview available</span></div>';
+            }
+
+            return `
+                ${preview}
+                ${text}
+                <dl class="kv">
+                    <dt>Content ID</dt><dd class="mono">${esc(content.content_id)}</dd>
+                    <dt>Content owner</dt><dd>${ownerLink(content.content_owner_id, true)}</dd>
+                </dl>
+                <h3 class="detail-heading">Reports (${reports.length})</h3>
+                <div class="report-rows">${reports.map(reportRow).join('')}</div>`;
+        }
+
+        function reportRow(report) {
+            return `
+                <div class="report-row">
+                    <div class="report-row-head">
+                        <span class="report-reason">${esc(reasonLabel(report.reason_code || report.reason))}</span>
+                        <span class="item-time">${ui.timeTag(report.created_at)}</span>
+                    </div>
+                    ${report.details ? `<div class="report-details">${esc(report.details)}</div>` : ''}
+                </div>`;
+        }
+
+        function showDetails(content) {
+            ui.dialog({
+                title: `${typeMeta(content.content_type).label} details`,
+                wide: true,
+                body: detailsBody(content),
+                actions: [
+                    { label: 'Dismiss reports', onClick: async (close, button) => { if (await dismissReports(content, button)) close(); } },
+                    { label: 'Remove content', kind: 'danger', onClick: async (close, button) => { if (await removeContent(content, button)) close(); } },
+                ],
+            });
+        }
+
+        // ---- Actions ----
+
+        // Both lists drop the content, then the current view redraws.
+        function dropContent(content, { fromRecent = true } = {}) {
+            const same = (c) => contentKey(c) === contentKey(content);
+            if (reportedContent) reportedContent = reportedContent.filter(c => !same(c));
+            if (fromRecent) recentContent = recentContent.filter(c => !same(c));
+            updateCounts();
+            if (isRecentTab()) renderRecent(); else renderContent();
+        }
+
+        // Resolves true when the content was removed.
+        async function removeContent(content, button) {
+            const noun = typeMeta(content.content_type).label.toLowerCase();
+            const values = await ui.confirm({
+                title: `Remove this ${noun}?`,
+                body: esc(`This permanently removes the ${noun} and notifies the owner.`),
+                confirmLabel: 'Remove',
+                destructive: true,
+                fields: [
+                    { name: 'reason_code', label: 'Reason', type: 'select', options: REASON_OPTIONS, required: true, placeholder: 'Choose a reason…' },
+                    { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Explain the removal decision (optional)' },
+                ],
+            });
+            if (!values) return false;
+
             const firstReportId = (content.reports || [])
                 .map(r => r.report_id || r.id)
                 .find(Boolean);
+            const body = {
+                content_type: content.content_type,
+                content_id: content.content_id,
+                reason_code: values.reason_code,
+                reason_text: values.notes,
+            };
+            if (firstReportId) body.source_report_id = firstReportId;
 
             try {
-                const body = {
-                    content_type: content.content_type,
-                    content_id: content.content_id,
-                    reason_code: reasonCode,
-                    reason_text: notes,
-                };
-                if (firstReportId) body.source_report_id = firstReportId;
-
-                await AdminShell.api('realtime', '/admin/content/remove', body);
-
-                showSuccess('Content removed successfully.');
-                closeRemoveModal();
-
-                if (isRecentTab()) {
-                    recentContent = recentContent.filter(c =>
-                        !(c.content_type === content.content_type && c.content_id === content.content_id)
-                    );
-                    selectedContent = null;
-                    renderRecentContent();
-                } else {
-                    reportedContent = reportedContent.filter(c =>
-                        !(c.content_type === content.content_type && c.content_id === content.content_id)
-                    );
-                    selectedContent = null;
-                    renderContent();
-                }
-
+                await ui.busy(button, () => AdminShell.api('realtime', '/admin/content/remove', body));
             } catch (error) {
-                console.error('Error removing content:', error);
-                showError(`Failed to remove content: ${error.message}`);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Remove content';
+                ui.notice(`Couldn't remove content: ${error.message}`, { tone: 'bad' });
+                return false;
             }
+            // The card leaves the grid, which is the confirmation.
+            dropContent(content);
+            return true;
         }
 
-        async function dismissReports() {
-            if (!selectedContent) return;
+        // Resolves true when every report was dismissed.
+        async function dismissReports(content, button) {
+            const reports = content.reports || [];
+            const confirmed = await ui.confirm({
+                title: 'Dismiss all reports for this content?',
+                body: esc(`Closes ${reports.length} report${reports.length === 1 ? '' : 's'} with no action. The content stays visible.`),
+                confirmLabel: 'Dismiss',
+            });
+            if (!confirmed) return false;
 
-            if (!confirm('Dismiss all reports for this content? The content will remain visible.')) {
+            let done = 0;
+            try {
+                await ui.busy(button, async () => {
+                    for (const report of reports) {
+                        const reportId = report.report_id || report.id;
+                        if (!reportId) continue;
+                        await AdminShell.api('social', '/reports/action', {
+                            report_id: reportId,
+                            action: 'dismissed',
+                        });
+                        done++;
+                    }
+                });
+            } catch (error) {
+                ui.notice(`Couldn't dismiss reports: ${error.message}`, { tone: 'bad' });
+                // Reports dismissed before the failure are already closed on the server.
+                if (done) loadContent({ quiet: true });
+                return false;
+            }
+            dropContent(content, { fromRecent: false });
+            return true;
+        }
+
+        // ---- Wiring ----
+
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-type]');
+            if (btn && btn.dataset.type !== currentTab) selectTab(btn.dataset.type);
+        });
+
+        grid.addEventListener('click', (e) => {
+            const tile = e.target.closest('[data-media-src]');
+            if (tile) {
+                ui.media(tile.dataset.mediaSrc, tile.dataset.mediaKind);
                 return;
             }
+            const button = e.target.closest('button[data-action]');
+            const card = button && button.closest('[data-key]');
+            if (!card) return;
+            const content = getFilteredContent().find(c => contentKey(c) === card.dataset.key);
+            if (!content) return;
+            if (button.dataset.action === 'details') showDetails(content);
+            else if (button.dataset.action === 'dismiss') dismissReports(content, button);
+            else if (button.dataset.action === 'remove') removeContent(content, button);
+        });
 
-            const content = selectedContent;
-
-            try {
-                for (const report of (content.reports || [])) {
-                    const reportId = report.report_id || report.id;
-                    if (!reportId) continue;
-
-                    await AdminShell.api('social', '/reports/action', {
-                        report_id: reportId,
-                        action: 'dismissed'
-                    });
-                }
-
-                showSuccess('Reports dismissed.');
-                document.getElementById('preview-modal').classList.remove('active');
-
-                reportedContent = reportedContent.filter(c =>
-                    !(c.content_type === content.content_type && c.content_id === content.content_id)
-                );
-                selectedContent = null;
-                renderContent();
-
-            } catch (error) {
-                console.error('Error dismissing reports:', error);
-                showError(`Failed to dismiss reports: ${error.message}`);
-            }
-        }
-
-        // --- Utilities ---
-
-        function formatTime(isoString) {
-            if (!isoString) return 'Unknown';
-            const date = new Date(isoString);
-            return date.toLocaleString();
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            const el = document.getElementById('success-message');
-            el.textContent = message;
-            el.style.display = 'block';
-            setTimeout(hideSuccess, 3000);
-        }
-
-        function hideSuccess() {
-            document.getElementById('success-message').style.display = 'none';
-        }
-
-        // --- Event Listeners ---
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeRemoveModal();
-                closePreviewModal();
+        pager.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-page]');
+            if (!btn || !isRecentTab()) return;
+            if (btn.dataset.page === 'first') {
+                ui.busy(btn, () => loadRecent({ quiet: true }));
+            } else if (storedLastKey) {
+                ui.busy(btn, () => loadRecent({ lastKey: storedLastKey, page: recentPage + 1, quiet: true }));
             }
         });
 
-        document.getElementById('remove-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'remove-modal') closeRemoveModal();
-        });
+        // Signed URLs expire after an hour (Refresh re-signs); label the preview
+        // instead of showing a broken image. Media errors don't bubble.
+        document.addEventListener('error', (e) => {
+            if (!e.target || !['IMG', 'VIDEO'].includes(e.target.tagName)) return;
+            const holder = e.target.closest('[data-preview]');
+            if (holder) holder.innerHTML = '<span class="no-preview">Preview unavailable</span>';
+        }, true);
 
-        document.getElementById('preview-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'preview-modal') closePreviewModal();
-        });
+        AdminShell.init({ active: 'content.html', title: 'Content', onReady: () => loadContent() });
 
-        AdminShell.init({ active: 'content.html', title: 'Content', onReady: loadContent });
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) => ui.busy(
+            e.currentTarget,
+            () => (isRecentTab() ? loadRecent({ quiet: true }) : loadContent({ quiet: true }))
+        ));
     </script>
 </body>
 </html>

@@ -3,482 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audit — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Audit log · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        .filters {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .filter-group label {
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: var(--ink-50);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .filter-group input,
-        .filter-group select {
-            padding: 9px 14px;
-            border: 1px solid var(--line-strong);
-            border-radius: var(--pill);
-            background: rgba(0, 0, 0, 0.35);
-            color: var(--ink);
-            font-family: var(--body);
-            font-size: 0.9rem;
-            min-width: 150px;
-            outline: none;
-            transition: border-color 0.15s;
-        }
-
-        .filter-group input:focus,
-        .filter-group select:focus {
-            border-color: rgba(255, 255, 255, 0.35);
-        }
-
-        .filter-group select option {
-            background: var(--panel);
-        }
-
-        .audit-table-wrap {
-            overflow-x: auto;
-        }
-
-        .action-type {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: var(--pill);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .action-type.warned { background: var(--warn-bg); color: var(--warn); }
-        .action-type.suspended { background: var(--orange-bg); color: var(--orange); }
-        .action-type.banned { background: var(--bad-bg); color: var(--bad); }
-        .action-type.reversed { background: var(--good-bg); color: var(--good); }
-        .action-type.content_removed { background: var(--purple-bg); color: var(--purple); }
-
-        .reason-code {
-            font-size: 0.85rem;
-            color: var(--ink-70);
-        }
-
-        .user-link {
-            color: var(--info);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .user-link:hover { text-decoration: underline; }
-
-        .timestamp {
-            font-size: 0.85rem;
-            color: var(--ink-50);
-        }
-
-        .link-btn {
-            background: none;
-            border: none;
-            color: var(--info);
-            cursor: pointer;
-            font-family: var(--body);
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 0;
-        }
-        .link-btn:hover { text-decoration: underline; }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 20px;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--ink-50);
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-        }
-
-        .detail-modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .detail-modal.active { display: flex; }
-
-        .detail-modal-content {
-            background: linear-gradient(180deg, var(--panel-2), var(--panel));
-            border: 1px solid var(--line-strong);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 24px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .detail-modal h3 {
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .detail-modal .close-btn {
-            background: none;
-            border: none;
-            color: var(--ink);
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        .detail-row {
-            display: flex;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .detail-row:last-child { border-bottom: none; }
-
-        .detail-label {
-            width: 140px;
-            color: var(--ink-50);
-            font-size: 0.85rem;
-        }
-
-        .detail-value { flex: 1; }
+        /* Page-specific: labelled filter fields share one toolbar row. */
+        .toolbar.filters { align-items: flex-end; }
+        .toolbar.filters .field { margin-bottom: 0; }
+        .toolbar.filters input[type="text"] { width: 220px; max-width: 100%; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error-message"></div>
-
-        <div class="filters">
-            <div class="filter-group">
-                <label>Target User ID</label>
-                <input type="text" id="filter-target" placeholder="USER#...">
+        <form class="toolbar filters" id="filters" autocomplete="off">
+            <div class="field">
+                <label for="filter-target">Target ID</label>
+                <input type="text" id="filter-target" placeholder="Person or content ID" spellcheck="false">
             </div>
-            <div class="filter-group">
-                <label>Actor (Admin) ID</label>
-                <input type="text" id="filter-actor" placeholder="USER#...">
+            <div class="field">
+                <label for="filter-actor">Actor ID</label>
+                <input type="text" id="filter-actor" placeholder="Admin's user ID" spellcheck="false">
             </div>
-            <div class="filter-group">
-                <label>Action Type</label>
+            <div class="field">
+                <label for="filter-type">Action type</label>
                 <select id="filter-type">
                     <option value="">All</option>
                     <option value="warned">Warned</option>
                     <option value="suspended">Suspended</option>
                     <option value="banned">Banned</option>
                     <option value="reversed">Reversed</option>
-                    <option value="content_removed">Content Removed</option>
+                    <option value="content_removed">Content removed</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label>From Date</label>
+            <div class="field">
+                <label for="filter-from">From date</label>
                 <input type="date" id="filter-from">
             </div>
-            <div class="filter-group">
-                <label>To Date</label>
+            <div class="field">
+                <label for="filter-to">To date</label>
                 <input type="date" id="filter-to">
             </div>
-            <button class="btn" onclick="applyFilters()">Search</button>
-            <button class="btn ghost" onclick="clearFilters()">Clear</button>
-        </div>
+            <button type="submit" class="btn primary" id="search">Search</button>
+            <button type="button" class="btn" id="clear">Clear</button>
+        </form>
 
-        <div class="section audit-table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                        <th>Action</th>
-                        <th>Target</th>
-                        <th>Reason</th>
-                        <th>Actor</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="audit-body">
-                    <tr><td colspan="6" class="loading">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <div id="audit"></div>
 
-        <div class="pagination" id="pagination"></div>
-    </div>
-
-    <!-- Detail Modal -->
-    <div class="detail-modal" id="detail-modal">
-        <div class="detail-modal-content">
-            <h3>
-                Action Details
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </h3>
-            <div id="modal-body"></div>
-        </div>
+        <div class="toolbar" id="pager" hidden></div>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
-        let storedLastKey = null;
-        let currentPage = null;
-        let hasMore = false;
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
+        // Active search: the request body without last_key, snapshotted when
+        // Search is pressed so paging and Refresh ignore half-typed filters.
+        let query = null;
+        let pageKey = null;   // last_key that produced the page on screen (null = first page)
+        let nextKey = null;
+        let rows = [];
 
         const REASON_LABELS = {
-            'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate Speech',
-            'SEXUAL_CONTENT': 'Sexual Content',
-            'MINOR_SAFETY': 'Minor Safety',
-            'SPAM': 'Spam',
-            'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-Harm',
-            'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal Content',
-            'PRIVACY_VIOLATION': 'Privacy Violation',
-            'OTHER': 'Other'
+            HARASSMENT: 'Harassment',
+            HATE_SPEECH: 'Hate speech',
+            SEXUAL_CONTENT: 'Sexual content',
+            MINOR_SAFETY: 'Minor safety',
+            SPAM: 'Spam',
+            IMPERSONATION: 'Impersonation',
+            SELF_HARM: 'Self-harm',
+            VIOLENCE: 'Violence',
+            ILLEGAL_CONTENT: 'Illegal content',
+            PRIVACY_VIOLATION: 'Privacy violation',
+            OTHER: 'Other',
         };
 
-        async function loadAuditLog(lastKey = null) {
-            const tbody = document.getElementById('audit-body');
-            tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading audit log...</td></tr>';
-            hideError();
+        // Label and badge tone per action type.
+        const ACTIONS = {
+            warned: { label: 'Warned', tone: 'warn' },
+            suspended: { label: 'Suspended', tone: 'orange' },
+            banned: { label: 'Banned', tone: 'bad' },
+            reversed: { label: 'Reversed', tone: 'good' },
+            content_removed: { label: 'Content removed', tone: 'purple' },
+        };
 
+        const ROLE_LABELS = {
+            super_admin: 'Super admin',
+            admin: 'Admin',
+            moderator: 'Moderator',
+        };
+
+        const region = document.getElementById('audit');
+        const pager = document.getElementById('pager');
+        const refreshButton = () => document.getElementById('refresh');
+
+        // ---- Loading ----
+
+        function search() {
             const targetId = document.getElementById('filter-target').value.trim();
             const actorId = document.getElementById('filter-actor').value.trim();
             const actionType = document.getElementById('filter-type').value;
             const fromDate = document.getElementById('filter-from').value;
             const toDate = document.getElementById('filter-to').value;
 
-            // Backend requires at least one filter
+            // The backend requires at least one of these filters.
             if (!targetId && !actorId && !actionType) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty">
-                            <div class="empty-icon">🔍</div>
-                            <p>Enter a filter to search the audit log</p>
-                        </td>
-                    </tr>
-                `;
-                document.getElementById('pagination').innerHTML = '';
-                storedLastKey = null;
-                currentPage = null;
-                hasMore = false;
-                return;
+                query = null;
+                rows = [];
+                pageKey = null;
+                nextKey = null;
+                pager.hidden = true;
+                refreshButton().hidden = true;
+                ui.empty(region, {
+                    title: 'Search the audit log',
+                    body: 'Enter a target ID, an actor ID or an action type. The date range narrows the results.',
+                    icon: 'search',
+                });
+                return Promise.resolve();
             }
 
-            const requestBody = {};
-            if (targetId) requestBody.target_id = targetId;
-            if (actorId) requestBody.actor_id = actorId;
-            if (actionType) requestBody.action_type = actionType;
-            if (fromDate) requestBody.start_date = fromDate;
-            if (toDate) requestBody.end_date = toDate;
-            if (lastKey) requestBody.last_key = lastKey;
+            const body = {};
+            if (targetId) body.target_id = targetId;
+            if (actorId) body.actor_id = actorId;
+            if (actionType) body.action_type = actionType;
+            if (fromDate) body.start_date = fromDate;
+            // ISO string comparison server-side: include all of the end day.
+            if (toDate) body.end_date = `${toDate}T23:59:59Z`;
+            query = body;
+            refreshButton().hidden = false;
+            return loadPage(null);
+        }
 
+        // Paging and Refresh keep the current rows on screen (the button shows the wait).
+        async function loadPage(key, { quiet = false } = {}) {
+            if (!query) return;
+            if (!quiet || !rows.length) ui.loading(region, 'Loading audit log…');
             try {
-                const data = await AdminShell.api('realtime', '/admin/audit', requestBody);
-                const actions = data.items || [];
-                currentPage = lastKey;
-                storedLastKey = data.last_key || null;
-                hasMore = !!storedLastKey;
-
-                renderAuditLog(actions);
+                const data = await AdminShell.api('realtime', '/admin/audit', key ? { ...query, last_key: key } : query);
+                rows = data.items || [];
+                pageKey = key;
+                nextKey = data.last_key || null;
+                render();
             } catch (error) {
-                console.error('Error loading audit log:', error);
-                showError(error.message || 'Failed to load audit log.');
-                tbody.innerHTML = '<tr><td colspan="6" class="empty">Failed to load</td></tr>';
-                document.getElementById('pagination').innerHTML = '';
+                rows = [];
+                pager.hidden = true;
+                ui.error(region, { title: "Couldn't load the audit log", error, onRetry: () => loadPage(key) });
             }
         }
 
-        function loadFirstPage() {
-            storedLastKey = null;
-            loadAuditLog(null);
+        // ---- Rendering ----
+
+        function shortId(id) {
+            return String(id || '').slice(0, 8);
         }
 
-        function loadNextPage() {
-            if (storedLastKey) loadAuditLog(storedLastKey);
+        function userHref(id) {
+            return `users.html?id=${encodeURIComponent(id)}&env=${encodeURIComponent(AdminShell.env)}`;
         }
 
-        function renderAuditLog(actions) {
-            const tbody = document.getElementById('audit-body');
+        function isUserTarget(action) {
+            return !action.target_type || action.target_type === 'user';
+        }
 
-            if (actions.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty">
-                            <div class="empty-icon">📋</div>
-                            <p>No audit records found</p>
-                        </td>
-                    </tr>
-                `;
-                document.getElementById('pagination').innerHTML = '';
+        function reasonLabel(code) {
+            return REASON_LABELS[code] || code || '–';
+        }
+
+        function roleLabel(role) {
+            return ROLE_LABELS[role] || role || 'Admin';
+        }
+
+        function actionBadge(type) {
+            const action = ACTIONS[type] || { label: type || 'Unknown', tone: '' };
+            return `<span class="badge ${action.tone}">${esc(action.label)}</span>`;
+        }
+
+        function render() {
+            if (!rows.length) {
+                pager.hidden = !pageKey;
+                if (pageKey) renderPager();
+                ui.empty(region, {
+                    title: 'No audit records',
+                    body: 'Nothing matches these filters. Try a wider date range or fewer filters.',
+                    icon: 'list',
+                });
                 return;
             }
+            // Every field is untrusted (reason text is admin-typed, ids come
+            // from the request), so all of it goes through esc().
+            region.innerHTML = `
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Action</th>
+                                <th>Target</th>
+                                <th>Reason</th>
+                                <th>Actor</th>
+                                <th><span class="sr-only">Details</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows.map(renderRow).join('')}</tbody>
+                    </table>
+                </div>`;
+            renderPager();
+        }
 
-            tbody.innerHTML = actions.map(action => `
+        function renderRow(action) {
+            const id = action.target_id || '';
+            const idLabel = `<span class="mono" title="${esc(id)}">${esc(shortId(id))}</span>`;
+            const target = isUserTarget(action) && id ? `<a href="${esc(userHref(id))}">${idLabel}</a>` : idLabel;
+            return `
                 <tr>
-                    <td class="timestamp">${formatTime(action.created_at)}</td>
+                    <td class="nowrap">${ui.timeTag(action.created_at)}</td>
                     <td>
-                        <span class="action-type ${action.action_type}">${action.action_type}</span>
-                        ${action.target_type !== 'user' ? `<br><small class="muted">${action.target_type}</small>` : ''}
+                        ${actionBadge(action.action_type)}
+                        ${isUserTarget(action) ? '' : `<div class="faint">${esc(action.target_type)}</div>`}
                     </td>
-                    <td>
-                        <a href="users.html?id=${action.target_id}" class="user-link">${action.target_id.substring(0, 20)}...</a>
-                    </td>
-                    <td class="reason-code">${REASON_LABELS[action.reason_code] || action.reason_code || '-'}</td>
-                    <td>${action.actor_role || 'admin'}</td>
-                    <td>
-                        <button class="link-btn" onclick="showDetail('${action.action_id}')">View</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Pagination — keys stay in JS (storedLastKey), never JSON-in-attribute
-            const pagination = document.getElementById('pagination');
-            pagination.innerHTML = `
-                <button type="button" class="btn ghost" id="page-first" ${!currentPage ? 'disabled' : ''}>First</button>
-                <button type="button" class="btn ghost" id="page-next" ${!hasMore ? 'disabled' : ''}>Next</button>
-            `;
-            document.getElementById('page-first').addEventListener('click', loadFirstPage);
-            document.getElementById('page-next').addEventListener('click', loadNextPage);
-
-            // Store actions for detail view
-            window.auditActions = actions;
+                    <td>${target}</td>
+                    <td>${esc(reasonLabel(action.reason_code))}</td>
+                    <td>${esc(roleLabel(action.actor_role))}</td>
+                    <td class="num"><button type="button" class="btn plain sm" data-action-id="${esc(action.action_id)}">Details</button></td>
+                </tr>`;
         }
 
-        function applyFilters() {
-            storedLastKey = null;
-            loadAuditLog(null);
+        // Page keys stay in JS (pageKey / nextKey), never in attributes.
+        function renderPager() {
+            pager.hidden = false;
+            pager.innerHTML = `
+                <span class="muted">${esc(ui.number(rows.length))} ${rows.length === 1 ? 'record' : 'records'} on this page</span>
+                <span class="spacer"></span>
+                <button type="button" class="btn" data-page="first"${pageKey ? '' : ' disabled'}>First</button>
+                <button type="button" class="btn" data-page="next"${nextKey ? '' : ' disabled'}>Next</button>`;
         }
 
-        function clearFilters() {
-            document.getElementById('filter-target').value = '';
-            document.getElementById('filter-actor').value = '';
-            document.getElementById('filter-type').value = '';
-            document.getElementById('filter-from').value = '';
-            document.getElementById('filter-to').value = '';
-            storedLastKey = null;
-            loadAuditLog(null);
+        // ---- Detail ----
+
+        function showDetail(action) {
+            const row = (label, value) => `<dt>${esc(label)}</dt><dd>${value}</dd>`;
+            const mono = (value) => (value ? `<span class="mono">${esc(value)}</span>` : '–');
+            const targetId = action.target_id
+                ? (isUserTarget(action)
+                    ? `<a class="mono" href="${esc(userHref(action.target_id))}">${esc(action.target_id)}</a>`
+                    : mono(action.target_id))
+                : '–';
+
+            ui.dialog({
+                title: 'Action details',
+                body: `<dl class="kv">
+                    ${row('Action ID', mono(action.action_id))}
+                    ${row('Time', esc(ui.time(action.created_at, { seconds: true }) || '–'))}
+                    ${row('Action', actionBadge(action.action_type))}
+                    ${row('Target type', esc(action.target_type || '–'))}
+                    ${row('Target ID', targetId)}
+                    ${row('Reason code', esc(reasonLabel(action.reason_code)))}
+                    ${row('Reason text', esc(action.reason_text || '–'))}
+                    ${row('Actor ID', mono(action.actor_id))}
+                    ${row('Actor role', esc(action.actor_role || '–'))}
+                    ${action.expires_at ? row('Expires', esc(ui.time(action.expires_at, { seconds: true }) || '–')) : ''}
+                    ${action.source_report_id ? row('Source report', mono(action.source_report_id)) : ''}
+                </dl>`,
+            });
         }
 
-        function showDetail(actionId) {
-            const action = window.auditActions?.find(a => a.action_id === actionId);
-            if (!action) return;
+        // ---- Wiring ----
 
-            const modal = document.getElementById('detail-modal');
-            const body = document.getElementById('modal-body');
-
-            body.innerHTML = `
-                <div class="detail-row">
-                    <div class="detail-label">Action ID</div>
-                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.action_id}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Timestamp</div>
-                    <div class="detail-value">${formatTime(action.created_at)}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Action Type</div>
-                    <div class="detail-value"><span class="action-type ${action.action_type}">${action.action_type}</span></div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Target Type</div>
-                    <div class="detail-value">${action.target_type}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Target ID</div>
-                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.target_id}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Reason Code</div>
-                    <div class="detail-value">${REASON_LABELS[action.reason_code] || action.reason_code || '-'}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Reason Text</div>
-                    <div class="detail-value">${action.reason_text || '-'}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Actor ID</div>
-                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.actor_id || '-'}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Actor Role</div>
-                    <div class="detail-value">${action.actor_role || '-'}</div>
-                </div>
-                ${action.expires_at ? `
-                <div class="detail-row">
-                    <div class="detail-label">Expires At</div>
-                    <div class="detail-value">${formatTime(action.expires_at)}</div>
-                </div>
-                ` : ''}
-                ${action.source_report_id ? `
-                <div class="detail-row">
-                    <div class="detail-label">Source Report</div>
-                    <div class="detail-value" style="font-family:monospace;font-size:0.85rem;">${action.source_report_id}</div>
-                </div>
-                ` : ''}
-            `;
-
-            modal.classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('detail-modal').classList.remove('active');
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
+        document.getElementById('filters').addEventListener('submit', (e) => {
+            e.preventDefault();
+            search();
         });
 
-        document.getElementById('detail-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'detail-modal') closeModal();
+        document.getElementById('clear').addEventListener('click', (e) => {
+            e.currentTarget.form.reset();
+            search();
         });
 
-        function formatTime(isoString) {
-            if (!isoString) return 'Unknown';
-            const date = new Date(isoString);
-            return date.toLocaleString();
-        }
+        region.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-action-id]');
+            if (!button) return;
+            const action = rows.find(a => a.action_id === button.dataset.actionId);
+            if (action) showDetail(action);
+        });
 
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
+        pager.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-page]');
+            if (!button) return;
+            const key = button.dataset.page === 'next' ? nextKey : null;
+            ui.busy(button, () => loadPage(key, { quiet: true }));
+        });
 
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
+        AdminShell.init({ active: 'audit.html', title: 'Audit log', onReady: search });
 
-        AdminShell.init({ active: 'audit.html', title: 'Audit', onReady: () => loadAuditLog(null) });
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh" hidden>${ui.icon('refresh')}Refresh</button>`;
+        refreshButton().addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadPage(pageKey, { quiet: true })));
     </script>
 </body>
 </html>

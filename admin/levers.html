@@ -3,327 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Levers — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Levers · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        .toggle-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .toggle {
-            position: relative;
-            width: 56px;
-            height: 32px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            cursor: pointer;
-            transition: background 0.18s, border-color 0.18s;
-            flex-shrink: 0;
-        }
-        .toggle.on {
-            background: #fff;
-            border-color: #fff;
-        }
-        .toggle::after {
-            content: '';
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-            transition: transform 0.18s, background 0.18s;
-        }
-        .toggle.on::after {
-            transform: translateX(24px);
-            background: #0a0a0c;
-        }
-        .toggle:disabled { opacity: 0.45; cursor: wait; }
-        .toggle-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-        }
-        .toggle-state {
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-        .toggle-state.on { color: #3dd68c; }
-        .toggle-state.off { color: rgba(255, 255, 255, 0.45); }
-        .announce-fields {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 560px;
-        }
-        .announce-fields input[type="text"],
-        .announce-fields textarea {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-family: var(--body);
-            font-size: 0.9rem;
-            outline: none;
-            box-sizing: border-box;
-        }
-        .announce-fields textarea {
-            min-height: 96px;
-            resize: vertical;
-            border-radius: 12px;
-        }
-        .announce-fields input:focus,
-        .announce-fields textarea:focus {
-            border-color: rgba(255, 255, 255, 0.35);
-        }
-        .announce-targets {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+        /* Page-specific widths: forms and inline inputs would otherwise stretch the whole panel. */
+        .lever-form { max-width: 560px; }
+        .setting-row input[type="text"] { width: 320px; max-width: 100%; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error"></div>
         <p class="page-note">
-            Levers live on the server <code>CONFIG#APP</code> record. Clients pick them up on the next bootstrap
-            (Lambda caches ~60s). Flipping requires the <strong>super_admin</strong> role.
+            Levers live on the server <span class="mono">CONFIG#APP</span> record. Clients pick them up on their next
+            bootstrap, and the Lambda caches the record for about a minute. Changing a lever needs the super admin role.
+            <span class="faint" id="updated-at"></span>
         </p>
 
-        <div class="section">
-            <h2>Paywall</h2>
-            <div class="lever-row" style="border-bottom: none; padding-bottom: 0">
-                <div class="lever-info">
-                    <h3>Roam paywall <span class="muted" id="roam-updated"></span></h3>
-                    <p>
-                        When <strong>on</strong>, users without Roam entitlement are locked to their 1-mile GPS ring;
-                        taps beyond open the paywall (purchase + invite). When <strong>off</strong>, everyone travels freely.
-                    </p>
+        <div id="config-state"></div>
+
+        <div id="config-panels" hidden>
+            <section class="panel">
+                <div class="panel-head"><h2>Paywall</h2></div>
+                <div>
+                    <div class="setting-row">
+                        <div>
+                            <h3>Roam paywall</h3>
+                            <p>
+                                When on, people without Roam are locked to their 1-mile GPS ring, and taps beyond it open
+                                the paywall (purchase and invite). When off, everyone travels freely.
+                            </p>
+                        </div>
+                        <div class="btn-row">
+                            <span class="muted" data-state-for="paywall-toggle">Off</span>
+                            <button type="button" class="toggle" id="paywall-toggle" role="switch" aria-checked="false" aria-label="Roam paywall"></button>
+                        </div>
+                    </div>
                 </div>
-                <div class="toggle-meta">
-                    <button type="button" class="toggle" id="paywall-toggle" aria-label="Toggle Roam paywall" aria-pressed="false"></button>
-                    <span class="toggle-state off" id="paywall-state">Off</span>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><h2>Naming</h2></div>
+                <div>
+                    <div class="setting-row">
+                        <div>
+                            <h3>Brand name</h3>
+                            <p>Trademark contingency. Clients adopt it after their next bootstrap, if the app reads it.</p>
+                        </div>
+                        <div class="seg" id="naming-seg" role="group" aria-label="Brand name">
+                            <button type="button" data-value="dsco" aria-pressed="false">DSCO</button>
+                            <button type="button" data-value="borg" aria-pressed="false">BORG</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><h2>Invite page</h2></div>
+                <div>
+                    <div class="setting-row">
+                        <div>
+                            <h3><label for="app-store-url">App Store link</label></h3>
+                            <p>Where invite pages send people who tap Get DSCO. Leave it blank to use the marketing site.</p>
+                        </div>
+                        <div class="btn-row">
+                            <input type="text" id="app-store-url" placeholder="https://apps.apple.com/app/…" autocomplete="off">
+                            <button type="button" class="btn" id="save-app-store-url">Save</button>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <h3>Branded invite host</h3>
+                            <p>
+                                Switches newly made invite links from <span class="mono">api.dsco.dev/invite/{u}</span> to
+                                <span class="mono">join.dsco.dev/{u}</span>. Turn it on only after the join.dsco.dev custom
+                                domain is live (ACM certificate issued, API Gateway mapping deployed). Flipping it early
+                                points new links at a domain that doesn't resolve yet.
+                            </p>
+                        </div>
+                        <div class="btn-row">
+                            <span class="muted" data-state-for="invite-host-toggle">Off</span>
+                            <button type="button" class="toggle" id="invite-host-toggle" role="switch" aria-checked="false" aria-label="Branded invite host"></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <div class="section">
-            <h2>Naming</h2>
-            <div class="lever-row" style="border-bottom: none; padding-bottom: 0">
-                <div class="lever-info">
-                    <h3>Brand name</h3>
-                    <p>Trademark contingency. Clients adopt after their next bootstrap (if the app reads it).</p>
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Force upgrade</h2>
+                <span class="hint">Queues a push to the targets</span>
+            </div>
+            <form class="lever-form" id="upgrade-form" novalidate>
+                <div class="field">
+                    <label for="min-version">Minimum version</label>
+                    <input type="text" id="min-version" placeholder="1.0.155" autocomplete="off">
                 </div>
-                <div class="seg" id="seg-naming_mode" data-values="dsco,borg"></div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Force upgrade<span class="hint">queues a push to targets</span></h2>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-                <input type="text" id="min-version" placeholder="Minimum version, e.g. 1.0.155">
-                <input type="text" id="user-ids" placeholder="User ids, comma-separated">
-                <label class="muted" style="font-size:0.85rem">
-                    <input type="checkbox" id="broadcast"> Broadcast to all users
-                </label>
-                <button class="btn" id="push-version">Queue force upgrade</button>
-                <span class="muted" id="version-result"></span>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Broadcast announcement<span class="hint">visible FCM push · super admin</span></h2>
-            <div class="announce-fields">
-                <input type="text" id="announce-title" placeholder="Title" maxlength="80">
-                <textarea id="announce-body" placeholder="Body" maxlength="500"></textarea>
-                <div class="announce-targets">
-                    <input type="text" id="announce-user-ids" placeholder="User ids, comma-separated">
-                    <label class="muted" style="font-size:0.85rem">
-                        <input type="checkbox" id="announce-broadcast"> Broadcast to all users
-                    </label>
-                    <button class="btn" id="send-announce">Send announcement</button>
-                    <span class="muted" id="announce-result"></span>
+                <div class="field">
+                    <label for="user-ids">User ids</label>
+                    <input type="text" id="user-ids" autocomplete="off">
+                    <div class="hint">Comma-separated. Ignored when you broadcast.</div>
                 </div>
+                <div class="field">
+                    <label class="check"><input type="checkbox" id="broadcast"> Broadcast to all users</label>
+                </div>
+                <div class="btn-row">
+                    <button type="submit" class="btn">Queue force upgrade</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Broadcast announcement</h2>
+                <span class="hint">Visible push notification, super admin only</span>
             </div>
-        </div>
+            <form class="lever-form" id="announce-form" novalidate>
+                <div class="field">
+                    <label for="announce-title">Title</label>
+                    <input type="text" id="announce-title" maxlength="80" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label for="announce-body">Body</label>
+                    <textarea id="announce-body" maxlength="500"></textarea>
+                </div>
+                <div class="field">
+                    <label for="announce-user-ids">User ids</label>
+                    <input type="text" id="announce-user-ids" autocomplete="off">
+                    <div class="hint">Comma-separated. Ignored when you broadcast.</div>
+                </div>
+                <div class="field">
+                    <label class="check"><input type="checkbox" id="announce-broadcast"> Broadcast to all users</label>
+                </div>
+                <div class="btn-row">
+                    <button type="submit" class="btn">Send announcement</button>
+                </div>
+            </form>
+        </section>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
         let currentLevers = {};
 
-        function showError(message) {
-            const el = document.getElementById('error');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
+        const panels = document.getElementById('config-panels');
+        const state = document.getElementById('config-state');
 
         /** Paywall on = any gated mode (premium / invite / on). Off = free travel. */
-        function isPaywallOn(mode) {
-            return mode === 'premium' || mode === 'invite' || mode === 'on';
+        const isPaywallOn = (mode) => mode === 'premium' || mode === 'invite' || mode === 'on';
+
+        /** invite_host_enabled: "on" | "off" (backend/config/shared.yml inviteDomainByStage). */
+        const isInviteHostOn = (value) => value === 'on';
+
+        // ---- Rendering ----
+
+        function setSwitch(id, on) {
+            document.getElementById(id).setAttribute('aria-checked', String(on));
+            document.querySelector(`[data-state-for="${id}"]`).textContent = on ? 'On' : 'Off';
         }
 
-        function renderPaywallToggle() {
-            const on = isPaywallOn(currentLevers.roam_gate_mode);
-            const toggle = document.getElementById('paywall-toggle');
-            const state = document.getElementById('paywall-state');
-            toggle.classList.toggle('on', on);
-            toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-            state.textContent = on ? 'On' : 'Off';
-            state.classList.toggle('on', on);
-            state.classList.toggle('off', !on);
+        function renderUpdated(updatedAt) {
+            document.getElementById('updated-at').textContent = updatedAt ? `Last changed ${ui.time(updatedAt)}.` : '';
         }
 
-        function renderNaming() {
-            const seg = document.getElementById('seg-naming_mode');
-            const values = seg.dataset.values.split(',');
-            const current = currentLevers.naming_mode || 'dsco';
-            seg.innerHTML = values.map(value =>
-                `<button data-value="${value}"${current === value ? ' class="active"' : ''}>${value}</button>`
-            ).join('');
-            seg.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', () => setLever('naming_mode', btn.dataset.value));
+        function renderLevers() {
+            setSwitch('paywall-toggle', isPaywallOn(currentLevers.roam_gate_mode));
+            setSwitch('invite-host-toggle', isInviteHostOn(currentLevers.invite_host_enabled));
+
+            const mode = currentLevers.naming_mode || 'dsco';
+            document.querySelectorAll('#naming-seg button').forEach(b => {
+                b.setAttribute('aria-pressed', String(b.dataset.value === mode));
             });
+
+            // Don't clobber in-progress typing if a render pass runs while the field has focus.
+            const input = document.getElementById('app-store-url');
+            if (document.activeElement !== input) input.value = currentLevers.app_store_url || '';
         }
 
-        async function setLever(lever, value) {
-            if (currentLevers[lever] === value) return;
-            document.getElementById('error').style.display = 'none';
-            const toggle = document.getElementById('paywall-toggle');
-            const namingBtns = document.querySelectorAll('#seg-naming_mode button');
-            toggle.disabled = true;
-            namingBtns.forEach(b => b.disabled = true);
-            try {
-                const data = await AdminShell.api('realtime', '/admin/config/set', {
-                    levers: { [lever]: value },
-                });
-                currentLevers = data.levers || {};
-                document.getElementById('roam-updated').textContent =
-                    data.updated_at ? `· changed ${new Date(data.updated_at).toLocaleString()}` : '';
-            } catch (e) {
-                showError(`${lever}: ${e.message}`);
+        // ---- Loading ----
+
+        async function loadPage({ quiet = false } = {}) {
+            if (!quiet || panels.hidden) {
+                panels.hidden = true;
+                ui.loading(state, 'Loading levers…');
             }
-            toggle.disabled = false;
-            renderPaywallToggle();
-            renderNaming();
-        }
-
-        async function togglePaywall() {
-            const nextOn = !isPaywallOn(currentLevers.roam_gate_mode);
-            // On → premium (full paywall with purchase CTA). Off → free for everyone.
-            await setLever('roam_gate_mode', nextOn ? 'premium' : 'off');
-        }
-
-        async function loadPage() {
             try {
                 const data = await AdminShell.api('realtime', '/admin/config/get');
                 currentLevers = data.levers || {};
-                document.getElementById('roam-updated').textContent =
-                    data.updated_at ? `· changed ${new Date(data.updated_at).toLocaleString()}` : '';
-            } catch (e) {
-                showError('Config: ' + e.message);
+                renderUpdated(data.updated_at);
+                state.innerHTML = '';
+                panels.hidden = false;
+                renderLevers();
+            } catch (error) {
+                panels.hidden = true;
+                ui.error(state, { title: "Couldn't load levers", error, onRetry: () => loadPage() });
             }
-            renderPaywallToggle();
-            renderNaming();
         }
 
-        document.getElementById('paywall-toggle').addEventListener('click', togglePaywall);
+        // ---- Changing a lever ----
 
-        document.addEventListener('click', e => {
-            if (e.target.id === 'push-version') {
-                const minVersion = document.getElementById('min-version').value.trim();
-                const broadcast = document.getElementById('broadcast').checked;
-                const resultEl = document.getElementById('version-result');
-                if (!minVersion) { resultEl.textContent = 'Enter a version.'; return; }
+        // The new state shows on the control itself, so a successful flip stays silent.
+        async function changeLever(lever, value, label, button) {
+            if (currentLevers[lever] === value) return false;
+            let changed = false;
+            try {
+                await ui.busy(button, async () => {
+                    const data = await AdminShell.api('realtime', '/admin/config/set', {
+                        levers: { [lever]: value },
+                    });
+                    currentLevers = data.levers || {};
+                    renderUpdated(data.updated_at);
+                });
+                changed = true;
+            } catch (error) {
+                ui.notice(`Couldn't change ${label}: ${error.message}`, { tone: 'bad' });
+            }
+            renderLevers();
+            return changed;
+        }
 
-                let payload;
-                let confirmMsg;
-                if (broadcast) {
-                    payload = { min_version: minVersion, broadcast: true };
-                    confirmMsg = `Queue force-upgrade push to all users requiring ${minVersion}?`;
-                } else {
-                    const userIds = document.getElementById('user-ids').value
-                        .split(',')
-                        .map(s => s.trim())
-                        .filter(Boolean);
-                    if (!userIds.length) {
-                        resultEl.textContent = 'Enter user ids, or check broadcast.';
-                        return;
-                    }
-                    payload = { min_version: minVersion, user_ids: userIds };
-                    confirmMsg = `Queue force-upgrade push to ${userIds.length} user(s) requiring ${minVersion}?`;
-                }
-                if (!confirm(confirmMsg)) return;
+        async function togglePaywall(button) {
+            const nextOn = !isPaywallOn(currentLevers.roam_gate_mode);
+            const values = await ui.confirm({
+                title: nextOn ? 'Turn on the Roam paywall?' : 'Turn off the Roam paywall?',
+                body: nextOn
+                    ? 'People without Roam are locked to their 1-mile GPS ring. Taps beyond it open the paywall.'
+                    : 'Everyone can travel freely again.',
+                confirmLabel: nextOn ? 'Turn on' : 'Turn off',
+                destructive: nextOn,
+            });
+            if (!values) return;
+            // On is premium (full paywall with purchase prompt). Off is free for everyone.
+            await changeLever('roam_gate_mode', nextOn ? 'premium' : 'off', 'the Roam paywall', button);
+        }
 
-                e.target.disabled = true;
-                AdminShell.api('realtime', '/admin/set_min_version', payload)
-                    .then(data => { resultEl.textContent = `Queued for ${data.users_queued} users.`; })
-                    .catch(err => { resultEl.textContent = err.message; })
-                    .finally(() => { e.target.disabled = false; });
-                return;
+        async function toggleInviteHost(button) {
+            const nextOn = !isInviteHostOn(currentLevers.invite_host_enabled);
+            const values = await ui.confirm({
+                title: nextOn ? 'Turn on the branded invite host?' : 'Turn off the branded invite host?',
+                body: nextOn
+                    ? 'New invite links will use join.dsco.dev. Only continue if that domain is live.'
+                    : 'New invite links go back to api.dsco.dev/invite.',
+                confirmLabel: nextOn ? 'Turn on' : 'Turn off',
+                destructive: nextOn,
+            });
+            if (!values) return;
+            await changeLever('invite_host_enabled', nextOn ? 'on' : 'off', 'the branded invite host', button);
+        }
+
+        async function setNaming(button) {
+            const value = button.dataset.value;
+            if ((currentLevers.naming_mode || 'dsco') === value) return;
+            const values = await ui.confirm({
+                title: `Switch the brand name to ${button.textContent}?`,
+                body: 'Clients adopt it after their next bootstrap, if the app reads it.',
+                confirmLabel: 'Switch',
+                destructive: true,
+            });
+            if (!values) return;
+            await changeLever('naming_mode', value, 'the brand name', button);
+        }
+
+        async function saveAppStoreUrl(button) {
+            const value = document.getElementById('app-store-url').value.trim();
+            if ((currentLevers.app_store_url || '') === value) return;
+            const values = await ui.confirm({
+                title: value ? 'Save the App Store link?' : 'Clear the App Store link?',
+                body: value
+                    ? `Invite pages will send people to <span class="mono">${esc(value)}</span>.`
+                    : 'Invite pages will send people to the marketing site.',
+                confirmLabel: value ? 'Save' : 'Clear',
+            });
+            if (!values) return;
+            // The field looks the same before and after, so say it landed.
+            if (await changeLever('app_store_url', value, 'the App Store link', button)) {
+                ui.notice(value ? 'App Store link saved.' : 'App Store link cleared.', { tone: 'good' });
+            }
+        }
+
+        // ---- Pushes: force upgrade and announcements ----
+
+        function parseIds(id) {
+            return document.getElementById(id).value.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        function invalid(id, message) {
+            document.getElementById(id).focus();
+            ui.notice(message, { tone: 'bad', timeout: 4000 });
+        }
+
+        function plural(n, word) {
+            return `${ui.number(n)} ${word}${n === 1 ? '' : 's'}`;
+        }
+
+        async function queueForceUpgrade(form) {
+            const button = form.querySelector('button[type="submit"]');
+            const minVersion = document.getElementById('min-version').value.trim();
+            const broadcast = document.getElementById('broadcast').checked;
+            if (!minVersion) return invalid('min-version', 'Enter a minimum version.');
+
+            let payload;
+            let audience;
+            if (broadcast) {
+                payload = { min_version: minVersion, broadcast: true };
+                audience = 'all users';
+            } else {
+                const userIds = parseIds('user-ids');
+                if (!userIds.length) return invalid('user-ids', 'Enter user ids, or turn on broadcast.');
+                payload = { min_version: minVersion, user_ids: userIds };
+                audience = plural(userIds.length, 'user');
             }
 
-            if (e.target.id !== 'send-announce') return;
+            const values = await ui.confirm({
+                title: `Queue a force upgrade for ${audience}?`,
+                body: `A push goes to ${esc(audience)}, requiring version <strong>${esc(minVersion)}</strong>.`,
+                confirmLabel: 'Queue',
+                destructive: broadcast,
+            });
+            if (!values) return;
+
+            try {
+                const data = await ui.busy(button, () => AdminShell.api('realtime', '/admin/set_min_version', payload));
+                ui.notice(`Queued the force upgrade for ${plural(Number(data.users_queued ?? 0), 'user')}.`, { tone: 'good' });
+            } catch (error) {
+                ui.notice(`Couldn't queue the force upgrade: ${error.message}`, { tone: 'bad' });
+            }
+        }
+
+        async function sendAnnouncement(form) {
+            const button = form.querySelector('button[type="submit"]');
             const title = document.getElementById('announce-title').value.trim();
             const body = document.getElementById('announce-body').value.trim();
             const broadcast = document.getElementById('announce-broadcast').checked;
-            const resultEl = document.getElementById('announce-result');
-            if (!title) { resultEl.textContent = 'Enter a title.'; return; }
-            if (!body) { resultEl.textContent = 'Enter a body.'; return; }
+            if (!title) return invalid('announce-title', 'Enter a title.');
+            if (!body) return invalid('announce-body', 'Enter a body.');
 
             let payload;
-            let confirmMsg;
+            let audience;
             if (broadcast) {
                 payload = { title, body, broadcast: true };
-                confirmMsg = `Send announcement “${title}” to all users?`;
+                audience = 'all users';
             } else {
-                const userIds = document.getElementById('announce-user-ids').value
-                    .split(',')
-                    .map(s => s.trim())
-                    .filter(Boolean);
-                if (!userIds.length) {
-                    resultEl.textContent = 'Enter user ids, or check broadcast.';
-                    return;
-                }
+                const userIds = parseIds('announce-user-ids');
+                if (!userIds.length) return invalid('announce-user-ids', 'Enter user ids, or turn on broadcast.');
                 payload = { title, body, user_ids: userIds };
-                confirmMsg = `Send announcement “${title}” to ${userIds.length} user(s)?`;
+                audience = plural(userIds.length, 'user');
             }
-            if (!confirm(confirmMsg)) return;
 
-            e.target.disabled = true;
-            resultEl.textContent = 'Sending…';
-            AdminShell.api('realtime', '/admin/push/announce', payload)
-                .then(data => {
-                    const sent = data.users_sent ?? data.users_queued ?? 0;
-                    const failed = data.users_failed ?? 0;
-                    const targeted = data.users_targeted;
-                    let msg = `Sent ${sent}`;
-                    if (failed) msg += ` · failed ${failed}`;
-                    if (targeted != null) msg += ` · targeted ${targeted}`;
-                    resultEl.textContent = msg + '.';
-                })
-                .catch(err => { resultEl.textContent = err.message; })
-                .finally(() => { e.target.disabled = false; });
+            const values = await ui.confirm({
+                title: `Send this announcement to ${audience}?`,
+                body: `<strong>${esc(title)}</strong><br>${esc(body)}`,
+                confirmLabel: 'Send',
+                destructive: broadcast,
+            });
+            if (!values) return;
+
+            try {
+                const data = await ui.busy(button, () => AdminShell.api('realtime', '/admin/push/announce', payload));
+                const sent = data.users_sent ?? data.users_queued ?? 0;
+                const failed = data.users_failed ?? 0;
+                const targeted = data.users_targeted;
+                let message = `Sent to ${plural(Number(sent), 'user')}`;
+                if (failed) message += `, ${ui.number(Number(failed))} failed`;
+                if (targeted != null) message += `, ${ui.number(Number(targeted))} targeted`;
+                ui.notice(`${message}.`, { tone: failed ? 'bad' : 'good' });
+            } catch (error) {
+                ui.notice(`Couldn't send the announcement: ${error.message}`, { tone: 'bad' });
+            }
+        }
+
+        // ---- Wiring ----
+
+        document.getElementById('paywall-toggle').addEventListener('click', (e) => togglePaywall(e.currentTarget));
+        document.getElementById('invite-host-toggle').addEventListener('click', (e) => toggleInviteHost(e.currentTarget));
+        document.getElementById('save-app-store-url').addEventListener('click', (e) => saveAppStoreUrl(e.currentTarget));
+        document.getElementById('naming-seg').addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-value]');
+            if (button) setNaming(button);
         });
 
-        AdminShell.init({ active: 'levers.html', title: 'Levers', onReady: loadPage });
+        document.getElementById('upgrade-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            queueForceUpgrade(e.currentTarget);
+        });
+        document.getElementById('announce-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendAnnouncement(e.currentTarget);
+        });
+
+        // Broadcasting ignores the id list, so the field steps aside.
+        [['broadcast', 'user-ids'], ['announce-broadcast', 'announce-user-ids']].forEach(([toggleId, idsId]) => {
+            const toggle = document.getElementById(toggleId);
+            toggle.addEventListener('change', () => { document.getElementById(idsId).disabled = toggle.checked; });
+        });
+
+        AdminShell.init({ active: 'levers.html', title: 'Levers', onReady: () => loadPage() });
+
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadPage({ quiet: true })));
     </script>
 </body>
 </html>

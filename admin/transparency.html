@@ -3,313 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transparency — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Transparency · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
+        /* Page-specific: horizontal share bars inside the breakdown tables. */
+        .meter-cell { width: 40%; min-width: 120px; }
 
-        .page-header h2 {
-            font-size: 1.5rem;
-        }
-
-        .date-range {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .date-range label {
-            font-size: 0.85rem;
-            color: var(--ink-50);
-        }
-
-        .date-range input {
-            padding: 8px 12px;
-            border: 1px solid var(--line-strong);
-            border-radius: 8px;
-            background: var(--panel-2);
-            color: var(--ink);
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .date-range button {
-            padding: 8px 16px;
-            background: var(--ink);
-            border: none;
-            color: var(--room);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-        }
-
-        .date-range button:hover { background: rgba(255, 255, 255, 0.9); }
-
-        .quick-ranges {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .quick-ranges button {
-            padding: 6px 12px;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            color: var(--ink-50);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-family: inherit;
-        }
-
-        .quick-ranges button:hover {
-            background: var(--accent-dim);
-            color: var(--ink);
-        }
-
-        .quick-ranges button.active {
-            background: var(--ink);
-            border-color: var(--ink);
-            color: var(--room);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: var(--panel);
-            border-radius: var(--radius);
-            padding: 20px;
-            border: 1px solid var(--line);
-        }
-
-        .stat-card .stat-label {
-            font-size: 0.85rem;
-            color: var(--ink-50);
-            margin-bottom: 8px;
-        }
-
-        .stat-card .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .stat-card .stat-sub {
-            font-size: 0.8rem;
-            color: var(--ink-35);
-            margin-top: 4px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .section-header h3 {
-            font-size: 1.1rem;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .data-table th {
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--ink-50);
-        }
-
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .data-table .number {
-            text-align: right;
-            font-family: monospace;
-            font-size: 1rem;
-        }
-
-        .data-table .percent {
-            text-align: right;
-            color: var(--ink-50);
-            font-size: 0.85rem;
-        }
-
-        .bar-container {
+        .meter {
             height: 8px;
-            background: var(--panel-2);
-            border-radius: 4px;
+            border-radius: var(--r-full);
+            background: var(--surface-3);
             overflow: hidden;
-            min-width: 100px;
         }
 
-        .bar {
+        .meter > span {
+            display: block;
             height: 100%;
-            background: var(--info);
-            border-radius: 4px;
+            border-radius: var(--r-full);
+            background: var(--accent);
         }
 
-        .export-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-            flex-wrap: wrap;
-        }
+        /* Print report: drop the console chrome and use the page's own colours. */
+        @media print {
+            :root {
+                color-scheme: light;
+                --bg: Canvas;
+                --surface: Canvas;
+                --surface-2: Canvas;
+                --surface-3: GrayText;
+                --border: GrayText;
+                --border-strong: GrayText;
+                --text: CanvasText;
+                --text-2: CanvasText;
+                --text-3: GrayText;
+            }
 
-        .export-actions button {
-            padding: 12px 24px;
-            background: var(--good);
-            border: none;
-            color: var(--room);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: inherit;
-        }
-
-        .export-actions button:hover {
-            filter: brightness(0.95);
-        }
-
-        .export-actions button.secondary {
-            background: var(--panel);
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-        }
-
-        .export-actions button.secondary:hover {
-            background: var(--accent-dim);
-            filter: none;
-        }
-
-        .dsa-notice {
-            background: var(--info-bg);
-            border: 1px solid rgba(110, 182, 255, 0.35);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
-        }
-
-        .dsa-notice h4 {
-            color: var(--info);
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-
-        .dsa-notice p {
-            font-size: 0.85rem;
-            color: var(--ink-50);
-            line-height: 1.5;
+            .sidebar, .topbar, .sidebar-scrim, .page-actions, .toolbar, .notices { display: none !important; }
+            body.shell-on .container { margin-left: 0; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error-message"></div>
-
-        <div class="dsa-notice">
-            <h4>DSA transparency reporting</h4>
-            <p>This report provides aggregated moderation statistics required under the Digital Services Act (DSA).
+        <section class="panel">
+            <div class="panel-head"><h2>DSA transparency reporting</h2></div>
+            <p class="muted">This report provides aggregated moderation statistics required under the Digital Services Act (DSA).
                Export quarterly data for regulatory compliance and public transparency reports.</p>
-        </div>
+        </section>
 
-        <div class="page-header">
-            <h2>Transparency report</h2>
-            <div class="date-range">
-                <label>From</label>
-                <input type="date" id="date-from">
-                <label>To</label>
-                <input type="date" id="date-to">
-                <button type="button" onclick="loadData()">Generate</button>
+        <div class="toolbar">
+            <div class="seg" role="group" aria-label="Quick ranges" id="ranges">
+                <button type="button" data-range="q1" aria-pressed="false">Q1</button>
+                <button type="button" data-range="q2" aria-pressed="false">Q2</button>
+                <button type="button" data-range="q3" aria-pressed="false">Q3</button>
+                <button type="button" data-range="q4" aria-pressed="false">Q4</button>
+                <button type="button" data-range="full" aria-pressed="false">Full year</button>
+                <button type="button" data-range="30d" aria-pressed="true">Last 30 days</button>
             </div>
+            <span class="spacer"></span>
+            <label for="date-from" class="muted">From</label>
+            <input type="date" id="date-from">
+            <label for="date-to" class="muted">To</label>
+            <input type="date" id="date-to">
+            <button type="button" class="btn primary" id="generate">Generate</button>
         </div>
 
-        <div class="quick-ranges">
-            <button type="button" onclick="setRange('q1')" data-range="q1" id="btn-q1">Q1</button>
-            <button type="button" onclick="setRange('q2')" data-range="q2" id="btn-q2">Q2</button>
-            <button type="button" onclick="setRange('q3')" data-range="q3" id="btn-q3">Q3</button>
-            <button type="button" onclick="setRange('q4')" data-range="q4" id="btn-q4">Q4</button>
-            <button type="button" onclick="setRange('full')" data-range="full" id="btn-full">Full year</button>
-            <button type="button" onclick="setRange('30d')" data-range="30d" class="active">Last 30 days</button>
-        </div>
-
-        <div id="report-content">
-            <div class="loading">Select a date range to generate report…</div>
-        </div>
-
-        <div class="export-actions" id="export-actions" style="display: none;">
-            <button type="button" onclick="exportCSV()">
-                <span>📊</span> Export CSV
-            </button>
-            <button type="button" class="secondary" onclick="exportJSON()">
-                <span>📄</span> Export JSON
-            </button>
-            <button type="button" class="secondary" onclick="printReport()">
-                <span>🖨️</span> Print report
-            </button>
-        </div>
+        <div id="report-content"></div>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
+        // Raw API response, the normalised figures shown on the page, and the
+        // date range they were generated for (exports use this, not the inputs).
         let reportData = null;
+        let report = null;
+        let reportPeriod = null;
 
         const REASON_LABELS = {
-            'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate Speech',
-            'SEXUAL_CONTENT': 'Sexual Content',
-            'MINOR_SAFETY': 'Minor Safety',
-            'SPAM': 'Spam',
-            'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-Harm',
-            'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal Content',
-            'PRIVACY_VIOLATION': 'Privacy Violation',
-            'OTHER': 'Other'
+            HARASSMENT: 'Harassment',
+            HATE_SPEECH: 'Hate speech',
+            SEXUAL_CONTENT: 'Sexual content',
+            MINOR_SAFETY: 'Minor safety',
+            SPAM: 'Spam',
+            IMPERSONATION: 'Impersonation',
+            SELF_HARM: 'Self-harm',
+            VIOLENCE: 'Violence',
+            ILLEGAL_CONTENT: 'Illegal content',
+            PRIVACY_VIOLATION: 'Privacy violation',
+            OTHER: 'Other',
         };
 
         const ACTION_LABELS = {
-            'warned': 'Warning Issued',
-            'suspended': 'Account Suspended',
-            'banned': 'Account Banned',
-            'content_removed': 'Content Removed',
-            'reversed': 'Action Reversed'
+            warned: 'Warning issued',
+            suspended: 'Account suspended',
+            banned: 'Account banned',
+            content_removed: 'Content removed',
+            reversed: 'Action reversed',
         };
+
+        const content = document.getElementById('report-content');
+        const fromInput = document.getElementById('date-from');
+        const toInput = document.getElementById('date-to');
+        const EXPORT_IDS = ['export-csv', 'export-json', 'export-print'];
+
+        // ---- Date range ----
 
         function formatDateInput(d) {
             const y = d.getFullYear();
@@ -320,28 +126,32 @@
 
         function labelQuarterButtons() {
             const year = new Date().getFullYear();
-            document.getElementById('btn-q1').textContent = `Q1 ${year}`;
-            document.getElementById('btn-q2').textContent = `Q2 ${year}`;
-            document.getElementById('btn-q3').textContent = `Q3 ${year}`;
-            document.getElementById('btn-q4').textContent = `Q4 ${year}`;
+            ['q1', 'q2', 'q3', 'q4'].forEach(range => {
+                document.querySelector(`#ranges button[data-range="${range}"]`).textContent = `${range.toUpperCase()} ${year}`;
+            });
         }
 
         function setDefaultRange() {
             const today = new Date();
             const thirtyDaysAgo = new Date(today);
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            document.getElementById('date-to').value = formatDateInput(today);
-            document.getElementById('date-from').value = formatDateInput(thirtyDaysAgo);
+            toInput.value = formatDateInput(today);
+            fromInput.value = formatDateInput(thirtyDaysAgo);
+        }
+
+        // Marks one quick range as pressed; null clears them (custom dates).
+        function pressRange(range) {
+            document.querySelectorAll('#ranges button').forEach(btn => {
+                btn.setAttribute('aria-pressed', String(btn.dataset.range === range));
+            });
         }
 
         function setRange(range) {
             const today = new Date();
-            const year = new Date().getFullYear();
+            const year = today.getFullYear();
             let from, to;
 
-            document.querySelectorAll('.quick-ranges button').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.range === range);
-            });
+            pressRange(range);
 
             switch (range) {
                 case 'q1':
@@ -372,264 +182,276 @@
                     break;
             }
 
-            document.getElementById('date-from').value = formatDateInput(from);
-            document.getElementById('date-to').value = formatDateInput(to);
+            fromInput.value = formatDateInput(from);
+            toInput.value = formatDateInput(to);
             loadData();
         }
 
-        async function loadData() {
-            const content = document.getElementById('report-content');
-            content.innerHTML = '<div class="loading">Loading transparency data…</div>';
-            document.getElementById('export-actions').style.display = 'none';
-            hideError();
+        // ---- Loading ----
 
-            const fromDate = document.getElementById('date-from').value;
-            const toDate = document.getElementById('date-to').value;
+        function setExports(enabled) {
+            EXPORT_IDS.forEach(id => { document.getElementById(id).disabled = !enabled; });
+        }
+
+        function figure(value) {
+            return typeof value === 'number' && Number.isFinite(value) ? value : null;
+        }
+
+        // The export response nests the figures under `statistics` and reports
+        // appeals as `appeals_by_status`; flat fields are still honoured. A
+        // figure the API doesn't supply stays null and shows as a dash rather
+        // than a made-up zero.
+        function normalise(data) {
+            const s = { ...data, ...(data.statistics || {}) };
+            const byStatus = s.appeals_by_status || {};
+            return {
+                totalActions: figure(s.total_actions) ?? 0,
+                totalReports: figure(s.total_reports),
+                totalAppeals: figure(s.total_appeals) ?? 0,
+                appealsApproved: figure(s.appeals_approved) ?? figure(byStatus.approved) ?? 0,
+                appealsDenied: figure(s.appeals_denied) ?? figure(byStatus.denied) ?? 0,
+                appealsPending: figure(s.appeals_pending) ?? figure(byStatus.pending) ?? 0,
+                avgResponseHours: figure(s.avg_response_hours),
+                actionsByType: s.actions_by_type || {},
+                actionsByReason: s.actions_by_reason || {},
+                contentRemoved: s.content_removed || {},
+            };
+        }
+
+        // A new range replaces the report; Generate keeps the current one on
+        // screen while the button shows the wait.
+        async function loadData({ quiet = false } = {}) {
+            const fromDate = fromInput.value;
+            const toDate = toInput.value;
 
             if (!fromDate || !toDate) {
-                content.innerHTML = '<div class="loading">Please select a date range.</div>';
+                reportData = null;
+                setExports(false);
+                ui.empty(content, {
+                    title: 'Choose a date range',
+                    body: 'Pick a start and end date, or use a quick range.',
+                    icon: 'file',
+                });
                 return;
             }
 
+            if (!quiet || !reportData) {
+                reportData = null;
+                setExports(false);
+                ui.loading(content, 'Loading transparency data…');
+            }
+
             try {
-                reportData = await AdminShell.api('realtime', '/admin/transparency/export', {
+                // The backend compares ISO strings with `between`, so a bare end
+                // date would drop everything on that day; send its last second.
+                const data = await AdminShell.api('realtime', '/admin/transparency/export', {
                     start_date: fromDate,
-                    end_date: toDate
+                    end_date: `${toDate}T23:59:59Z`,
                 });
-                renderReport(reportData);
-                document.getElementById('export-actions').style.display = 'flex';
+                reportData = data;
+                report = normalise(data);
+                reportPeriod = { from: fromDate, to: toDate };
+                renderReport(report);
+                setExports(true);
             } catch (error) {
-                console.error('Error loading data:', error);
-                showError(error.message || 'Failed to load transparency data.');
-                content.innerHTML = '<div class="loading">Failed to load data</div>';
+                reportData = null;
+                setExports(false);
+                ui.error(content, { title: "Couldn't load the transparency report", error, onRetry: () => loadData() });
             }
         }
 
-        function renderReport(data) {
-            const content = document.getElementById('report-content');
+        // ---- Rendering ----
 
-            const totalActions = data.total_actions || 0;
-            const totalReports = data.total_reports || 0;
-            const totalAppeals = data.total_appeals || 0;
-            const appealsApproved = data.appeals_approved || 0;
-
-            const actionsByType = data.actions_by_type || {};
-            const actionsByReason = data.actions_by_reason || {};
-            const contentRemoved = data.content_removed || {};
-
-            const maxActionCount = Math.max(...Object.values(actionsByType), 1);
-            const maxReasonCount = Math.max(...Object.values(actionsByReason), 1);
-
-            content.innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Total moderation actions</div>
-                        <div class="stat-value">${totalActions.toLocaleString()}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Reports received</div>
-                        <div class="stat-value">${totalReports.toLocaleString()}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Appeals submitted</div>
-                        <div class="stat-value">${totalAppeals.toLocaleString()}</div>
-                        <div class="stat-sub">${appealsApproved} approved (${totalAppeals ? Math.round(appealsApproved / totalAppeals * 100) : 0}%)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Avg. response time</div>
-                        <div class="stat-value">${data.avg_response_hours || '< 24'}h</div>
-                        <div class="stat-sub">Report to action</div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-header">
-                        <h3>Actions by type</h3>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Action type</th>
-                                <th style="width: 200px;"></th>
-                                <th style="text-align: right;">Count</th>
-                                <th style="text-align: right;">% of total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${Object.entries(actionsByType).sort((a, b) => b[1] - a[1]).map(([type, count]) => `
-                                <tr>
-                                    <td>${ACTION_LABELS[type] || type}</td>
-                                    <td>
-                                        <div class="bar-container">
-                                            <div class="bar" style="width: ${(count / maxActionCount * 100)}%"></div>
-                                        </div>
-                                    </td>
-                                    <td class="number">${count.toLocaleString()}</td>
-                                    <td class="percent">${totalActions ? (count / totalActions * 100).toFixed(1) : 0}%</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="section">
-                    <div class="section-header">
-                        <h3>Actions by reason code</h3>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Reason code</th>
-                                <th style="width: 200px;"></th>
-                                <th style="text-align: right;">Count</th>
-                                <th style="text-align: right;">% of total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${Object.entries(actionsByReason).sort((a, b) => b[1] - a[1]).map(([reason, count]) => `
-                                <tr>
-                                    <td>${REASON_LABELS[reason] || reason}</td>
-                                    <td>
-                                        <div class="bar-container">
-                                            <div class="bar" style="width: ${(count / maxReasonCount * 100)}%"></div>
-                                        </div>
-                                    </td>
-                                    <td class="number">${count.toLocaleString()}</td>
-                                    <td class="percent">${totalActions ? (count / totalActions * 100).toFixed(1) : 0}%</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="section">
-                    <div class="section-header">
-                        <h3>Content removed by type</h3>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Content type</th>
-                                <th style="text-align: right;">Count</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${Object.entries(contentRemoved).length > 0
-                                ? Object.entries(contentRemoved).map(([type, count]) => `
-                                    <tr>
-                                        <td>${type.charAt(0).toUpperCase() + type.slice(1)}s</td>
-                                        <td class="number">${count.toLocaleString()}</td>
-                                    </tr>
-                                `).join('')
-                                : '<tr><td colspan="2" style="text-align: center; color: var(--ink-50);">No content removed in this period</td></tr>'
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="section">
-                    <div class="section-header">
-                        <h3>Appeals overview</h3>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Metric</th>
-                                <th style="text-align: right;">Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Appeals submitted</td>
-                                <td class="number">${totalAppeals.toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>Appeals approved</td>
-                                <td class="number">${appealsApproved.toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>Appeals denied</td>
-                                <td class="number">${(data.appeals_denied || 0).toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>Appeals pending</td>
-                                <td class="number">${(data.appeals_pending || 0).toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>Approval rate</td>
-                                <td class="number">${totalAppeals ? Math.round(appealsApproved / totalAppeals * 100) : 0}%</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            `;
+        function percent(count, total) {
+            return total ? (count / total * 100).toFixed(1) : '0';
         }
 
-        function exportCSV() {
-            if (!reportData) return;
+        // One breakdown table: label, a bar scaled to the largest row, count and share.
+        function breakdownPanel(title, columnLabel, counts, labels, total) {
+            const entries = Object.entries(counts)
+                .map(([key, count]) => [key, Number(count) || 0])
+                .sort((a, b) => b[1] - a[1]);
+            const max = Math.max(...entries.map(([, count]) => count), 1);
+            const body = entries.length ? `
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>${esc(columnLabel)}</th>
+                                <th class="meter-cell"><span class="sr-only">Relative size</span></th>
+                                <th class="num">Count</th>
+                                <th class="num">% of total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${entries.map(([key, count]) => `
+                                <tr>
+                                    <td>${esc(labels[key] || key)}</td>
+                                    <td class="meter-cell"><div class="meter" aria-hidden="true"><span style="width:${Math.round(count / max * 100)}%"></span></div></td>
+                                    <td class="num">${esc(ui.number(count))}</td>
+                                    <td class="num muted">${esc(percent(count, total))}%</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>` : '<p class="muted">Nothing recorded in this period.</p>';
+            return `
+                <section class="panel">
+                    <div class="panel-head"><h2>${esc(title)}</h2></div>
+                    ${body}
+                </section>`;
+        }
 
-            const fromDate = document.getElementById('date-from').value;
-            const toDate = document.getElementById('date-to').value;
+        function contentRemovedPanel(contentRemoved) {
+            const entries = Object.entries(contentRemoved);
+            const body = entries.length ? `
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Content type</th><th class="num">Count</th></tr>
+                        </thead>
+                        <tbody>
+                            ${entries.map(([type, count]) => `
+                                <tr>
+                                    <td>${esc(type.charAt(0).toUpperCase() + type.slice(1))}s</td>
+                                    <td class="num">${esc(ui.number(Number(count) || 0))}</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>` : '<p class="muted">No content removed in this period.</p>';
+            return `
+                <section class="panel">
+                    <div class="panel-head"><h2>Content removed by type</h2></div>
+                    ${body}
+                </section>`;
+        }
+
+        function appealsPanel(r) {
+            const rate = r.totalAppeals ? Math.round(r.appealsApproved / r.totalAppeals * 100) : 0;
+            const rows = [
+                ['Appeals submitted', ui.number(r.totalAppeals)],
+                ['Appeals approved', ui.number(r.appealsApproved)],
+                ['Appeals denied', ui.number(r.appealsDenied)],
+                ['Appeals pending', ui.number(r.appealsPending)],
+                ['Approval rate', `${rate}%`],
+            ];
+            return `
+                <section class="panel">
+                    <div class="panel-head"><h2>Appeals overview</h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr><th>Metric</th><th class="num">Value</th></tr>
+                            </thead>
+                            <tbody>
+                                ${rows.map(([metric, value]) => `
+                                    <tr><td>${esc(metric)}</td><td class="num">${esc(value)}</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>`;
+        }
+
+        function renderReport(r) {
+            const rate = r.totalAppeals ? Math.round(r.appealsApproved / r.totalAppeals * 100) : 0;
+            const missing = '<div class="sub">Not provided by the API</div>';
+
+            content.innerHTML = `
+                <div class="stats">
+                    <div class="stat">
+                        <div class="label">Total moderation actions</div>
+                        <div class="value">${esc(ui.number(r.totalActions))}</div>
+                    </div>
+                    <div class="stat">
+                        <div class="label">Reports received</div>
+                        <div class="value">${esc(ui.number(r.totalReports))}</div>
+                        ${r.totalReports === null ? missing : ''}
+                    </div>
+                    <div class="stat">
+                        <div class="label">Appeals submitted</div>
+                        <div class="value">${esc(ui.number(r.totalAppeals))}</div>
+                        <div class="sub">${esc(ui.number(r.appealsApproved))} approved (${rate}%)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="label">Average response time</div>
+                        <div class="value">${r.avgResponseHours === null ? '–' : `${esc(r.avgResponseHours)}h`}</div>
+                        ${r.avgResponseHours === null ? missing : '<div class="sub">Report to action</div>'}
+                    </div>
+                </div>
+
+                ${breakdownPanel('Actions by type', 'Action type', r.actionsByType, ACTION_LABELS, r.totalActions)}
+                ${breakdownPanel('Actions by reason code', 'Reason code', r.actionsByReason, REASON_LABELS, r.totalActions)}
+
+                <div class="grid-2">
+                    ${contentRemovedPanel(r.contentRemoved)}
+                    ${appealsPanel(r)}
+                </div>`;
+        }
+
+        // ---- Export ----
+
+        function exportCSV() {
+            if (!reportData || !report) return;
+            const { from, to } = reportPeriod;
+            const blank = (value) => (value === null ? '' : value);
 
             let csv = 'DSCO Transparency Report\n';
-            csv += `Period: ${fromDate} to ${toDate}\n`;
+            csv += `Period: ${from} to ${to}\n`;
             csv += `Generated: ${new Date().toISOString()}\n\n`;
 
             csv += 'Summary Statistics\n';
-            csv += `Total Moderation Actions,${reportData.total_actions || 0}\n`;
-            csv += `Total Reports Received,${reportData.total_reports || 0}\n`;
-            csv += `Total Appeals Submitted,${reportData.total_appeals || 0}\n`;
-            csv += `Appeals Approved,${reportData.appeals_approved || 0}\n`;
-            csv += `Appeals Denied,${reportData.appeals_denied || 0}\n\n`;
+            csv += `Total Moderation Actions,${report.totalActions}\n`;
+            csv += `Total Reports Received,${blank(report.totalReports)}\n`;
+            csv += `Total Appeals Submitted,${report.totalAppeals}\n`;
+            csv += `Appeals Approved,${report.appealsApproved}\n`;
+            csv += `Appeals Denied,${report.appealsDenied}\n\n`;
 
             csv += 'Actions by Type\n';
             csv += 'Action Type,Count\n';
-            for (const [type, count] of Object.entries(reportData.actions_by_type || {})) {
+            for (const [type, count] of Object.entries(report.actionsByType)) {
                 csv += `${ACTION_LABELS[type] || type},${count}\n`;
             }
             csv += '\n';
 
             csv += 'Actions by Reason Code\n';
             csv += 'Reason Code,Count\n';
-            for (const [reason, count] of Object.entries(reportData.actions_by_reason || {})) {
+            for (const [reason, count] of Object.entries(report.actionsByReason)) {
                 csv += `${REASON_LABELS[reason] || reason},${count}\n`;
             }
             csv += '\n';
 
             csv += 'Content Removed by Type\n';
             csv += 'Content Type,Count\n';
-            for (const [type, count] of Object.entries(reportData.content_removed || {})) {
+            for (const [type, count] of Object.entries(report.contentRemoved)) {
                 csv += `${type},${count}\n`;
             }
 
-            downloadFile(csv, `dsco-transparency-${fromDate}-${toDate}.csv`, 'text/csv');
+            downloadFile(csv, `dsco-transparency-${from}-${to}.csv`, 'text/csv');
         }
 
         function exportJSON() {
             if (!reportData) return;
-
-            const fromDate = document.getElementById('date-from').value;
-            const toDate = document.getElementById('date-to').value;
+            const { from, to } = reportPeriod;
 
             const exportData = {
                 report_period: {
-                    start_date: fromDate,
-                    end_date: toDate
+                    start_date: from,
+                    end_date: to,
                 },
                 generated_at: new Date().toISOString(),
                 platform: 'DSCO',
-                ...reportData
+                ...reportData,
             };
 
             downloadFile(
                 JSON.stringify(exportData, null, 2),
-                `dsco-transparency-${fromDate}-${toDate}.json`,
+                `dsco-transparency-${from}-${to}.json`,
                 'application/json'
             );
         }
 
-        function downloadFile(content, filename, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
+        // The file lands in the browser's downloads, off the page, so say so.
+        function downloadFile(body, filename, mimeType) {
+            const blob = new Blob([body], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -638,21 +460,20 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            ui.notice(`Exported ${filename}`, { tone: 'good' });
         }
 
-        function printReport() {
-            window.print();
-        }
+        // ---- Wiring ----
 
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
+        document.getElementById('ranges').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-range]');
+            if (btn) setRange(btn.dataset.range);
+        });
 
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
+        // Typing your own dates leaves no quick range selected.
+        [fromInput, toInput].forEach(input => input.addEventListener('change', () => pressRange(null)));
+
+        document.getElementById('generate').addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadData({ quiet: true })));
 
         AdminShell.init({
             active: 'transparency.html',
@@ -661,8 +482,16 @@
                 labelQuarterButtons();
                 setDefaultRange();
                 loadData();
-            }
+            },
         });
+
+        document.getElementById('page-actions').innerHTML = `
+            <button type="button" class="btn" id="export-csv" disabled>${ui.icon('download')}Export CSV</button>
+            <button type="button" class="btn" id="export-json" disabled>${ui.icon('download')}Export JSON</button>
+            <button type="button" class="btn" id="export-print" disabled>${ui.icon('file')}Print report</button>`;
+        document.getElementById('export-csv').addEventListener('click', exportCSV);
+        document.getElementById('export-json').addEventListener('click', exportJSON);
+        document.getElementById('export-print').addEventListener('click', () => window.print());
     </script>
 </body>
 </html>

@@ -3,589 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appeals — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Appeals · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(180deg, var(--panel-2), var(--panel));
-            padding: 20px;
-            border-radius: var(--radius);
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.15s;
-            border: 1px solid var(--line);
-            box-shadow: var(--shadow);
-        }
-
-        .stat-card:hover {
-            border-color: var(--line-strong);
-        }
-
-        .stat-card.active {
-            border-color: rgba(255, 255, 255, 0.35);
-        }
-
-        .stat-card .number {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            color: var(--info);
-        }
-
-        .stat-card .label {
-            color: var(--ink-50);
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-top: 6px;
-        }
-
-        .stat-card.pending .number { color: var(--warn); }
-        .stat-card.approved .number { color: var(--good); }
-        .stat-card.denied .number { color: var(--bad); }
-
-        .appeals-list {
+        /* Page-specific: the decision line on a decided appeal. */
+        .outcome {
             display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .appeal-card {
-            background: linear-gradient(180deg, var(--panel-2), var(--panel));
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 20px;
-            border-left: 4px solid var(--warn);
-        }
-
-        .appeal-card.approved {
-            border-left-color: var(--good);
-            opacity: 0.8;
-        }
-
-        .appeal-card.denied {
-            border-left-color: var(--bad);
-            opacity: 0.8;
-        }
-
-        .appeal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-
-        .appeal-user {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .appeal-user .username {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .appeal-user .user-id {
-            font-size: 0.8rem;
-            color: var(--ink-35);
-            font-family: monospace;
-        }
-
-        .appeal-time {
-            font-size: 0.85rem;
-            color: var(--ink-35);
-        }
-
-        .appeal-status {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: var(--pill);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .appeal-status.pending { background: var(--warn-bg); color: var(--warn); }
-        .appeal-status.approved { background: var(--good-bg); color: var(--good); }
-        .appeal-status.denied { background: var(--bad-bg); color: var(--bad); }
-
-        .appeal-section {
-            margin-bottom: 16px;
-        }
-
-        .appeal-section-title {
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--ink-35);
-            margin-bottom: 8px;
-        }
-
-        .appeal-section-content {
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--line);
-            padding: 14px;
-            border-radius: var(--radius-sm);
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-
-        .original-action {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-        }
-
-        .original-action-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .original-action-item label {
-            font-size: 0.7rem;
-            color: var(--ink-35);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .original-action-item span {
-            font-size: 0.9rem;
-        }
-
-        .appeal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--line);
-        }
-
-        .appeal-actions button,
-        .modal-actions .btn-confirm {
-            padding: 10px 20px;
-            border: none;
-            border-radius: var(--pill);
-            font-family: var(--body);
-            font-size: 0.88rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: opacity 0.15s, transform 0.12s;
-        }
-
-        .appeal-actions button:active { transform: scale(0.98); }
-
-        .btn-approve, .btn-confirm.approved {
-            background: var(--good);
-            color: #0a0a0c;
-        }
-
-        .btn-approve:hover, .btn-confirm.approved:hover { opacity: 0.88; }
-
-        .btn-deny, .btn-confirm.denied {
-            background: var(--bad);
-            color: #0a0a0c;
-        }
-
-        .btn-deny:hover, .btn-confirm.denied:hover { opacity: 0.88; }
-
-        .appeal-decision {
-            margin-top: 16px;
-            padding: 12px 14px;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--line);
-            border-radius: var(--radius-sm);
-        }
-
-        .appeal-decision .decided-by {
-            font-size: 0.8rem;
-            color: var(--ink-35);
-        }
-
-        .appeal-decision .decision-reason {
-            margin-top: 8px;
-            font-size: 0.9rem;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 20px;
-        }
-
-        .pagination button {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-            border-radius: var(--pill);
-            font-family: var(--body);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .pagination button:hover:not(:disabled) {
-            background: var(--accent-dim);
-        }
-
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--ink-35);
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-        }
-
-        .decision-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
             align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            color: var(--text-2);
+            font-size: 13px;
         }
-
-        .decision-modal.active {
-            display: flex;
-        }
-
-        .decision-modal-content {
-            background: linear-gradient(180deg, var(--panel-2), var(--panel));
-            border: 1px solid var(--line-strong);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        .decision-modal h3 {
-            margin-bottom: 16px;
-        }
-
-        .decision-modal textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid var(--line-strong);
-            border-radius: var(--radius-sm);
-            background: rgba(0, 0, 0, 0.35);
-            color: var(--ink);
-            font-size: 0.9rem;
-            min-height: 100px;
-            resize: vertical;
-            margin-bottom: 16px;
-            font-family: var(--body);
-            outline: none;
-            transition: border-color 0.15s;
-        }
-
-        .decision-modal textarea:focus {
-            border-color: rgba(255, 255, 255, 0.35);
-        }
-
-        .decision-modal .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .decision-modal .btn-cancel {
-            padding: 10px 20px;
-            background: transparent;
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-            border-radius: var(--pill);
-            font-family: var(--body);
-            font-size: 0.88rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .decision-modal .btn-cancel:hover { background: var(--accent-dim); }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error-message"></div>
-
-        <div class="stats">
-            <div class="stat-card pending" onclick="filterStatus('pending')">
-                <div class="number" id="pending-count">-</div>
-                <div class="label">Pending</div>
-            </div>
-            <div class="stat-card approved" onclick="filterStatus('approved')">
-                <div class="number" id="approved-count">-</div>
-                <div class="label">Approved</div>
-            </div>
-            <div class="stat-card denied" onclick="filterStatus('denied')">
-                <div class="number" id="denied-count">-</div>
-                <div class="label">Denied</div>
+        <div class="toolbar">
+            <div class="seg" role="group" aria-label="Filter appeals" id="filters">
+                <button type="button" data-filter="pending" aria-pressed="true">Pending <span class="count" data-count-for="pending"></span></button>
+                <button type="button" data-filter="approved" aria-pressed="false">Approved <span class="count" data-count-for="approved"></span></button>
+                <button type="button" data-filter="denied" aria-pressed="false">Denied <span class="count" data-count-for="denied"></span></button>
             </div>
         </div>
 
-        <div class="appeals-list" id="appeals-container">
-            <div class="loading">Loading appeals...</div>
-        </div>
-
-        <div class="pagination" id="pagination"></div>
-    </div>
-
-    <!-- Decision Modal -->
-    <div class="decision-modal" id="decision-modal">
-        <div class="decision-modal-content">
-            <h3 id="modal-title">Decision</h3>
-            <p id="modal-description" style="margin-bottom: 16px; color: rgba(255, 255, 255, 0.5);"></p>
-            <textarea id="decision-reason" placeholder="Add a note for the user (optional)"></textarea>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeDecisionModal()">Cancel</button>
-                <button class="btn-confirm" id="modal-confirm-btn" onclick="confirmDecision()">Confirm</button>
-            </div>
-        </div>
+        <div id="appeals" class="item-list"></div>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
         let allAppeals = [];
         let currentFilter = 'pending';
-        let pendingDecision = null;
 
         const REASON_LABELS = {
-            'HARASSMENT': 'Harassment',
-            'HATE_SPEECH': 'Hate Speech',
-            'SEXUAL_CONTENT': 'Sexual Content',
-            'MINOR_SAFETY': 'Minor Safety',
-            'SPAM': 'Spam',
-            'IMPERSONATION': 'Impersonation',
-            'SELF_HARM': 'Self-Harm',
-            'VIOLENCE': 'Violence',
-            'ILLEGAL_CONTENT': 'Illegal Content',
-            'PRIVACY_VIOLATION': 'Privacy Violation',
-            'OTHER': 'Other'
+            HARASSMENT: 'Harassment',
+            HATE_SPEECH: 'Hate speech',
+            SEXUAL_CONTENT: 'Sexual content',
+            MINOR_SAFETY: 'Minor safety',
+            SPAM: 'Spam',
+            IMPERSONATION: 'Impersonation',
+            SELF_HARM: 'Self-harm',
+            VIOLENCE: 'Violence',
+            ILLEGAL_CONTENT: 'Illegal content',
+            PRIVACY_VIOLATION: 'Privacy violation',
+            OTHER: 'Other',
         };
 
-        async function loadAppeals() {
-            const container = document.getElementById('appeals-container');
-            container.innerHTML = '<div class="loading">Loading appeals...</div>';
-            hideError();
+        // The action being appealed: label, badge tone and the card's headline.
+        const ACTIONS = {
+            warned: { label: 'Warned', tone: 'warn', title: 'Appeal against a warning' },
+            suspended: { label: 'Suspended', tone: 'orange', title: 'Appeal against a suspension' },
+            banned: { label: 'Banned', tone: 'bad', title: 'Appeal against a ban' },
+            content_removed: { label: 'Content removed', tone: 'purple', title: 'Appeal against a content removal' },
+        };
 
+        const STATUSES = {
+            pending: { label: 'Pending', tone: 'warn' },
+            approved: { label: 'Approved', tone: 'good' },
+            denied: { label: 'Denied', tone: 'bad' },
+        };
+
+        // Confirm copy per decision: titles are questions, buttons keep the verb.
+        // Neither is destructive: approving reverses a sanction, denying leaves it as is.
+        const DECISIONS = {
+            approved: {
+                title: 'Approve this appeal?',
+                body: "Reverses the original moderation action and restores the person's account.",
+                confirmLabel: 'Approve',
+                verb: 'approve',
+            },
+            denied: {
+                title: 'Deny this appeal?',
+                body: 'The original moderation action stays in effect.',
+                confirmLabel: 'Deny',
+                verb: 'deny',
+            },
+        };
+
+        const list = document.getElementById('appeals');
+
+        // ---- Loading ----
+
+        // A refresh keeps the current list on screen (the button shows the wait).
+        async function loadAppeals({ quiet = false } = {}) {
+            if (!quiet || !allAppeals.length) ui.loading(list, 'Loading appeals…');
             try {
-                // Preserve original list body (empty — client-side status filter)
-                const data = await AdminShell.api('realtime', '/admin/appeals/list', {});
-                allAppeals = data.appeals || [];
-                updateStats();
-                renderAppeals();
+                // The backend lists one status per call (pending by default),
+                // so fetch all three and filter client-side.
+                const pages = await Promise.all(['pending', 'approved', 'denied'].map(status =>
+                    AdminShell.api('realtime', '/admin/appeals/list', { status })));
+                allAppeals = pages.flatMap(data => data.appeals || []);
+                updateCounts();
+                render();
             } catch (error) {
-                console.error('Error loading appeals:', error);
-                showError(error.message || 'Failed to load appeals.');
-                container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Failed to load appeals</p></div>';
+                ui.error(list, { title: "Couldn't load appeals", error, onRetry: loadAppeals });
             }
         }
 
-        function updateStats() {
-            const pending = allAppeals.filter(a => a.status === 'pending').length;
-            const approved = allAppeals.filter(a => a.status === 'approved').length;
-            const denied = allAppeals.filter(a => a.status === 'denied').length;
-
-            document.getElementById('pending-count').textContent = pending;
-            document.getElementById('approved-count').textContent = approved;
-            document.getElementById('denied-count').textContent = denied;
-
-            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active'));
-            document.querySelector(`.stat-card.${currentFilter}`)?.classList.add('active');
+        function filtered() {
+            return allAppeals.filter(a => a.status === currentFilter);
         }
 
-        function filterStatus(status) {
-            currentFilter = status;
-            updateStats();
-            renderAppeals();
+        function updateCounts() {
+            const counts = { pending: 0, approved: 0, denied: 0 };
+            allAppeals.forEach(a => { if (Object.hasOwn(counts, a.status)) counts[a.status] += 1; });
+            document.querySelectorAll('[data-count-for]').forEach(el => {
+                el.textContent = String(counts[el.dataset.countFor]);
+            });
+            AdminShell.setCount('appeals', counts.pending);
         }
 
-        function renderAppeals() {
-            const container = document.getElementById('appeals-container');
-            const filtered = allAppeals.filter(a => a.status === currentFilter);
+        // ---- Rendering ----
 
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="empty">
-                        <div class="empty-icon">📋</div>
-                        <p>No ${currentFilter} appeals</p>
-                    </div>
-                `;
+        function render() {
+            const items = filtered();
+            if (!items.length) {
+                const copy = {
+                    pending: { title: 'No appeals waiting', body: 'New appeals appear here when someone contests a moderation action.' },
+                    approved: { title: 'No approved appeals', body: 'Appeals you approve move here.' },
+                    denied: { title: 'No denied appeals', body: 'Appeals you deny move here.' },
+                }[currentFilter];
+                ui.empty(list, { ...copy, icon: 'scale' });
                 return;
             }
-
-            container.innerHTML = filtered.map(appeal => `
-                <div class="appeal-card ${appeal.status}" id="appeal-${appeal.appeal_id}">
-                    <div class="appeal-header">
-                        <div class="appeal-user">
-                            <span class="username">User appeal</span>
-                            <span class="user-id">${appeal.user_id}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="appeal-status ${appeal.status}">${appeal.status}</span>
-                            <span class="appeal-time">${formatTime(appeal.created_at)}</span>
-                        </div>
-                    </div>
-
-                    <div class="appeal-section">
-                        <div class="appeal-section-title">Original Action</div>
-                        <div class="appeal-section-content">
-                            <div class="original-action">
-                                <div class="original-action-item">
-                                    <label>Action Type</label>
-                                    <span>${appeal.action_type || 'Unknown'}</span>
-                                </div>
-                                <div class="original-action-item">
-                                    <label>Reason Code</label>
-                                    <span>${REASON_LABELS[appeal.original_reason_code] || appeal.original_reason_code || '-'}</span>
-                                </div>
-                            </div>
-                            ${appeal.original_reason_text ? `<p style="margin-top: 10px; color: rgba(255, 255, 255, 0.5);">${escapeHtml(appeal.original_reason_text)}</p>` : ''}
-                        </div>
-                    </div>
-
-                    <div class="appeal-section">
-                        <div class="appeal-section-title">User's Appeal Statement</div>
-                        <div class="appeal-section-content">
-                            ${escapeHtml(appeal.reason || appeal.statement || 'No statement provided')}
-                        </div>
-                    </div>
-
-                    ${appeal.status === 'pending' ? `
-                        <div class="appeal-actions">
-                            <button class="btn-approve" onclick="showDecisionModal('${appeal.appeal_id}', 'approved')">Approve appeal</button>
-                            <button class="btn-deny" onclick="showDecisionModal('${appeal.appeal_id}', 'denied')">Deny appeal</button>
-                        </div>
-                    ` : `
-                        <div class="appeal-decision">
-                            <div class="decided-by">
-                                Decided ${formatTime(appeal.decided_at)} by ${appeal.decided_by || 'admin'}
-                            </div>
-                            ${appeal.decision_reason ? `<div class="decision-reason">${escapeHtml(appeal.decision_reason)}</div>` : ''}
-                        </div>
-                    `}
-                </div>
-            `).join('');
+            // Every appeal field is untrusted (the statement is user-typed), so
+            // all of it goes through esc(); actions read data attributes.
+            list.innerHTML = items.map(renderAppeal).join('');
         }
 
-        function showDecisionModal(appealId, decision) {
-            pendingDecision = { appealId, decision };
-
-            const modal = document.getElementById('decision-modal');
-            const title = document.getElementById('modal-title');
-            const desc = document.getElementById('modal-description');
-            const btn = document.getElementById('modal-confirm-btn');
-
-            btn.classList.remove('approved', 'denied');
-            if (decision === 'approved') {
-                title.textContent = 'Approve appeal';
-                desc.textContent = 'This will reverse the original moderation action and restore the user\'s account.';
-                btn.textContent = 'Approve';
-                btn.classList.add('approved');
-            } else {
-                title.textContent = 'Deny appeal';
-                desc.textContent = 'The original moderation action will remain in effect.';
-                btn.textContent = 'Deny';
-                btn.classList.add('denied');
-            }
-
-            document.getElementById('decision-reason').value = '';
-            modal.classList.add('active');
+        function shortId(id) {
+            return String(id || '').slice(0, 8);
         }
 
-        function closeDecisionModal() {
-            document.getElementById('decision-modal').classList.remove('active');
-            pendingDecision = null;
+        function renderAppeal(appeal) {
+            const pending = appeal.status === 'pending';
+            const action = ACTIONS[appeal.action_type] || { label: appeal.action_type || 'Unknown', tone: '', title: 'Appeal' };
+            const status = STATUSES[appeal.status] || { label: appeal.status || 'Unknown', tone: '' };
+            const reasonCode = REASON_LABELS[appeal.original_reason_code] || appeal.original_reason_code || '–';
+            const statement = appeal.reason || appeal.statement;
+            return `
+                <article class="item${pending ? '' : ' done'}" data-appeal-id="${esc(appeal.appeal_id)}">
+                    <div class="item-head">
+                        <div class="item-title">
+                            ${esc(action.title)}
+                            <span class="badge ${status.tone}">${esc(status.label)}</span>
+                        </div>
+                        <span class="item-time">${ui.timeTag(appeal.created_at)}</span>
+                    </div>
+
+                    <dl class="kv">
+                        <dt>Person</dt>
+                        <dd>${personLink(appeal.user_id)}</dd>
+                        <dt>Original action</dt>
+                        <dd><span class="badge ${action.tone}">${esc(action.label)}</span></dd>
+                        <dt>Reason code</dt>
+                        <dd>${esc(reasonCode)}</dd>
+                        ${appeal.original_reason_text ? `
+                            <dt>Reason detail</dt>
+                            <dd>${esc(appeal.original_reason_text)}</dd>` : ''}
+                    </dl>
+
+                    <div style="margin-top:14px">
+                        <div class="label-sm">Appeal statement</div>
+                        ${statement
+                            ? `<div class="quote">${esc(statement)}</div>`
+                            : '<div class="faint">No statement provided</div>'}
+                    </div>
+
+                    <div class="item-actions">
+                        ${pending ? `
+                            <button type="button" class="btn" data-decision="approved">Approve</button>
+                            <button type="button" class="btn" data-decision="denied">Deny</button>
+                        ` : renderOutcome(appeal)}
+                    </div>
+                </article>`;
         }
 
-        async function confirmDecision() {
-            if (!pendingDecision) return;
+        function personLink(id) {
+            if (!id) return '<span class="faint">Unknown</span>';
+            const href = `users.html?id=${encodeURIComponent(id)}&env=${encodeURIComponent(AdminShell.env)}`;
+            return `<a class="mono" href="${esc(href)}" title="${esc(id)}">${esc(shortId(id))}</a>`;
+        }
 
-            const { appealId, decision } = pendingDecision;
-            const reason = document.getElementById('decision-reason').value.trim();
-            const btn = document.getElementById('modal-confirm-btn');
+        function renderOutcome(appeal) {
+            // The backend stores the decision note as admin_notes.
+            const note = appeal.decision_reason || appeal.admin_notes;
+            const by = appeal.decided_by
+                ? `<span class="mono" title="${esc(appeal.decided_by)}">${esc(shortId(appeal.decided_by))}</span>`
+                : 'admin';
+            return `
+                <div style="flex:1">
+                    <div class="outcome">
+                        <span>Decided by ${by}</span>
+                        ${appeal.decided_at ? `<span>${ui.timeTag(appeal.decided_at)}</span>` : ''}
+                    </div>
+                    ${note ? `<div class="quote" style="margin-top:8px">${esc(note)}</div>` : ''}
+                </div>`;
+        }
 
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
+        // ---- Actions ----
 
+        async function decide(card, decision, button) {
+            const spec = DECISIONS[decision];
+            if (!spec) return;
+            const values = await ui.confirm({
+                title: spec.title,
+                body: esc(spec.body),
+                confirmLabel: spec.confirmLabel,
+                fields: [
+                    { name: 'reason', label: 'Note', type: 'textarea', placeholder: 'Optional, saved with the decision' },
+                ],
+            });
+            if (!values) return;
             try {
-                // Preserve original decide body fields: appeal_id, decision, decision_reason
-                await AdminShell.api('realtime', '/admin/appeals/decide', {
-                    appeal_id: appealId,
-                    decision: decision,
-                    decision_reason: reason
-                });
-
-                closeDecisionModal();
-                loadAppeals();
+                // appeals/decide reads admin_notes (the old page sent
+                // decision_reason, which the backend dropped).
+                await ui.busy(button, () => AdminShell.api('realtime', '/admin/appeals/decide', {
+                    appeal_id: card.dataset.appealId,
+                    decision,
+                    admin_notes: values.reason,
+                }));
+                // The appeal leaves Pending, which is the confirmation. The
+                // reload also refreshes the sidebar badge.
+                await loadAppeals({ quiet: true });
             } catch (error) {
-                console.error('Error deciding appeal:', error);
-                showError(`Failed to process appeal: ${error.message}`);
-                btn.disabled = false;
-                btn.textContent = decision === 'approved' ? 'Approve' : 'Deny';
+                ui.notice(`Couldn't ${spec.verb} this appeal: ${error.message}`, { tone: 'bad' });
             }
         }
 
-        function formatTime(isoString) {
-            if (!isoString) return 'Unknown';
-            return new Date(isoString).toLocaleString();
-        }
+        // ---- Wiring ----
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeDecisionModal();
+        document.getElementById('filters').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-filter]');
+            if (!btn) return;
+            currentFilter = btn.dataset.filter;
+            document.querySelectorAll('#filters button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+            render();
         });
 
-        document.getElementById('decision-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'decision-modal') closeDecisionModal();
+        list.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-decision]');
+            const card = button && button.closest('[data-appeal-id]');
+            if (card) decide(card, button.dataset.decision, button);
         });
 
         AdminShell.init({ active: 'appeals.html', title: 'Appeals', onReady: loadAppeals });
+
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadAppeals({ quiet: true })));
     </script>
 </body>
 </html>

@@ -3,309 +3,496 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Overview — DSCO Admin</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Overview · DSCO admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
+    <style>
+        /* Page-specific: stat rows load into a region, so its loading and error
+           states carry the row's bottom margin. */
+        .region > .state { margin-bottom: 16px; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error"></div>
+        <div class="panel-head"><h2>Needs attention</h2></div>
+        <div class="region" id="attention"></div>
 
-        <div class="card-grid" id="user-cards">
-            <div class="card"><div class="label">Total users</div><div class="value" id="total-users">—</div><div class="sub" id="status-breakdown"></div></div>
-            <div class="card"><div class="label">Online now</div><div class="value" id="online-now">—</div></div>
-            <div class="card"><div class="label">Daily active</div><div class="value" id="dau">—</div><div class="sub" id="wau-mau"></div></div>
-            <div class="card"><div class="label">Signups (7d)</div><div class="value" id="signups-7d">—</div></div>
-            <div class="card"><div class="label">AWS month to date</div><div class="value" id="aws-mtd">—</div><div class="sub" id="aws-forecast"></div></div>
-            <div class="card"><div class="label">Crashes (7d)</div><div class="value" id="crash-count">—</div><div class="sub" id="crash-sub"></div></div>
+        <div class="panel-head"><h2>Activity</h2></div>
+        <div class="region" id="kpis"></div>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Ops health</h2>
+                <span class="hint" id="ops-hint"></span>
+            </div>
+            <div id="ops-body"></div>
+        </section>
+
+        <div class="grid-2">
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Daily active users</h2>
+                    <span class="hint">From daily snapshots. History builds as the snapshot cron runs.</span>
+                </div>
+                <div id="dau-body"></div>
+            </section>
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>Signups by day</h2>
+                    <span class="hint">Last 30 days</span>
+                </div>
+                <div id="signup-body"></div>
+            </section>
         </div>
 
-        <div class="section">
-            <h2>Ops health<span class="hint" id="ops-checked-at">DLQ · crons · geocode breaker · Partiful</span></h2>
-            <div class="card-grid" id="ops-cards" style="margin-bottom:16px">
-                <div class="card" id="ops-dlq-card">
-                    <div class="label">DLQ depth</div>
-                    <div class="value" id="ops-dlq">—</div>
-                    <div class="sub" id="ops-dlq-sub">Loading…</div>
-                </div>
-                <div class="card" id="ops-geocode-card">
-                    <div class="label">Geocode breaker</div>
-                    <div class="value" id="ops-geocode">—</div>
-                    <div class="sub" id="ops-geocode-sub">Loading…</div>
-                </div>
-                <div class="card" id="ops-partiful-card">
-                    <div class="label">Partiful last scrape</div>
-                    <div class="value" id="ops-partiful" style="font-size:1.1rem">—</div>
-                    <div class="sub" id="ops-partiful-sub">Loading…</div>
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Levers</h2>
+                <span class="hint" id="levers-hint"></span>
+                <div class="panel-actions">
+                    <a class="btn sm" data-page="levers.html">Open levers</a>
                 </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Cron</th>
-                        <th class="num">Invocations (24h)</th>
-                        <th class="num">Errors (24h)</th>
-                        <th>Last bucket</th>
-                    </tr>
-                </thead>
-                <tbody id="ops-cron-rows">
-                    <tr><td colspan="4" class="muted">Loading…</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="section">
-            <h2>Daily active users<span class="hint">from daily snapshots — history builds up once the snapshot cron has run</span></h2>
-            <div class="bar-chart" id="dau-chart"><div class="loading">Loading…</div></div>
-        </div>
-
-        <div class="section">
-            <h2>Signups by day<span class="hint">last 30 days</span></h2>
-            <div class="bar-chart" id="signup-chart"><div class="loading">Loading…</div></div>
-        </div>
-
-        <div class="section">
-            <h2>Levers<span class="hint">change on the Levers page</span></h2>
-            <table>
-                <thead><tr><th>Lever</th><th>Value</th><th>Last changed</th></tr></thead>
-                <tbody id="lever-rows"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
-            </table>
-        </div>
+            <div id="levers-body"></div>
+        </section>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
-        function showError(message) {
-            const el = document.getElementById('error');
-            // Append — overview fires 4 loaders in parallel; last write used to hide the rest.
-            const line = document.createElement('div');
-            line.textContent = message;
-            el.appendChild(line);
-            el.style.display = 'block';
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
+        const els = {
+            attention: document.getElementById('attention'),
+            kpis: document.getElementById('kpis'),
+            ops: document.getElementById('ops-body'),
+            opsHint: document.getElementById('ops-hint'),
+            dau: document.getElementById('dau-body'),
+            signups: document.getElementById('signup-body'),
+            levers: document.getElementById('levers-body'),
+            leversHint: document.getElementById('levers-hint'),
+        };
+
+        const OPS_HINT = 'DLQ, crons, geocode breaker, Partiful and SES';
+
+        // ---- Helpers ----
+
+        const pageHref = (page) => `${page}?env=${encodeURIComponent(AdminShell.env)}`;
+
+        // Count or amount for display; anything non-numeric reads as a dash.
+        const num = (n) => (n == null || n === '' ? '–' : ui.number(Number(n)));
+
+        function money(amount) {
+            if (amount == null || amount === '' || !Number.isFinite(Number(amount))) return '–';
+            return Number(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
         }
 
-        function fmtMoney(amount) {
-            return amount == null ? '—' : '$' + Number(amount).toFixed(2);
-        }
-
-        function renderBarChart(elementId, points, labelFn) {
-            const el = document.getElementById(elementId);
-            if (!points.length) {
-                el.innerHTML = '<div class="loading">No data yet</div>';
-                return;
+        // Settle a request into { ok, value | error } so one failure never hides the rest.
+        async function attempt(promise) {
+            try {
+                return { ok: true, value: await promise };
+            } catch (error) {
+                return { ok: false, error };
             }
-            const max = Math.max(...points.map(p => p.value), 1);
-            el.innerHTML = points.map(p =>
-                `<div class="bar" style="height:${Math.max(2, (p.value / max) * 100)}%">` +
-                `<div class="tip">${labelFn(p)}</div></div>`
-            ).join('');
+        }
+
+        // `value` is plain text; `sub` is HTML, so escape anything from the server.
+        function stat({ label, value, sub = '', tone = '', href = '', title = '' }) {
+            const body = `
+                <div class="label">${esc(label)}</div>
+                <div class="value${tone ? ` ${tone}` : ''}"${title ? ` title="${esc(title)}"` : ''}>${esc(value)}</div>
+                ${sub ? `<div class="sub">${sub}</div>` : ''}`;
+            return href
+                ? `<a class="stat" href="${esc(href)}">${body}</a>`
+                : `<div class="stat">${body}</div>`;
+        }
+
+        const statsRow = (cards) => `<div class="stats">${cards.join('')}</div>`;
+        const failedStat = (label) => stat({ label, value: '–', sub: "Couldn't load" });
+
+        // A quiet refresh keeps what is on screen; only the first load shows a spinner.
+        function begin(el, label, quiet) {
+            if (!quiet || !el.dataset.ready) ui.loading(el, label);
+        }
+
+        function fillRegion(el, html) {
+            el.dataset.ready = '1';
+            el.innerHTML = html;
+        }
+
+        function failRegion(el, options) {
+            delete el.dataset.ready;
+            ui.error(el, options);
         }
 
         function lastNDays(n) {
             const days = [];
             for (let i = n - 1; i >= 0; i--) {
-                const d = new Date(Date.now() - i * 86400000);
-                days.push(d.toISOString().slice(0, 10));
+                days.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
             }
             return days;
         }
 
-        async function loadUsers() {
-            const data = await AdminShell.api('realtime', '/admin/metrics/users');
-            const live = data.live;
-            document.getElementById('total-users').textContent = live.total_users;
-            document.getElementById('online-now').textContent = live.online_now;
-            document.getElementById('dau').textContent = live.dau;
-            document.getElementById('wau-mau').textContent = `WAU ${live.wau} · MAU ${live.mau}`;
-
-            const statuses = Object.entries(live.account_status_counts || {})
-                .filter(([status]) => status !== 'active')
-                .map(([status, count]) => `${status}: ${count}`).join(' · ');
-            document.getElementById('status-breakdown').textContent = statuses;
-
-            const signupDays = lastNDays(30);
-            const signups = signupDays.map(day => ({ day, value: live.signups_by_day?.[day] || 0 }));
-            document.getElementById('signups-7d').textContent =
-                signups.slice(-7).reduce((sum, p) => sum + p.value, 0);
-            renderBarChart('signup-chart', signups, p => `${p.day}: ${p.value}`);
-
-            const history = (data.history || []).map(item => ({ day: item.date, value: Number(item.dau || 0) }));
-            history.push({ day: 'today', value: live.dau });
-            renderBarChart('dau-chart', history, p => `${p.day}: ${p.value}`);
-        }
-
-        async function loadCosts() {
-            const data = await AdminShell.api('realtime', '/admin/metrics/costs');
-            document.getElementById('aws-mtd').textContent = fmtMoney(data.aws?.month_to_date?.total);
-            const forecast = data.aws?.forecast_month_end;
-            document.getElementById('aws-forecast').textContent =
-                forecast != null ? `forecast ${fmtMoney(forecast)} by month end` : '';
-        }
-
-        async function loadCrashes() {
-            const data = await AdminShell.api('realtime', '/admin/metrics/crashes', { days: 7 });
-            if (!data.available) {
-                document.getElementById('crash-count').textContent = '—';
-                document.getElementById('crash-sub').innerHTML =
-                    `<span class="pill warn">setup needed</span> · <a href="crashes.html" style="color:inherit">finish setup</a>`;
+        function renderBarChart(el, points, labelFn, ariaLabel) {
+            if (!points.length) {
+                delete el.dataset.ready;
+                ui.empty(el, { title: 'No data yet', body: 'Points appear here once there is something to chart.', icon: 'inbox' });
                 return;
+            }
+            const values = points.map(p => ({ ...p, value: Number(p.value) || 0 }));
+            const max = Math.max(...values.map(p => p.value), 1);
+            fillRegion(el, `<div class="bar-chart" role="img" aria-label="${esc(ariaLabel)}">${values.map(p =>
+                `<div class="bar" style="height:${Math.max(2, (p.value / max) * 100)}%"><div class="tip">${esc(labelFn(p))}</div></div>`
+            ).join('')}</div>`);
+        }
+
+        // ---- Needs attention ----
+
+        // Pending reports and appeals come from the sidebar's cached counts.
+        function readCounts() {
+            try {
+                return JSON.parse(sessionStorage.getItem('dscoAdmin.counts.' + AdminShell.env) || 'null');
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function queueStat(label, count, page, waiting) {
+            const href = pageHref(page);
+            if (typeof count !== 'number') {
+                return stat({ label, value: '–', sub: "Couldn't load. Open to check.", href });
+            }
+            return stat({
+                label,
+                value: ui.number(count),
+                tone: count > 0 ? 'warn' : '',
+                sub: count > 0 ? esc(waiting) : 'Nothing waiting',
+                href,
+            });
+        }
+
+        function crashStat(result) {
+            const label = 'Crashes (7d)';
+            const href = pageHref('crashes.html');
+            if (!result.ok) return stat({ label, value: '–', sub: "Couldn't load. Open to check.", href });
+
+            const data = result.value;
+            if (!data.available) {
+                return stat({ label, value: '–', sub: '<span class="badge warn">Setup needed</span>', href });
             }
             // v1alpha topIssues: { groups: [{ issue, metrics: [{ eventsCount }] }] }
             const issues = data.top_issues?.issues || data.top_issues?.topIssues || data.top_issues?.groups || [];
             if (!Array.isArray(issues)) {
-                document.getElementById('crash-count').textContent = '—';
-                document.getElementById('crash-sub').textContent = 'connected · unrecognized shape';
-                return;
+                return stat({ label, value: '–', sub: 'Connected, unrecognized shape', href });
             }
             const totalEvents = issues.reduce((sum, row) => {
                 const m = (row.metrics && row.metrics[0]) || {};
                 return sum + Number(m.eventsCount ?? row.eventCount ?? row.crashCount ?? 0);
             }, 0);
-            document.getElementById('crash-count').textContent = totalEvents || issues.length;
-            document.getElementById('crash-sub').textContent =
-                totalEvents
-                    ? `${issues.length} top issues · 7d`
-                    : `distinct top issues · 7d`;
+            const value = totalEvents || issues.length;
+            let sub = 'No crashes in 7 days';
+            if (value) sub = totalEvents ? `${ui.number(issues.length)} top issues` : 'Distinct top issues';
+            return stat({ label, value: ui.number(value), tone: value > 0 ? 'warn' : '', sub, href });
         }
 
-        async function loadLevers() {
-            const data = await AdminShell.api('realtime', '/admin/config/get');
-            const rows = Object.entries(data.levers || {}).map(([name, value]) =>
-                `<tr><td>${name}</td><td><span class="pill ok">${value}</span></td>` +
-                `<td class="muted">${data.updated_at ? new Date(data.updated_at).toLocaleString() : '—'}</td></tr>`
-            ).join('');
-            document.getElementById('lever-rows').innerHTML =
-                rows || '<tr><td colspan="3" class="muted">No config found</td></tr>';
+        async function loadAttention({ quiet = false } = {}) {
+            begin(els.attention, 'Checking what needs you…', quiet);
+            const [, crashes] = await Promise.all([
+                AdminShell.refreshCounts().catch(() => {}),
+                attempt(AdminShell.api('realtime', '/admin/metrics/crashes', { days: 7 })),
+            ]);
+            const counts = readCounts() || {};
+            if (!crashes.ok && typeof counts.reports !== 'number' && typeof counts.appeals !== 'number') {
+                failRegion(els.attention, {
+                    title: "Couldn't load what needs attention",
+                    error: crashes.error,
+                    onRetry: () => loadAttention(),
+                });
+                return;
+            }
+            fillRegion(els.attention, statsRow([
+                queueStat('Pending reports', counts.reports, 'reports.html', 'Waiting for review'),
+                queueStat('Pending appeals', counts.appeals, 'appeals.html', 'Waiting for a decision'),
+                crashStat(crashes),
+            ]));
         }
 
-        function fmtN(n) {
-            if (n == null || n === '') return '—';
-            return Number(n).toLocaleString();
+        // ---- Activity: KPIs and charts ----
+
+        async function loadActivity({ quiet = false } = {}) {
+            [els.kpis, els.dau, els.signups].forEach(el => begin(el, 'Loading…', quiet));
+            const [users, costs] = await Promise.all([
+                attempt(AdminShell.api('realtime', '/admin/metrics/users')),
+                attempt(AdminShell.api('realtime', '/admin/metrics/costs')),
+            ]);
+            renderActivity(users, costs);
         }
 
-        function fmtWhen(iso) {
-            if (!iso) return '—';
-            const d = new Date(iso);
-            return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+        function renderActivity(users, costs) {
+            const retry = () => loadActivity();
+
+            if (!users.ok && !costs.ok) {
+                failRegion(els.kpis, { title: "Couldn't load activity", error: users.error, onRetry: retry });
+            }
+
+            let userCards;
+            if (users.ok) {
+                const data = users.value;
+                const live = data.live || {};
+                const statuses = Object.entries(live.account_status_counts || {})
+                    .filter(([status]) => status !== 'active')
+                    .map(([status, count]) => `${esc(status)}: ${esc(count)}`).join(' · ');
+
+                const signups = lastNDays(30).map(day => ({ day, value: live.signups_by_day?.[day] || 0 }));
+                const signups7 = signups.slice(-7).reduce((sum, p) => sum + p.value, 0);
+                userCards = [
+                    stat({ label: 'Total users', value: num(live.total_users), sub: statuses }),
+                    stat({ label: 'Online now', value: num(live.online_now) }),
+                    stat({ label: 'Daily active', value: num(live.dau), sub: `WAU ${esc(num(live.wau))} · MAU ${esc(num(live.mau))}` }),
+                    stat({ label: 'Signups (7d)', value: num(signups7) }),
+                ];
+
+                const history = (data.history || []).map(item => ({ day: item.date, value: Number(item.dau || 0) }));
+                history.push({ day: 'today', value: live.dau });
+                renderBarChart(els.dau, history, p => `${p.day}: ${p.value}`, 'Daily active users');
+                renderBarChart(els.signups, signups, p => `${p.day}: ${p.value}`, 'Signups per day over the last 30 days');
+            } else {
+                userCards = ['Total users', 'Online now', 'Daily active', 'Signups (7d)'].map(failedStat);
+                failRegion(els.dau, { title: "Couldn't load daily active users", error: users.error, onRetry: retry });
+                failRegion(els.signups, { title: "Couldn't load signups", error: users.error, onRetry: retry });
+            }
+
+            if (!users.ok && !costs.ok) return;
+
+            let awsCard;
+            if (costs.ok) {
+                const forecast = costs.value.aws?.forecast_month_end;
+                awsCard = stat({
+                    label: 'AWS month to date',
+                    value: money(costs.value.aws?.month_to_date?.total),
+                    sub: forecast != null ? `Forecast ${esc(money(forecast))} by month end` : '',
+                    href: pageHref('costs.html'),
+                });
+            } else {
+                awsCard = failedStat('AWS month to date');
+            }
+            fillRegion(els.kpis, statsRow([...userCards, awsCard]));
         }
 
-        async function loadOps() {
-            const data = await AdminShell.api('realtime', '/admin/metrics/ops', {});
-            const stage = data.stage || '';
-            const checked = data.checked_at ? fmtWhen(data.checked_at) : '';
-            document.getElementById('ops-checked-at').textContent =
-                [stage && `stage ${stage}`, checked && `checked ${checked}`].filter(Boolean).join(' · ')
-                || 'DLQ · crons · geocode breaker · Partiful';
+        // ---- Ops health ----
 
-            // DLQ
+        function opsCards(data) {
+            // DLQ depth
             const dlq = data.dlq || {};
-            const dlqEl = document.getElementById('ops-dlq');
-            const dlqSub = document.getElementById('ops-dlq-sub');
-            const dlqCard = document.getElementById('ops-dlq-card');
+            let dlqCard;
             if (dlq.error) {
-                dlqEl.textContent = '—';
-                dlqSub.innerHTML = `<span class="pill warn">error</span> · ${dlq.error}`;
+                dlqCard = stat({ label: 'DLQ depth', value: '–', sub: `<span class="badge warn">Error</span> ${esc(dlq.error)}` });
             } else if (dlq.visible == null && dlq.not_visible == null) {
-                dlqEl.textContent = '—';
-                dlqSub.textContent = 'No data';
+                dlqCard = stat({ label: 'DLQ depth', value: '–', sub: 'No data' });
             } else {
                 const visible = Number(dlq.visible || 0);
-                const notVisible = Number(dlq.not_visible || 0);
-                dlqEl.textContent = `${fmtN(visible)} / ${fmtN(notVisible)}`;
-                dlqSub.textContent = (dlq.queue_name || 'async-dlq') + ' · visible / not visible';
-                if (visible > 0) {
-                    dlqSub.innerHTML =
-                        `<span class="pill warn">messages waiting</span> · ${dlq.queue_name || 'async-dlq'}`;
-                    dlqCard.style.borderColor = 'rgba(245, 197, 66, 0.45)';
-                } else {
-                    dlqCard.style.borderColor = '';
-                }
+                dlqCard = stat({
+                    label: 'DLQ depth',
+                    value: num(visible),
+                    tone: visible > 0 ? 'warn' : '',
+                    sub: `${visible > 0 ? '<span class="badge warn">Messages waiting</span> ' : ''}${esc(num(Number(dlq.not_visible || 0)))} not visible · ${esc(dlq.queue_name || 'async-dlq')}`,
+                });
             }
 
             // Geocode breaker
             const geo = data.geocode || {};
-            const geoEl = document.getElementById('ops-geocode');
-            const geoSub = document.getElementById('ops-geocode-sub');
-            const geoCard = document.getElementById('ops-geocode-card');
+            let geoCard;
             if (geo.month_total == null && geo.ceiling == null) {
-                geoEl.textContent = '—';
-                geoSub.textContent = 'No data';
+                geoCard = stat({ label: 'Geocode breaker', value: '–', sub: 'No data', href: pageHref('geocode.html') });
             } else {
-                geoEl.textContent = `${fmtN(geo.month_total)} / ${fmtN(geo.ceiling)}`;
                 const tripped = !!geo.breaker_tripped;
-                geoSub.innerHTML =
-                    (tripped
-                        ? '<span class="pill warn">tripped</span>'
-                        : '<span class="pill ok">ok</span>')
-                    + (geo.month_key ? ` · ${geo.month_key}` : ' · month total / ceiling');
-                geoCard.style.borderColor = tripped ? 'rgba(245, 197, 66, 0.45)' : '';
+                geoCard = stat({
+                    label: 'Geocode breaker',
+                    value: num(geo.month_total),
+                    tone: tripped ? 'warn' : '',
+                    sub: `of ${esc(num(geo.ceiling))} · ${tripped ? '<span class="badge warn">Tripped</span>' : '<span class="badge good">OK</span>'}${geo.month_key ? ` · ${esc(geo.month_key)}` : ''}`,
+                    href: pageHref('geocode.html'),
+                });
             }
 
             // Partiful last scrape
             const ps = data.partiful_sync;
-            const psEl = document.getElementById('ops-partiful');
-            const psSub = document.getElementById('ops-partiful-sub');
+            let psCard;
             if (!ps || ps.present === false) {
-                psEl.textContent = '—';
-                psSub.textContent = ps && ps.error ? `Error: ${ps.error}` : 'No scrape recorded yet';
+                psCard = stat({
+                    label: 'Partiful last scrape',
+                    value: '–',
+                    sub: ps && ps.error ? `Error: ${esc(ps.error)}` : 'No scrape recorded yet',
+                });
             } else {
-                psEl.textContent = fmtWhen(ps.finished_at);
-                const stats = ps.stats || {};
+                const s = ps.stats || {};
                 const bits = [
-                    stats.regions_ok != null && `regions ok ${fmtN(stats.regions_ok)}`,
-                    stats.regions_failed != null && `failed ${fmtN(stats.regions_failed)}`,
-                    stats.pins_new != null && `pins new ${fmtN(stats.pins_new)}`,
-                    stats.pins_updated != null && `updated ${fmtN(stats.pins_updated)}`,
-                    stats.events_seen != null && `events ${fmtN(stats.events_seen)}`,
-                    ps.stage && `stage ${ps.stage}`,
+                    s.regions_ok != null && `${num(s.regions_ok)} regions ok`,
+                    s.regions_failed != null && `${num(s.regions_failed)} failed`,
+                    s.pins_new != null && `${num(s.pins_new)} new pins`,
+                    s.pins_updated != null && `${num(s.pins_updated)} updated`,
+                    s.events_seen != null && `${num(s.events_seen)} events`,
+                    ps.stage && `Stage ${ps.stage}`,
                 ].filter(Boolean);
-                psSub.textContent = bits.join(' · ') || 'No stats';
+                psCard = stat({
+                    label: 'Partiful last scrape',
+                    value: ui.relative(ps.finished_at) || '–',
+                    title: ui.time(ps.finished_at, { seconds: true }),
+                    sub: esc(bits.join(' · ') || 'No stats'),
+                });
             }
 
-            // Crons table — shape: { window_hours, functions: { name: {...} }, error }
+            // SES account send quota
+            const ses = data.ses || {};
+            let sesCard;
+            if (ses.error) {
+                sesCard = stat({ label: 'SES sends (24h)', value: '–', sub: `<span class="badge warn">Error</span> ${esc(ses.error)}` });
+            } else if (ses.max_24h == null) {
+                sesCard = stat({ label: 'SES sends (24h)', value: '–', sub: 'No data' });
+            } else {
+                const pctUsed = ses.pct_used || 0;
+                const warn = pctUsed >= 80;
+                let sub = `of ${esc(num(ses.max_24h))} · <span class="badge ${warn ? 'warn' : 'good'}">${esc(pctUsed)}%</span> · ${ses.production_access ? 'Production' : 'Sandbox'}`;
+                if (!ses.production_access && ses.review_status) {
+                    sub += ` · review ${esc(String(ses.review_status).toLowerCase())}`;
+                }
+                sesCard = stat({
+                    label: 'SES sends (24h)',
+                    value: num(ses.sent_24h),
+                    tone: warn ? 'warn' : '',
+                    sub,
+                });
+            }
+
+            return [dlqCard, geoCard, psCard, sesCard];
+        }
+
+        // Crons shape: { window_hours, functions: { name: {...} }, error }
+        function renderCrons(el, data) {
             const crons = data.crons || {};
             const fnMap = crons.functions || (typeof crons === 'object' && !crons.window_hours ? crons : {});
             const entries = Object.entries(fnMap).filter(([k]) =>
                 k !== 'window_hours' && k !== 'error' && k !== 'functions'
             );
-            const tbody = document.getElementById('ops-cron-rows');
             if (crons.error) {
-                tbody.innerHTML =
-                    `<tr><td colspan="4" class="muted"><span class="pill warn">error</span> ${crons.error}</td></tr>`;
-            } else if (!entries.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="muted">No cron metrics</td></tr>';
-            } else {
-                tbody.innerHTML = entries.map(([name, row]) => {
-                    const inv = row.invocations_24h ?? row.invocations ?? 0;
-                    const err = row.errors_24h ?? row.errors ?? 0;
-                    const last = row.last_invocation_bucket
-                        ? fmtWhen(row.last_invocation_bucket)
-                        : '—';
-                    const errCell = Number(err) > 0
-                        ? `<span class="pill warn">${fmtN(err)}</span>`
-                        : fmtN(err);
-                    return `<tr>
-                        <td><code>${name}</code></td>
-                        <td class="num">${fmtN(inv)}</td>
-                        <td class="num">${errCell}</td>
-                        <td class="muted">${last}</td>
-                    </tr>`;
-                }).join('');
+                ui.error(el, { title: "Couldn't read cron metrics", error: crons.error, onRetry: () => loadOps() });
+                return;
+            }
+            if (!entries.length) {
+                ui.empty(el, { title: 'No cron metrics', body: 'Cron invocations appear here once the metrics are collected.', icon: 'list' });
+                return;
+            }
+            const rows = entries.map(([name, raw]) => {
+                const row = raw && typeof raw === 'object' ? raw : {};
+                const inv = row.invocations_24h ?? row.invocations ?? 0;
+                const err = row.errors_24h ?? row.errors ?? 0;
+                const last = row.last_invocation_bucket
+                    ? ui.timeTag(row.last_invocation_bucket)
+                    : '<span class="faint">–</span>';
+                const errCell = Number(err) > 0 ? `<span class="badge warn">${esc(num(err))}</span>` : esc(num(err));
+                return `<tr>
+                    <td class="mono">${esc(name)}</td>
+                    <td class="num">${esc(num(inv))}</td>
+                    <td class="num">${errCell}</td>
+                    <td class="muted">${last}</td>
+                </tr>`;
+            }).join('');
+            el.innerHTML = `
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cron</th>
+                                <th class="num">Invocations (24h)</th>
+                                <th class="num">Errors (24h)</th>
+                                <th>Last invocation</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        async function loadOps({ quiet = false } = {}) {
+            begin(els.ops, 'Checking ops health…', quiet);
+            try {
+                const data = await AdminShell.api('realtime', '/admin/metrics/ops', {});
+                const stage = data.stage || '';
+                const checked = data.checked_at ? ui.time(data.checked_at) : '';
+                els.opsHint.textContent = [stage && `Stage ${stage}`, checked && `checked ${checked}`]
+                    .filter(Boolean).join(' · ') || OPS_HINT;
+
+                fillRegion(els.ops, `${statsRow(opsCards(data))}<div data-cron></div>`);
+                renderCrons(els.ops.querySelector('[data-cron]'), data);
+            } catch (error) {
+                els.opsHint.textContent = OPS_HINT;
+                failRegion(els.ops, { title: "Couldn't load ops health", error, onRetry: () => loadOps() });
             }
         }
 
-        function loadPage() {
-            loadUsers().catch(e => showError('Users: ' + e.message));
-            loadCosts().catch(e => showError('Costs: ' + e.message));
-            loadCrashes().catch(e => showError('Crashes: ' + e.message));
-            loadLevers().catch(e => showError('Levers: ' + e.message));
-            loadOps().catch(e => showError('Ops: ' + e.message));
+        // ---- Levers ----
+
+        function leverText(value) {
+            if (value !== null && typeof value === 'object') return JSON.stringify(value);
+            return String(value ?? '');
         }
 
-        AdminShell.init({ active: 'index.html', onReady: loadPage });
+        async function loadLevers({ quiet = false } = {}) {
+            begin(els.levers, 'Loading levers…', quiet);
+            try {
+                const data = await AdminShell.api('realtime', '/admin/config/get');
+                const entries = Object.entries(data.levers || {});
+                els.leversHint.textContent = data.updated_at ? `Last changed ${ui.time(data.updated_at)}` : '';
+                if (!entries.length) {
+                    delete els.levers.dataset.ready;
+                    ui.empty(els.levers, {
+                        title: 'No levers set',
+                        body: 'The server config has no levers yet. Set them on the Levers page.',
+                        icon: 'sliders',
+                        actionLabel: 'Open levers',
+                        onAction: () => { window.location.href = pageHref('levers.html'); },
+                    });
+                    return;
+                }
+                const rows = entries.map(([name, value]) =>
+                    `<tr><td class="mono">${esc(name)}</td><td><span class="badge">${esc(leverText(value))}</span></td></tr>`
+                ).join('');
+                fillRegion(els.levers, `
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Lever</th><th>Value</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`);
+            } catch (error) {
+                els.leversHint.textContent = '';
+                failRegion(els.levers, { title: "Couldn't load levers", error, onRetry: () => loadLevers() });
+            }
+        }
+
+        // ---- Wiring ----
+
+        function loadPage(options) {
+            return Promise.all([
+                loadAttention(options),
+                loadActivity(options),
+                loadOps(options),
+                loadLevers(options),
+            ]);
+        }
+
+        document.querySelectorAll('a[data-page]').forEach(a => { a.href = pageHref(a.dataset.page); });
+
+        AdminShell.init({ active: 'index.html', title: 'Overview', onReady: () => loadPage() });
+
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadPage({ quiet: true })));
     </script>
 </body>
 </html>

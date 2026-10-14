@@ -3,38 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crashes — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Crashes · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
+    <style>
+        /* Page-specific: issue title link, setup checklist spacing, raw-response lead-in. */
+        .issue-link { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+        .issue-link .icon { width: 13px; height: 13px; }
+
+        .setup-card p,
+        .setup-card .setup-steps { margin-top: 12px; }
+        .setup-card h3 + p { margin-top: 0; }
+        .setup-steps .btn.plain { margin: 4px 0 0 -6px; }
+
+        .raw-note { margin-bottom: 10px; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="error-banner" id="error"></div>
-
-        <div class="section">
-            <h2>Crashlytics
-                <span class="hint" id="crash-project-hint">iOS · Firebase project …</span>
-            </h2>
-            <div class="toolbar">
-                <div class="seg" id="days-seg">
-                    <button data-days="7" class="active">7d</button>
-                    <button data-days="30">30d</button>
-                    <button data-days="90">90d</button>
-                </div>
-                <a class="link" id="console-link" href="#" target="_blank" rel="noopener">Open Firebase console →</a>
+        <div class="toolbar">
+            <div class="seg" id="days-seg" role="group" aria-label="Time window">
+                <button type="button" data-days="7" aria-pressed="true">7 days</button>
+                <button type="button" data-days="30" aria-pressed="false">30 days</button>
+                <button type="button" data-days="90" aria-pressed="false">90 days</button>
             </div>
-            <div id="crash-body"><div class="loading">Loading…</div></div>
         </div>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Crashlytics</h2>
+                <span class="hint" id="crash-project-hint"></span>
+            </div>
+            <div id="crash-body"></div>
+        </section>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
-        let currentDays = 7;
+        const { ui } = AdminShell;
+        const { esc } = ui;
 
-        /** Prefer API firebase_project_id; fall back to AdminShell env map. */
+        const body = document.getElementById('crash-body');
+
+        let currentDays = 7;
+        let loadSeq = 0;
+        let hasData = false;
+
+        // Only https links from the server are ever followed.
+        const safeUrl = (url) => (typeof url === 'string' && /^https:\/\//i.test(url) ? url : '');
+
+        // Count for display; anything non-numeric reads as a dash.
+        const cell = (n) => (n == null || n === '' ? '–' : ui.number(Number(n)));
+
+        /** Prefer API firebase_project_id; fall back to the shell's env map. */
         function projectIdFrom(data) {
             return data?.firebase_project_id
                 || AdminShell.firebaseProjectId
@@ -43,58 +69,90 @@
 
         function applyProjectUi(data) {
             const projectId = projectIdFrom(data);
-            const hint = document.getElementById('crash-project-hint');
-            if (hint) hint.textContent = `iOS · Firebase project ${projectId}`;
-            const link = document.getElementById('console-link');
-            if (link) {
-                link.href = data?.console
-                    || `https://console.firebase.google.com/project/${projectId}/crashlytics`;
+            document.getElementById('crash-project-hint').textContent = `iOS · Firebase project ${projectId}`;
+            document.getElementById('console-link').href = safeUrl(data?.console)
+                || `https://console.firebase.google.com/project/${encodeURIComponent(projectId)}/crashlytics`;
+        }
+
+        // "FATAL" -> "Fatal", "NON_FATAL" -> "Non-fatal", "ANR" stays an acronym.
+        function errorLabel(type) {
+            const text = String(type).toLowerCase().replace(/_/g, '-');
+            return text === 'anr' ? 'ANR' : text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        // ---- Loading ----
+
+        // A refresh keeps the current table on screen (the button shows the wait).
+        async function loadPage({ quiet = false } = {}) {
+            const seq = ++loadSeq;
+            if (!quiet || !hasData) ui.loading(body, `Loading crashes for the last ${currentDays} days…`);
+            try {
+                const data = await AdminShell.api('realtime', '/admin/metrics/crashes', { days: currentDays });
+                if (seq !== loadSeq) return;
+                hasData = true;
+                renderIssues(data);
+            } catch (error) {
+                if (seq !== loadSeq) return;
+                hasData = false;
+                ui.error(body, { title: "Couldn't load crashes", error, onRetry: () => loadPage() });
             }
         }
 
-        function showError(message) {
-            const el = document.getElementById('error');
-            el.textContent = message;
-            el.style.display = 'block';
-        }
-
-        function esc(s) {
-            return String(s ?? '').replace(/[&<>"']/g, c => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-            }[c]));
-        }
+        // ---- Rendering ----
 
         function renderSetup(data) {
-            const steps = data.setup_steps || [];
-            const stepsHtml = steps.map((step, i) => `
-                <li>
-                    <div class="n">${i + 1}</div>
-                    <div>
-                        <div class="t">${esc(step.title)}</div>
-                        <div class="d">${esc(step.detail)}</div>
-                        ${step.url ? `<div style="margin-top:6px"><a href="${esc(step.url)}" target="_blank" rel="noopener">Open →</a></div>` : ''}
-                    </div>
-                </li>
-            `).join('');
+            const steps = (data.setup_steps || []).map((step, i) => {
+                const url = safeUrl(step.url);
+                return `
+                    <li>
+                        <div class="n">${i + 1}</div>
+                        <div>
+                            <div class="t">${esc(step.title)}</div>
+                            <div class="d">${esc(step.detail)}</div>
+                            ${url ? `<a class="btn plain sm" href="${esc(url)}" target="_blank" rel="noopener">Open${ui.icon('external')}</a>` : ''}
+                        </div>
+                    </li>`;
+            }).join('');
 
             return `
-                <span class="pill warn">setup needed</span>
+                <span class="badge warn">Setup needed</span>
                 <div class="setup-card">
                     <h3>Finish Crashlytics monitoring</h3>
-                    <p class="muted" style="margin-bottom:12px; font-size:0.86rem">
-                        ${esc(data.reason || 'Crashlytics API is not reachable yet.')}
+                    <p class="muted">${esc(data.reason || 'The Crashlytics API is not reachable yet.')}</p>
+                    ${data.service_account ? `<p class="muted">Service account: <span class="mono">${esc(data.service_account)}</span></p>` : ''}
+                    <ol class="setup-steps">${steps}</ol>
+                    <p class="muted">
+                        After enabling, wait a minute and refresh this page. The Firebase console works even before the API is wired.
                     </p>
-                    ${data.service_account ? `<p class="muted" style="margin-bottom:14px; font-size:0.8rem">Service account: <code>${esc(data.service_account)}</code></p>` : ''}
-                    <ol class="setup-steps">${stepsHtml}</ol>
-                    <p class="muted" style="margin-top:16px; font-size:0.82rem">
-                        After enabling, wait a minute and refresh this page. The Firebase console always works even before the API is wired.
-                    </p>
-                </div>
-            `;
+                </div>`;
+        }
+
+        function issueRow(row) {
+            // v1alpha topIssues returns { groups: [{ issue, metrics: [{ eventsCount, impactedUsersCount }] }] }
+            const issue = row.issue || row;
+            const metrics = (row.metrics && row.metrics[0]) || row.metrics || {};
+            const title = issue.title || row.title || row.displayName || 'Unknown issue';
+            const subtitle = issue.subtitle || row.subtitle || '';
+            const errorType = issue.errorType || row.errorType || '';
+            const events = metrics.eventsCount ?? row.eventCount ?? row.crashCount ?? row.count;
+            const users = metrics.impactedUsersCount ?? row.impactedUserCount ?? row.userCount;
+            const href = safeUrl(issue.uri || row.uri);
+
+            const titleHtml = href
+                ? `<a class="issue-link" href="${esc(href)}" target="_blank" rel="noopener">${esc(title)}${ui.icon('external')}</a>`
+                : `<strong>${esc(title)}</strong>`;
+            const typeBadge = errorType
+                ? ` <span class="badge${String(errorType).toUpperCase() === 'FATAL' ? ' bad' : ''}">${esc(errorLabel(errorType))}</span>`
+                : '';
+            return `
+                <tr>
+                    <td>${titleHtml}${typeBadge}${subtitle ? `<div class="faint">${esc(subtitle)}</div>` : ''}</td>
+                    <td class="num">${esc(cell(events))}</td>
+                    <td class="num">${esc(cell(users))}</td>
+                </tr>`;
         }
 
         function renderIssues(data) {
-            const body = document.getElementById('crash-body');
             applyProjectUi(data);
 
             if (!data.available) {
@@ -106,63 +164,46 @@
             const issues = report.issues || report.topIssues || report.groups || report.rows || null;
 
             if (Array.isArray(issues) && issues.length) {
-                // v1alpha topIssues returns { groups: [{ issue, metrics: [{ eventsCount, impactedUsersCount }] }] }
-                const rows = issues.map(row => {
-                    const issue = row.issue || row;
-                    const metrics = (row.metrics && row.metrics[0]) || row.metrics || {};
-                    const title = issue.title || row.title || row.displayName || 'Unknown issue';
-                    const subtitle = issue.subtitle || row.subtitle || '';
-                    const errorType = issue.errorType || row.errorType || '';
-                    const events = metrics.eventsCount ?? row.eventCount ?? row.crashCount ?? row.count ?? '—';
-                    const users = metrics.impactedUsersCount ?? row.impactedUserCount ?? row.userCount ?? '—';
-                    const href = issue.uri || row.uri || '';
-                    const titleHtml = href
-                        ? `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:2px">${esc(title)}</a>`
-                        : esc(title);
-                    const typePill = errorType
-                        ? `<span class="pill ${errorType === 'FATAL' ? 'warn' : 'ok'}" style="margin-left:8px;font-size:0.7rem">${esc(errorType)}</span>`
-                        : '';
-                    return `<tr>
-                        <td><strong>${titleHtml}</strong>${typePill}<br><span class="muted" style="font-size:0.8rem">${esc(subtitle)}</span></td>
-                        <td class="num">${esc(events)}</td>
-                        <td class="num">${esc(users)}</td>
-                    </tr>`;
-                }).join('');
                 body.innerHTML = `
-                    <table>
-                        <thead><tr><th>Issue</th><th class="num">Events</th><th class="num">Users</th></tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table>`;
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Issue</th><th class="num">Events</th><th class="num">Users</th></tr></thead>
+                            <tbody>${issues.map(issueRow).join('')}</tbody>
+                        </table>
+                    </div>`;
             } else if (Array.isArray(issues)) {
-                body.innerHTML = '<span class="pill ok">no crashes in this window</span>';
+                ui.empty(body, {
+                    title: 'No crashes in this window',
+                    body: `Crashlytics reported no issues in the last ${currentDays} days.`,
+                    icon: 'check',
+                });
             } else {
-                body.innerHTML =
-                    `<p class="muted" style="margin-bottom:10px">Connected — unrecognized report shape. Raw response:</p>` +
-                    `<pre class="raw">${esc(JSON.stringify(report, null, 2))}</pre>`;
+                body.innerHTML = `
+                    <p class="muted raw-note">Connected, but the report shape isn't recognized. Raw response:</p>
+                    <pre class="raw">${esc(JSON.stringify(report, null, 2))}</pre>`;
             }
         }
 
-        function loadPage() {
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('crash-body').innerHTML = '<div class="loading">Loading…</div>';
-            // Seed console link from shell env before API returns (prod vs dev).
-            applyProjectUi(null);
-            AdminShell.api('realtime', '/admin/metrics/crashes', { days: currentDays })
-                .then(renderIssues)
-                .catch(e => showError(e.message));
-        }
+        // ---- Wiring ----
 
-        document.getElementById('days-seg').addEventListener('click', e => {
-            const button = e.target.closest('button');
+        document.getElementById('days-seg').addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-days]');
             if (!button) return;
             currentDays = Number(button.dataset.days);
-            document.querySelectorAll('#days-seg button').forEach(b => b.classList.toggle('active', b === button));
+            document.querySelectorAll('#days-seg button').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
             loadPage();
         });
 
-        // Seed project hint immediately (env known before auth/API).
+        AdminShell.init({ active: 'crashes.html', title: 'Crashes', onReady: () => loadPage() });
+
+        document.getElementById('page-actions').innerHTML = `
+            <a class="btn" id="console-link" href="#" target="_blank" rel="noopener">Open Firebase console${ui.icon('external')}</a>
+            <button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) =>
+            ui.busy(e.currentTarget, () => loadPage({ quiet: true })));
+
+        // Seed the project hint and console link now: the env is known before auth or the API.
         applyProjectUi(null);
-        AdminShell.init({ active: 'crashes.html', title: 'Crashes', onReady: loadPage });
     </script>
 </body>
 </html>

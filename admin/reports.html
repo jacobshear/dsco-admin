@@ -3,641 +3,578 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports — DSCO Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Reports · DSCO admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="assets/admin.css">
     <style>
-        .filters {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .filters button {
-            padding: 8px 16px;
-            border: 1px solid var(--line-strong);
-            background: transparent;
-            color: var(--ink);
-            border-radius: var(--pill);
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-
-        .filters button:hover,
-        .filters button.active {
-            background: var(--info);
-            border-color: var(--info);
-            color: #0a0a0c;
-        }
-
-        .stats {
+        /* Page-specific: report people row and the captured evidence. */
+        .report-people {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px 24px;
         }
 
-        .stat-card {
-            background: var(--panel);
-            padding: 20px;
-            border-radius: var(--radius);
-            text-align: center;
-            border: 1px solid var(--line);
+        @media (max-width: 640px) {
+            .report-people { grid-template-columns: 1fr; }
         }
 
-        .stat-card .number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--info);
-        }
+        .who-name { font-weight: 600; }
+        .who-name.reporter { color: var(--accent); }
+        .who-name.reported-user { color: var(--orange); }
 
-        .stat-card .label {
-            color: var(--ink-50);
-            font-size: 0.85rem;
-            margin-top: 5px;
-        }
-
-        .stat-card.pending .number { color: var(--warn); }
-        .stat-card.actioned .number { color: var(--good); }
-
-        .reports-list {
+        .evidence {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 14px;
+            margin-top: 14px;
         }
 
-        .report-card {
-            background: var(--panel);
-            border-radius: var(--radius);
-            padding: 20px;
-            border: 1px solid var(--line);
-            border-left: 4px solid var(--warn);
+        .evidence-original {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--text-2);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
-        .report-card.actioned {
-            border-left-color: var(--good);
-            opacity: 0.7;
+        .snapshot-status {
+            padding: 8px 12px;
+            border-radius: var(--r);
+            background: var(--warn-bg);
+            color: var(--warn);
+            font-size: 13px;
         }
 
-        .report-header {
+        .snapshot-status.failed { background: var(--bad-bg); color: var(--bad); }
+
+        .snapshot {
+            list-style: none;
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .snap-msg {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .snap-msg:last-child { border-bottom: none; }
+
+        .snap-msg.reported {
+            background: var(--warn-bg);
+            box-shadow: inset 3px 0 0 var(--warn);
+        }
+
+        .snap-meta {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        .report-reason {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .report-time {
-            color: var(--ink-35);
-            font-size: 0.85rem;
-        }
-
-        .report-users {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 15px;
-        }
-
-        .user-info label {
-            color: var(--ink-35);
-            font-size: 0.8rem;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .user-info .username {
-            font-weight: 500;
-        }
-
-        .user-info .user-id {
-            font-family: monospace;
-            font-size: 0.75rem;
-            color: var(--ink-35);
-        }
-
-        .report-details {
-            background: var(--panel-2);
-            padding: 12px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 15px;
-            color: var(--ink-70);
-        }
-
-        .report-details:empty {
-            display: none;
-        }
-
-        .report-actions {
-            display: flex;
-            gap: 10px;
             flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+            font-size: 13px;
         }
 
-        .report-actions button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
+        .snap-time {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--text-3);
+            white-space: nowrap;
+        }
+
+        .snap-sender { font-weight: 600; color: var(--text-2); }
+        .snap-sender.other { font-family: var(--mono); font-weight: 400; font-size: 12px; color: var(--text-3); }
+        .snap-sender.reporter { color: var(--accent); }
+        .snap-sender.reported-user { color: var(--orange); }
+
+        .snap-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .snap-msg.deleted .snap-text { color: var(--text-2); }
+
+        .snap-original {
+            margin-top: 4px;
+            padding-left: 8px;
+            border-left: 2px solid var(--border-strong);
+            font-size: 13px;
+            color: var(--text-2);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .snap-original .label-sm { margin-bottom: 0; }
+        .snap-note { margin-top: 4px; font-size: 12px; color: var(--text-3); }
+
+        .media-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+        .snap-msg .media-strip { margin-top: 6px; }
+
+        .media-thumb {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            padding: 0;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--r);
+            background: var(--surface-2);
+            overflow: hidden;
+            cursor: zoom-in;
             font-family: inherit;
-            transition: all 0.2s;
+            font-size: 12px;
+            color: var(--text-3);
         }
 
-        .btn-dismiss {
-            background: var(--accent-dim);
-            border: 1px solid var(--line-strong);
-            color: var(--ink);
-        }
+        .snap-msg .media-thumb { width: 72px; height: 72px; }
+        .media-thumb:hover { border-color: var(--accent); }
 
-        .btn-reviewed {
-            background: var(--info);
-            color: #0a0a0c;
-        }
-
-        .btn-warn {
-            background: var(--warn);
-            color: #0a0a0c;
-        }
-
-        .btn-suspend {
-            background: var(--orange);
-            color: #0a0a0c;
-        }
-
-        .btn-ban {
-            background: var(--bad);
-            color: #fff;
-        }
-
-        .report-actions button:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.1);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--ink-35);
-        }
-
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--ink-35);
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-
-        @media (max-width: 600px) {
-            .report-users {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Action Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .media-thumb img,
+        .media-thumb video {
+            display: block;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
+            object-fit: cover;
+        }
+
+        .media-thumb .media-badge {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
             justify-content: center;
+            color: #ffffff;
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+            pointer-events: none;
+        }
+
+        .media-thumb .media-badge .icon { width: 22px; height: 22px; fill: #ffffff; stroke: none; }
+
+        .outcome {
+            display: flex;
             align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            color: var(--text-2);
+            font-size: 13px;
         }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--panel);
-            border-radius: var(--radius);
-            padding: 24px;
-            max-width: 450px;
-            width: 90%;
-            border: 1px solid var(--line);
-        }
-
-        .modal h3 {
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal .close-btn {
-            background: none;
-            border: none;
-            color: var(--ink);
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        .modal label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 0.85rem;
-            color: var(--ink-50);
-        }
-
-        .modal select,
-        .modal textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 16px;
-            border: 1px solid var(--line-strong);
-            border-radius: 8px;
-            background: var(--panel-2);
-            color: var(--ink);
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .modal select option {
-            background: var(--panel-2);
-        }
-
-        .modal textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 8px;
-        }
-
-        .modal-actions button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: inherit;
-        }
-
-        .modal-actions .btn-cancel {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--ink);
-        }
-
-        .modal-actions .btn-confirm {
-            background: var(--bad);
-            color: #fff;
-        }
-
-        .modal-actions .btn-confirm.warn {
-            background: var(--warn);
-            color: #0a0a0c;
-        }
-
-        .modal-actions .btn-confirm.suspend {
-            background: var(--orange);
-            color: #0a0a0c;
-        }
-
-        .modal-actions .btn-confirm:disabled {
-            background: var(--line-strong);
-            cursor: not-allowed;
-        }
-
-        .action-type-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-left: 8px;
-        }
-
-        .action-type-badge.warned { background: var(--warn-bg); color: var(--warn); }
-        .action-type-badge.suspended { background: var(--orange-bg); color: var(--orange); }
-        .action-type-badge.banned { background: var(--bad-bg); color: var(--bad); }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="stats">
-            <div class="stat-card">
-                <div class="number" id="total-count">-</div>
-                <div class="label">Total reports</div>
-            </div>
-            <div class="stat-card pending">
-                <div class="number" id="pending-count">-</div>
-                <div class="label">Pending</div>
-            </div>
-            <div class="stat-card actioned">
-                <div class="number" id="actioned-count">-</div>
-                <div class="label">Actioned</div>
+        <div class="toolbar">
+            <div class="seg" role="group" aria-label="Filter reports" id="filters">
+                <button type="button" data-filter="pending" aria-pressed="true">Pending <span class="count" data-count-for="pending"></span></button>
+                <button type="button" data-filter="actioned" aria-pressed="false">Actioned <span class="count" data-count-for="actioned"></span></button>
+                <button type="button" data-filter="all" aria-pressed="false">All <span class="count" data-count-for="all"></span></button>
             </div>
         </div>
 
-        <div class="filters">
-            <button class="active" onclick="filterReports('all')">All</button>
-            <button onclick="filterReports('pending')">Pending</button>
-            <button onclick="filterReports('actioned')">Actioned</button>
-            <button onclick="loadReports()" style="margin-left: auto;">↻ Refresh</button>
-        </div>
-
-        <div class="error-banner" id="error-message"></div>
-
-        <div id="reports-container" class="reports-list">
-            <div class="loading">Loading reports...</div>
-        </div>
-    </div>
-
-    <!-- Action Modal -->
-    <div class="modal" id="action-modal">
-        <div class="modal-content">
-            <h3>
-                <span id="modal-title">Take Action</span>
-                <button class="close-btn" onclick="closeActionModal()">&times;</button>
-            </h3>
-            <p id="modal-desc" style="margin-bottom: 16px; color: var(--ink-50);"></p>
-            <label>Reason Code <span style="color: var(--bad);">*</span></label>
-            <select id="action-reason-code">
-                <option value="">Select reason...</option>
-                <option value="HARASSMENT">Harassment</option>
-                <option value="HATE_SPEECH">Hate Speech</option>
-                <option value="SEXUAL_CONTENT">Sexual Content</option>
-                <option value="MINOR_SAFETY">Minor Safety</option>
-                <option value="SPAM">Spam</option>
-                <option value="IMPERSONATION">Impersonation</option>
-                <option value="SELF_HARM">Self-Harm</option>
-                <option value="VIOLENCE">Violence</option>
-                <option value="ILLEGAL_CONTENT">Illegal Content</option>
-                <option value="PRIVACY_VIOLATION">Privacy Violation</option>
-                <option value="OTHER">Other</option>
-            </select>
-            <label>Notes (optional)</label>
-            <textarea id="action-notes" placeholder="Additional context for the action..."></textarea>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeActionModal()">Cancel</button>
-                <button class="btn-confirm" id="confirm-action-btn" onclick="confirmAction()">Confirm</button>
-            </div>
-        </div>
+        <div id="reports" class="item-list"></div>
     </div>
 
     <script src="assets/admin.js"></script>
     <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
         let allReports = [];
-        let currentFilter = 'all';
-        let pendingAction = null; // {reportId, action, targetUserId}
+        let currentFilter = 'pending';
 
         const REASON_LABELS = {
-            'harassment': 'Harassment or bullying',
-            'spam': 'Spam or scam',
-            'inappropriate': 'Inappropriate content',
-            'underage': 'Underage user',
-            'impersonation': 'Impersonation',
-            'other': 'Other'
+            harassment: 'Harassment or bullying',
+            spam: 'Spam or scam',
+            inappropriate: 'Inappropriate content',
+            underage: 'Underage user',
+            impersonation: 'Impersonation',
+            other: 'Other',
         };
 
-        const ACTION_LABELS = {
-            'warned': 'Warn User',
-            'suspended': 'Suspend User',
-            'banned': 'Ban User'
+        const CONTENT_TYPE_LABELS = {
+            message: 'Message',
+            channel: 'Channel',
+            user: 'Profile',
+            story: 'Story',
+            pin: 'Pin',
+            profile: 'Profile',
         };
 
-        async function loadReports() {
-            const container = document.getElementById('reports-container');
-            container.innerHTML = '<div class="loading">Loading reports...</div>';
-            hideError();
+        // Outcome label and badge tone per action.
+        const ACTIONS = {
+            dismissed: { label: 'Dismissed', tone: '' },
+            reviewed: { label: 'Reviewed', tone: 'info' },
+            warned: { label: 'Warned', tone: 'warn' },
+            suspended: { label: 'Suspended', tone: 'orange' },
+            banned: { label: 'Banned', tone: 'bad' },
+        };
 
+        const REASON_CODES = [
+            ['HARASSMENT', 'Harassment'],
+            ['HATE_SPEECH', 'Hate speech'],
+            ['SEXUAL_CONTENT', 'Sexual content'],
+            ['MINOR_SAFETY', 'Minor safety'],
+            ['SPAM', 'Spam'],
+            ['IMPERSONATION', 'Impersonation'],
+            ['SELF_HARM', 'Self-harm'],
+            ['VIOLENCE', 'Violence'],
+            ['ILLEGAL_CONTENT', 'Illegal content'],
+            ['PRIVACY_VIOLATION', 'Privacy violation'],
+            ['OTHER', 'Other'],
+        ];
+
+        // Confirm copy per action: titles are questions, buttons keep the verb.
+        const CONFIRMS = {
+            dismissed: { title: 'Dismiss this report?', body: 'No action is taken against the reported person.', confirmLabel: 'Dismiss' },
+            reviewed: { title: 'Mark this report reviewed?', body: 'Closes the report without a penalty.', confirmLabel: 'Mark reviewed' },
+            warned: { title: 'Warn this person?', body: 'They get a warning notification.', confirmLabel: 'Warn', needsReason: true },
+            suspended: { title: 'Suspend this person?', body: 'They lose access until the suspension ends.', confirmLabel: 'Suspend', needsReason: true, destructive: true },
+            banned: { title: 'Ban this person?', body: 'They lose access permanently.', confirmLabel: 'Ban', needsReason: true, destructive: true },
+        };
+
+        const VIDEO_EXTS = new Set(['mp4', 'mov', 'm4v', 'webm', 'qt']);
+        const AUDIO_EXTS = new Set(['m4a', 'aac', 'mp3', 'wav', 'ogg', 'opus', 'caf']);
+
+        const SNAPSHOT_STATUS_LABELS = {
+            failed: 'Evidence capture failed, so no snapshot was saved for this report.',
+            not_member: "The reporter couldn't read this chat, so no snapshot was taken.",
+            message_missing: 'The reported message was already gone when the report was filed.',
+        };
+
+        const list = document.getElementById('reports');
+
+        // ---- Loading ----
+
+        // A refresh keeps the current list on screen (the button shows the wait).
+        async function loadReports({ quiet = false } = {}) {
+            if (!quiet || !allReports.length) ui.loading(list, 'Loading reports…');
             try {
-                // Backend registers GET /reports/list (query params for filters).
-                // POST is not allowed — CORS preflight only lists OPTIONS,GET.
+                // GET /reports/list (CORS allows OPTIONS, GET only).
                 const data = await AdminShell.api('social', '/reports/list', null, { method: 'GET' });
                 allReports = data.reports || [];
-                updateStats();
-                renderReports();
+                updateCounts();
+                render();
             } catch (error) {
-                console.error('Error loading reports:', error);
-                showError(`Failed to load reports: ${error.message || 'check your connection'}`);
+                ui.error(list, { title: "Couldn't load reports", error, onRetry: loadReports });
             }
         }
 
-        function updateStats() {
+        function filtered() {
+            if (currentFilter === 'all') return allReports;
+            return allReports.filter(r => (currentFilter === 'pending' ? r.status === 'pending' : r.status !== 'pending'));
+        }
+
+        function updateCounts() {
             const pending = allReports.filter(r => r.status === 'pending').length;
-            const actioned = allReports.filter(r => r.status === 'actioned').length;
-
-            document.getElementById('total-count').textContent = allReports.length;
-            document.getElementById('pending-count').textContent = pending;
-            document.getElementById('actioned-count').textContent = actioned;
-        }
-
-        function filterReports(filter) {
-            currentFilter = filter;
-
-            document.querySelectorAll('.filters button').forEach(btn => {
-                btn.classList.remove('active');
+            const counts = { pending, actioned: allReports.length - pending, all: allReports.length };
+            document.querySelectorAll('[data-count-for]').forEach(el => {
+                el.textContent = String(counts[el.dataset.countFor]);
             });
-            event.target.classList.add('active');
-
-            renderReports();
+            AdminShell.setCount('reports', pending);
         }
 
-        function renderReports() {
-            const container = document.getElementById('reports-container');
+        // ---- Rendering ----
 
-            let filtered = allReports;
-            if (currentFilter === 'pending') {
-                filtered = allReports.filter(r => r.status === 'pending');
-            } else if (currentFilter === 'actioned') {
-                filtered = allReports.filter(r => r.status === 'actioned');
-            }
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="empty">
-                        <div class="empty-icon">📋</div>
-                        <p>No reports found</p>
-                    </div>
-                `;
+        function render() {
+            const items = filtered();
+            if (!items.length) {
+                const copy = {
+                    pending: { title: 'No reports waiting', body: 'New reports appear here as people file them.' },
+                    actioned: { title: 'No actioned reports yet', body: 'Reports you act on move here.' },
+                    all: { title: 'No reports yet', body: 'Reports appear here as people file them.' },
+                }[currentFilter];
+                ui.empty(list, { ...copy, icon: 'flag' });
                 return;
             }
+            // Every report field is untrusted (reporter-typed ids included), so
+            // all of it goes through esc(); actions read data attributes.
+            list.innerHTML = items.map(renderReport).join('');
+        }
 
-            container.innerHTML = filtered.map(report => `
-                <div class="report-card ${report.status === 'actioned' ? 'actioned' : ''}" id="report-${report.report_id}">
-                    <div class="report-header">
-                        <div class="report-reason">${REASON_LABELS[report.reason] || report.reason}</div>
-                        <div class="report-time">${formatTime(report.created_at)}</div>
+        function renderReport(report) {
+            const pending = report.status === 'pending';
+            const typeLabel = CONTENT_TYPE_LABELS[report.content_type] || '';
+            return `
+                <article class="item${pending ? '' : ' done'}" data-report-id="${esc(report.report_id)}" data-reported-id="${esc(report.reported_id)}">
+                    <div class="item-head">
+                        <div>
+                            <div class="item-title">
+                                ${esc(REASON_LABELS[report.reason] || report.reason || 'Report')}
+                                ${typeLabel ? `<span class="badge">${esc(typeLabel)}</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="item-time">${ui.timeTag(report.created_at)}</span>
                     </div>
 
-                    <div class="report-users">
-                        <div class="user-info">
-                            <label>Reporter</label>
-                            <div class="username">@${report.reporter_username || 'Unknown'}</div>
-                            <div class="user-id">${report.reporter_id}</div>
-                        </div>
-                        <div class="user-info">
-                            <label>Reported User</label>
-                            <div class="username">@${report.reported_username || 'Unknown'}</div>
-                            <div class="user-id">${report.reported_id}</div>
-                        </div>
+                    <div class="report-people">
+                        ${personBlock('Reporter', report.reporter_id, report.reporter_username, 'reporter')}
+                        ${personBlock('Reported user', report.reported_id, report.reported_username, 'reported-user')}
                     </div>
 
-                    ${report.details ? `<div class="report-details">${escapeHtml(report.details)}</div>` : ''}
+                    ${report.details ? `
+                        <div style="margin-top:14px">
+                            <div class="label-sm">Reporter's note</div>
+                            <div class="quote">${esc(report.details)}</div>
+                        </div>` : ''}
 
-                    ${report.status === 'pending' ? `
-                        <div class="report-actions">
-                            <button class="btn-dismiss" onclick="takeAction('${report.report_id}', 'dismissed', '${report.reported_id}')">Dismiss</button>
-                            <button class="btn-reviewed" onclick="takeAction('${report.report_id}', 'reviewed', '${report.reported_id}')">Mark Reviewed</button>
-                            <button class="btn-warn" onclick="takeAction('${report.report_id}', 'warned', '${report.reported_id}')">Warn</button>
-                            <button class="btn-suspend" onclick="takeAction('${report.report_id}', 'suspended', '${report.reported_id}')">Suspend</button>
-                            <button class="btn-ban" onclick="takeAction('${report.report_id}', 'banned', '${report.reported_id}')">Ban</button>
-                        </div>
-                    ` : `
-                        <div style="color: var(--good);">✓ ${report.action_taken || 'Actioned'}</div>
-                    `}
-                </div>
-            `).join('');
+                    ${renderEvidence(report)}
+
+                    <div class="item-actions">
+                        ${pending ? `
+                            <button type="button" class="btn" data-action="dismissed">Dismiss</button>
+                            <button type="button" class="btn" data-action="reviewed">Mark reviewed</button>
+                            <span class="spacer"></span>
+                            <button type="button" class="btn" data-action="warned">Warn</button>
+                            <button type="button" class="btn danger" data-action="suspended">Suspend</button>
+                            <button type="button" class="btn danger" data-action="banned">Ban</button>
+                        ` : renderOutcome(report)}
+                    </div>
+                </article>`;
         }
 
-        function takeAction(reportId, action, targetUserId) {
-            // For dismiss/reviewed, just confirm and proceed
-            if (action === 'dismissed' || action === 'reviewed') {
-                const label = action === 'dismissed' ? 'dismiss this report' : 'mark as reviewed';
-                if (confirm(`Are you sure you want to ${label}?`)) {
-                    executeAction(reportId, action, targetUserId, null, '');
-                }
-                return;
-            }
-
-            // For warn/suspend/ban, show the modal with reason code dropdown
-            pendingAction = { reportId, action, targetUserId };
-            showActionModal(action);
+        function personBlock(label, id, username, roleClass) {
+            const href = id ? `users.html?id=${encodeURIComponent(id)}&env=${encodeURIComponent(AdminShell.env)}` : '';
+            const name = `@${username || 'Unknown'}`;
+            return `
+                <div>
+                    <div class="label-sm">${esc(label)}</div>
+                    ${href ? `<a class="who-name ${roleClass}" href="${esc(href)}">${esc(name)}</a>` : `<span class="who-name">${esc(name)}</span>`}
+                    <span class="mono faint" title="${esc(id)}">${esc(String(id || '').slice(0, 8))}</span>
+                </div>`;
         }
 
-        function showActionModal(action) {
-            const modal = document.getElementById('action-modal');
-            const title = document.getElementById('modal-title');
-            const desc = document.getElementById('modal-desc');
-            const btn = document.getElementById('confirm-action-btn');
-
-            title.innerHTML = `${ACTION_LABELS[action]} <span class="action-type-badge ${action}">${action}</span>`;
-
-            const descriptions = {
-                'warned': 'The user will receive a warning notification.',
-                'suspended': 'The user will be temporarily suspended from the platform.',
-                'banned': 'The user will be permanently banned from the platform.'
-            };
-            desc.textContent = descriptions[action] || '';
-
-            // Style confirm button based on action
-            btn.className = 'btn-confirm';
-            if (action === 'warned') btn.classList.add('warn');
-            else if (action === 'suspended') btn.classList.add('suspend');
-
-            btn.textContent = ACTION_LABELS[action] || 'Confirm';
-
-            // Reset form
-            document.getElementById('action-reason-code').value = '';
-            document.getElementById('action-notes').value = '';
-
-            modal.classList.add('active');
+        function renderOutcome(report) {
+            const action = ACTIONS[report.action_taken] || { label: report.action_taken || 'Actioned', tone: '' };
+            return `
+                <div style="flex:1">
+                    <div class="outcome">
+                        <span class="badge ${action.tone}">${esc(action.label)}</span>
+                        ${report.actioned_by ? `<span>by <span class="mono" title="${esc(report.actioned_by)}">${esc(String(report.actioned_by).slice(0, 8))}</span></span>` : ''}
+                        ${report.updated_at ? `<span>${ui.timeTag(report.updated_at)}</span>` : ''}
+                    </div>
+                    ${report.admin_notes ? `<div class="quote" style="margin-top:8px">${esc(report.admin_notes)}</div>` : ''}
+                </div>`;
         }
 
-        function closeActionModal() {
-            document.getElementById('action-modal').classList.remove('active');
-            pendingAction = null;
+        // ---- Evidence (content_text, snapshot, copied media) ----
+
+        function renderEvidence(report) {
+            const sections = [
+                contentSection(report),
+                snapshotStatusSection(report),
+                snapshotSection(report),
+                evidenceGallery(report),
+            ].filter(Boolean);
+            return sections.length ? `<div class="evidence">${sections.join('')}</div>` : '';
         }
 
-        async function confirmAction() {
-            if (!pendingAction) return;
-
-            const reasonCode = document.getElementById('action-reason-code').value;
-            const notes = document.getElementById('action-notes').value.trim();
-
-            if (!reasonCode) {
-                alert('Please select a reason code.');
-                return;
-            }
-
-            const btn = document.getElementById('confirm-action-btn');
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-
-            await executeAction(
-                pendingAction.reportId,
-                pendingAction.action,
-                pendingAction.targetUserId,
-                reasonCode,
-                notes
-            );
-
-            btn.disabled = false;
-            btn.textContent = ACTION_LABELS[pendingAction?.action] || 'Confirm';
-            closeActionModal();
+        function evidenceSection(label, body) {
+            return `<div><div class="label-sm">${esc(label)}</div>${body}</div>`;
         }
 
-        async function executeAction(reportId, action, targetUserId, reasonCode, notes) {
+        function contentSection(report) {
+            const text = report.content_text;
+            if (!text) return '';
+            const original = report.content_original_text;
+            const label = report.content_type === 'channel' ? 'Reported channel' : 'Reported message';
+            return evidenceSection(label, `
+                <div class="quote">${esc(text)}</div>
+                ${original && original !== text ? `<div class="evidence-original">Edited, original: ${esc(original)}</div>` : ''}
+            `);
+        }
+
+        function snapshotStatusSection(report) {
+            const status = report.snapshot_status;
+            if (!status || status === 'ok') return '';
+            const label = SNAPSHOT_STATUS_LABELS[status] || `Snapshot status: ${status}`;
+            return `<div class="snapshot-status ${status === 'failed' ? 'failed' : ''}">${esc(label)}</div>`;
+        }
+
+        function parseSnapshot(raw) {
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw !== 'string' || !raw) return null;
             try {
-                await AdminShell.api('social', '/reports/action', {
-                    report_id: reportId,
-                    action: action,
-                    target_user_id: targetUserId,
-                    reason_code: reasonCode,
-                    admin_notes: notes || ''
-                });
-                loadReports();
-            } catch (error) {
-                console.error('Error taking action:', error);
-                showError(`Failed to process action: ${error.message}`);
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : null;
+            } catch (_) {
+                return null;
             }
         }
 
-        function formatTime(isoString) {
-            if (!isoString) return 'Unknown';
-            const date = new Date(isoString);
-            return date.toLocaleString();
+        function snapshotSection(report) {
+            if (!report.content_snapshot) return '';
+            const entries = parseSnapshot(report.content_snapshot);
+            const label = report.content_type === 'channel' ? 'Channel at report time' : 'Conversation at report time';
+            if (!entries) return evidenceSection(label, '<div class="snap-note">Snapshot is unreadable.</div>');
+            if (!entries.length) return evidenceSection(label, '<div class="snap-note">No messages captured.</div>');
+            const rows = entries.map(entry => snapshotRow(entry, report)).join('');
+            return evidenceSection(`${label} (${entries.length})`, `<ol class="snapshot">${rows}</ol>`);
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function snapshotRow(entry, report) {
+            if (!entry || typeof entry !== 'object') return '';
+            const text = typeof entry.text === 'string' ? entry.text : '';
+            const original = typeof entry.originalText === 'string' ? entry.originalText : '';
+            const edited = entry.editedAt != null || (original && original !== text);
+            const editedTitle = entry.editedAt != null ? ` title="Edited ${esc(ui.time(entry.editedAt, { seconds: true }))}"` : '';
+
+            const marks = [
+                entry.reported ? '<span class="badge warn">Reported</span>' : '',
+                edited ? `<span class="badge info"${editedTitle}>Edited</span>` : '',
+                entry.isDeleted ? '<span class="badge bad">Deleted</span>' : '',
+            ].join('');
+
+            const classes = ['snap-msg', entry.reported ? 'reported' : '', entry.isDeleted ? 'deleted' : '']
+                .filter(Boolean).join(' ');
+
+            return `
+                <li class="${classes}">
+                    <div class="snap-meta">
+                        ${senderLabel(entry.senderId, report)}
+                        ${marks}
+                        <span class="snap-time" title="${esc(ui.time(entry.timestamp, { seconds: true }))}">${esc(ui.time(entry.timestamp))}</span>
+                    </div>
+                    ${text ? `<div class="snap-text">${esc(text)}</div>` : ''}
+                    ${original && original !== text ? `
+                        <div class="snap-original"><div class="label-sm">Before edit</div>${esc(original)}</div>` : ''}
+                    ${entryMedia(entry)}
+                </li>`;
         }
 
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message;
-            el.style.display = 'block';
+        // The reporter and reported user are named above, so their rows show
+        // just the name in the same colour; anyone else gets a short id.
+        function senderLabel(senderId, report) {
+            const id = typeof senderId === 'string' ? senderId : '';
+            if (!id) return '<span class="snap-sender other">Unknown sender</span>';
+            if (id === report.reported_id) {
+                return `<span class="snap-sender reported-user" title="Reported user · ${esc(id)}">@${esc(report.reported_username || 'Unknown')}</span>`;
+            }
+            if (id === report.reporter_id) {
+                return `<span class="snap-sender reporter" title="Reporter · ${esc(id)}">@${esc(report.reporter_username || 'Unknown')}</span>`;
+            }
+            return `<span class="snap-sender other" title="${esc(id)}">User ${esc(id.slice(0, 8))}</span>`;
         }
 
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
+        // reports/list signs snapshot media only when it's this report's own
+        // evidence copy; anything else arrives nulled with mediaUnavailable.
+        function entryMedia(entry) {
+            const media = safeMediaUrl(entry.mediaUrl);
+            const thumb = safeMediaUrl(entry.thumbnailUrl);
+            if (media) {
+                const kind = entry.type === 'video' ? 'video' : mediaKindOf(media);
+                return `<div class="media-strip">${mediaThumb(media, kind, thumb)}</div>`;
+            }
+            if (thumb) return `<div class="media-strip">${mediaThumb(thumb, 'image')}</div>`;
+            if (!entry.mediaUnavailable) return '';
+            const what = entry.type === 'video' ? 'Video' : entry.type === 'image' ? 'Image' : 'Media';
+            return `<div class="snap-note">${what} not captured</div>`;
         }
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeActionModal();
+        function evidenceGallery(report) {
+            const urls = (Array.isArray(report.evidence_urls) ? report.evidence_urls : [])
+                .map(safeMediaUrl)
+                .filter(Boolean);
+            if (!urls.length) return '';
+            const tiles = urls.map(url => mediaThumb(url, mediaKindOf(url))).join('');
+            return evidenceSection(`Evidence files (${urls.length})`, `<div class="media-strip">${tiles}</div>`);
+        }
+
+        // A tile that opens [src] full size. [preview] is what the tile shows
+        // instead (a video's poster frame, an image thumbnail).
+        function mediaThumb(src, kind, preview) {
+            const label = kind === 'video' ? 'Open video' : kind === 'audio' ? 'Play audio' : 'Open image';
+            let face = '';
+            if (preview) face = `<img src="${esc(preview)}" alt="" loading="lazy">`;
+            else if (kind === 'video') face = `<video src="${esc(src)}" preload="metadata" muted playsinline></video>`;
+            else if (kind === 'image') face = `<img src="${esc(src)}" alt="" loading="lazy">`;
+            const badge = kind === 'video' || kind === 'audio' ? `<span class="media-badge">${ui.icon('play')}</span>` : '';
+            return `<button type="button" class="media-thumb" data-media-src="${esc(src)}" data-media-kind="${kind}"
+                        title="${label}" aria-label="${label}">${face}${badge}</button>`;
+        }
+
+        // Only the backend's signed https URLs are ever loaded into the page.
+        function safeMediaUrl(url) {
+            return typeof url === 'string' && /^https:\/\//i.test(url) ? url : null;
+        }
+
+        function mediaKindOf(url) {
+            let ext = '';
+            try {
+                ext = new URL(url).pathname.split('.').pop().toLowerCase();
+            } catch (_) { /* not a URL: treat as image */ }
+            if (VIDEO_EXTS.has(ext)) return 'video';
+            if (AUDIO_EXTS.has(ext)) return 'audio';
+            return 'image';
+        }
+
+        // ---- Actions ----
+
+        async function takeAction(card, action, button) {
+            const spec = CONFIRMS[action];
+            if (!spec) return;
+            const fields = spec.needsReason ? [
+                { name: 'reason_code', label: 'Reason', type: 'select', options: REASON_CODES, required: true, placeholder: 'Choose a reason…' },
+                { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Context for the audit log (optional)' },
+            ] : [
+                { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Optional' },
+            ];
+            const values = await ui.confirm({
+                title: spec.title,
+                body: esc(spec.body),
+                confirmLabel: spec.confirmLabel,
+                destructive: !!spec.destructive,
+                fields,
+            });
+            if (!values) return;
+            try {
+                await ui.busy(button, () => AdminShell.api('social', '/reports/action', {
+                    report_id: card.dataset.reportId,
+                    action,
+                    target_user_id: card.dataset.reportedId,
+                    reason_code: values.reason_code || null,
+                    admin_notes: values.notes || '',
+                }));
+                // The report leaves Pending, which is the confirmation.
+                await loadReports({ quiet: true });
+            } catch (error) {
+                ui.notice(`Couldn't ${spec.confirmLabel.toLowerCase()}: ${error.message}`, { tone: 'bad' });
+            }
+        }
+
+        // ---- Wiring ----
+
+        document.getElementById('filters').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-filter]');
+            if (!btn) return;
+            currentFilter = btn.dataset.filter;
+            document.querySelectorAll('#filters button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+            render();
         });
 
-        document.getElementById('action-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'action-modal') closeActionModal();
+        list.addEventListener('click', (e) => {
+            const tile = e.target.closest('[data-media-src]');
+            if (tile) {
+                ui.media(tile.dataset.mediaSrc, tile.dataset.mediaKind);
+                return;
+            }
+            const button = e.target.closest('button[data-action]');
+            const card = button && button.closest('[data-report-id]');
+            if (card) takeAction(card, button.dataset.action, button);
         });
+
+        // Signed URLs expire after an hour (Refresh re-signs); label the tile
+        // instead of showing a broken image. Media errors don't bubble.
+        list.addEventListener('error', (e) => {
+            if (!['IMG', 'VIDEO'].includes(e.target.tagName)) return;
+            const tile = e.target.closest('.media-thumb');
+            if (tile) tile.textContent = 'Unavailable';
+        }, true);
 
         AdminShell.init({ active: 'reports.html', title: 'Reports', onReady: loadReports });
+
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadReports({ quiet: true })));
     </script>
 </body>
 </html>
