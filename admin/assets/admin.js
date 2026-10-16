@@ -674,11 +674,22 @@ const AdminShell = (() => {
     // ---- Sidebar counts (pending work), cached a minute per env ----
     const COUNTS_KEY = `dscoAdmin.counts.${envName}`;
 
+    // Counts read off a single list page, so a full page means "at least this
+    // many". Reports carry an exact `total` from the backend instead.
+    const PAGE_CAPPED_COUNTS = { appeals: 50 };
+
+    function badgeText(key, n) {
+        const cap = PAGE_CAPPED_COUNTS[key];
+        if (cap && n >= cap) return `${cap}+`;
+        return n > 99 ? '99+' : String(n);
+    }
+
     function applyCounts(counts) {
         document.querySelectorAll('.nav-count[data-count]').forEach(el => {
-            const n = counts[el.dataset.count];
+            const key = el.dataset.count;
+            const n = counts[key];
             el.hidden = !(typeof n === 'number' && n > 0);
-            el.textContent = n >= 50 ? '50+' : String(n);
+            el.textContent = badgeText(key, n);
             el.classList.toggle('attention', n > 0);
             el.setAttribute('aria-label', `${n} pending`);
         });
@@ -719,7 +730,8 @@ const AdminShell = (() => {
         // session, missing group) must not stick for the next minute.
         const ok = reports.status === 'fulfilled' && appeals.status === 'fulfilled';
         const counts = { at: ok ? Date.now() : 0 };
-        if (reports.status === 'fulfilled') counts.reports = (reports.value.reports || []).length;
+        // `total` counts every pending report; the list itself is one page.
+        if (reports.status === 'fulfilled') counts.reports = reports.value.total ?? (reports.value.reports || []).length;
         if (appeals.status === 'fulfilled') counts.appeals = (appeals.value.appeals || []).length;
         storageSet('sessionStorage', COUNTS_KEY, JSON.stringify(counts));
         applyCounts(counts);

@@ -245,13 +245,35 @@
 
         // ---- Loading ----
 
+        // Server-side counts over every report (the lists are pages). Null
+        // until the first load; updateCounts falls back to the lists.
+        let reportTotals = null;
+
+        // The pending queue is its own request: the newest page of all
+        // reports can be entirely actioned ones, which used to push older
+        // pending reports off the page and out of the queue.
+        const PENDING_PAGE = 200;
+
         // A refresh keeps the current list on screen (the button shows the wait).
         async function loadReports({ quiet = false } = {}) {
             if (!quiet || !allReports.length) ui.loading(list, 'Loading reports…');
             try {
                 // GET /reports/list (CORS allows OPTIONS, GET only).
-                const data = await AdminShell.api('social', '/reports/list', null, { method: 'GET' });
-                allReports = data.reports || [];
+                const [pending, recent] = await Promise.all([
+                    AdminShell.api('social', `/reports/list?status=pending&limit=${PENDING_PAGE}`, null, { method: 'GET' }),
+                    AdminShell.api('social', '/reports/list', null, { method: 'GET' }),
+                ]);
+                const seen = new Set();
+                allReports = [...(pending.reports || []), ...(recent.reports || [])].filter(r => {
+                    if (seen.has(r.report_id)) return false;
+                    seen.add(r.report_id);
+                    return true;
+                });
+                // Each list arrives newest first; the merge is re-sorted so All stays that way.
+                allReports.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+                reportTotals = typeof pending.total === 'number' && typeof recent.total === 'number'
+                    ? { pending: pending.total, all: recent.total }
+                    : null;
                 updateCounts();
                 render();
             } catch (error) {
@@ -265,8 +287,9 @@
         }
 
         function updateCounts() {
-            const pending = allReports.filter(r => r.status === 'pending').length;
-            const counts = { pending, actioned: allReports.length - pending, all: allReports.length };
+            const pending = reportTotals ? reportTotals.pending : allReports.filter(r => r.status === 'pending').length;
+            const all = reportTotals ? reportTotals.all : allReports.length;
+            const counts = { pending, actioned: all - pending, all };
             document.querySelectorAll('[data-count-for]').forEach(el => {
                 el.textContent = String(counts[el.dataset.countFor]);
             });
