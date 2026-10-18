@@ -6,7 +6,8 @@
  * prod Cognito pool, and the dev/staging admin routes trust that pool too
  * (backend config/shared.yml adminCognitoArnsByStage). Switching Dev/Prod
  * only changes which API the page talks to, so it never signs you out.
- * TOTP is mandatory for console accounts (enforceMfa).
+ * Sign-in is email + password. The authenticator-app (TOTP) requirement was
+ * removed 2026-10-17; a passkey (Touch ID) is the planned second factor.
  *
  * Env selection: ?env=dev|prod (sticky on nav links, so two tabs can sit on
  * different envs), else the last env you picked, else dev.
@@ -534,30 +535,6 @@ const AdminShell = (() => {
                         <button class="btn primary" id="shell-newpw-btn" type="submit">Set password and sign in</button>
                     </form>
 
-                    <form id="shell-totp-form" hidden>
-                        <p class="sub">Enter the 6-digit code from your authenticator app.</p>
-                        <div class="field">
-                            <label for="shell-totp-code">Code</label>
-                            <input type="text" id="shell-totp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
-                        </div>
-                        <button class="btn primary" id="shell-totp-btn" type="submit">Verify and sign in</button>
-                    </form>
-
-                    <form id="shell-totp-setup" hidden>
-                        <p class="sub">One-time setup: admin accounts need an authenticator app.</p>
-                        <ol class="login-steps">
-                            <li>In Apple Passwords, 1Password or Google Authenticator, add a verification code.</li>
-                            <li>Scan this QR code, or type the key under it.</li>
-                            <li>Enter the 6-digit code the app shows.</li>
-                        </ol>
-                        <div id="shell-totp-qr" class="totp-qr"></div>
-                        <div class="totp-secret">Key: <code id="shell-totp-secret"></code><br>Reloading makes a new key. If you reload, delete the old entry first.</div>
-                        <div class="field">
-                            <label for="shell-totp-setup-code">Code</label>
-                            <input type="text" id="shell-totp-setup-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
-                        </div>
-                        <button class="btn primary" id="shell-totp-setup-btn" type="submit">Turn on and sign in</button>
-                    </form>
 
                 </div>
             </div>
@@ -602,8 +579,6 @@ const AdminShell = (() => {
         const on = (id, ev, fn) => document.getElementById(id).addEventListener(ev, fn);
         on('shell-login-form', 'submit', (e) => { e.preventDefault(); login(); });
         on('shell-newpw-form', 'submit', (e) => { e.preventDefault(); completeNewPassword(); });
-        on('shell-totp-form', 'submit', (e) => { e.preventDefault(); submitTotp(); });
-        on('shell-totp-setup', 'submit', (e) => { e.preventDefault(); completeTotpSetup(); });
         on('shell-forgot-form', 'submit', (e) => { e.preventDefault(); sendResetCode(); });
         on('shell-reset-form', 'submit', (e) => { e.preventDefault(); confirmReset(); });
         on('shell-forgot-link', 'click', () => {
@@ -750,7 +725,7 @@ const AdminShell = (() => {
     }
 
     function showLoginPane(id) {
-        ['shell-login-form', 'shell-newpw-form', 'shell-totp-form', 'shell-totp-setup', 'shell-forgot-form', 'shell-reset-form'].forEach(pane => {
+        ['shell-login-form', 'shell-newpw-form', 'shell-forgot-form', 'shell-reset-form'].forEach(pane => {
             document.getElementById(pane).hidden = pane !== id;
         });
         loginError('');
@@ -813,101 +788,23 @@ const AdminShell = (() => {
                     if (!roleFromToken(session.getIdToken().getJwtToken())) {
                         loginError('Signed in, but this account isn\'t in an admin group. Ask for super_admin, then sign out and back in.');
                     }
-                    enforceMfa(cognitoUser).then(showApp);
+                    showApp();
                 },
                 onFailure: (err) => { done(); loginError(err.message || 'Couldn\'t sign in. Try again.'); },
                 newPasswordRequired: () => { done(); showLoginPane('shell-newpw-form'); },
+                // The console no longer takes MFA codes. An account that still
+                // has one turned on needs it cleared in Cognito
+                // (admin-set-user-mfa-preference) before it can sign in here.
                 totpRequired: () => {
                     done();
-                    showLoginPane('shell-totp-form');
-                    document.getElementById('shell-totp-code').focus();
+                    loginError('This account still has an authenticator code turned on. Clear it in Cognito, then sign in again.');
                 },
                 mfaRequired: () => {
-                    // SMS MFA isn't configured on the pool; only TOTP is.
                     done();
-                    loginError('This account uses SMS codes, which the console doesn\'t support. Switch it to an authenticator app.');
+                    loginError('This account has SMS codes turned on. Clear them in Cognito, then sign in again.');
                 },
             }
         );
-    }
-
-    function submitTotp() {
-        const code = document.getElementById('shell-totp-code').value.trim();
-        if (!/^\d{6}$/.test(code)) return loginError('Enter the 6-digit code.');
-        const btn = document.getElementById('shell-totp-btn');
-        btn.disabled = true;
-        cognitoUser.sendMFACode(code, {
-            onSuccess: () => { btn.disabled = false; showApp(); },
-            onFailure: (err) => { btn.disabled = false; loginError(err.message || 'That code didn\'t work. Try the next one.'); },
-        }, 'SOFTWARE_TOKEN_MFA');
-    }
-
-    /**
-     * Console policy: every account that reaches the shell has TOTP as its
-     * preferred MFA. The pool runs MFA OPTIONAL (app users are untouched),
-     * so this gate is what makes it mandatory for admins. Resolves when the
-     * account already has TOTP; otherwise shows enrollment and never resolves
-     * (completeTotpSetup opens the shell itself).
-     */
-    function enforceMfa(user) {
-        return new Promise((resolve) => {
-            user.getUserData((err, data) => {
-                if (err) {
-                    showLogin();
-                    loginError(`Couldn't read your MFA settings: ${err.message || err}`);
-                    return;
-                }
-                if (data && data.PreferredMfaSetting === 'SOFTWARE_TOKEN_MFA') return resolve();
-                showLogin();
-                beginTotpSetup(user);
-            }, { bypassCache: true });
-        });
-    }
-
-    function beginTotpSetup(user) {
-        user.associateSoftwareToken({
-            associateSecretCode: (secret) => {
-                const email = document.getElementById('shell-email').value.trim() || user.getUsername();
-                const label = 'DSCO admin';
-                const uri = `otpauth://totp/${encodeURIComponent(label)}:${encodeURIComponent(email)}` +
-                    `?secret=${secret}&issuer=${encodeURIComponent(label)}&algorithm=SHA1&digits=6&period=30`;
-                document.getElementById('shell-totp-secret').textContent = secret;
-                renderQr(document.getElementById('shell-totp-qr'), uri);
-                showLoginPane('shell-totp-setup');
-                document.getElementById('shell-totp-setup-code').focus();
-            },
-            onFailure: (err) => loginError(err.message || 'Couldn\'t start authenticator setup. Try again.'),
-        });
-    }
-
-    function completeTotpSetup() {
-        const code = document.getElementById('shell-totp-setup-code').value.trim();
-        if (!/^\d{6}$/.test(code)) return loginError('Enter the 6-digit code from the app.');
-        const btn = document.getElementById('shell-totp-setup-btn');
-        btn.disabled = true;
-        cognitoUser.verifySoftwareToken(code, 'DSCO admin console', {
-            onSuccess: () => {
-                cognitoUser.setUserMfaPreference(null, { PreferredMfa: true, Enabled: true }, (err) => {
-                    btn.disabled = false;
-                    if (err) return loginError(err.message || 'Couldn\'t turn on the authenticator. Try again.');
-                    showApp();
-                });
-            },
-            onFailure: (err) => { btn.disabled = false; loginError(err.message || 'That code didn\'t work. Check your phone\'s clock and try the next code.'); },
-        });
-    }
-
-    /** QR via the qrcode-generator global (loaded from cdnjs on every admin page). */
-    function renderQr(el, text) {
-        el.innerHTML = '';
-        if (typeof qrcode !== 'function') {
-            el.textContent = 'QR code unavailable. Type the key below instead.';
-            return;
-        }
-        const qr = qrcode(0, 'M');
-        qr.addData(text);
-        qr.make();
-        el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
     }
 
     function completeNewPassword() {
@@ -916,7 +813,7 @@ const AdminShell = (() => {
         const btn = document.getElementById('shell-newpw-btn');
         btn.disabled = true;
         cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
-            onSuccess: () => { btn.disabled = false; enforceMfa(cognitoUser).then(showApp); },
+            onSuccess: () => { btn.disabled = false; showApp(); },
             onFailure: (err) => { btn.disabled = false; loginError(err.message || 'Couldn\'t set the password. Try again.'); },
         });
     }
@@ -1049,7 +946,7 @@ const AdminShell = (() => {
                 session = await refreshSession(user, session);
             } catch (_) { /* keep session */ }
             cognitoUser = user;
-            enforceMfa(user).then(showApp);
+            showApp();
         });
     }
 
