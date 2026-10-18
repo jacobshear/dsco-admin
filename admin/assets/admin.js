@@ -6,8 +6,9 @@
  * prod Cognito pool, and the dev/staging admin routes trust that pool too
  * (backend config/shared.yml adminCognitoArnsByStage). Switching Dev/Prod
  * only changes which API the page talks to, so it never signs you out.
- * Sign-in is email + password. The authenticator-app (TOTP) requirement was
- * removed 2026-10-17; a passkey (Touch ID) is the planned second factor.
+ * Sign-in is email + password, or a passkey (Touch ID / Face ID) once one is
+ * added from the sidebar or the offer after a password sign-in. The
+ * authenticator-app (TOTP) requirement was removed 2026-10-17.
  *
  * Env selection: ?env=dev|prod (sticky on nav links, so two tabs can sit on
  * different envs), else the last env you picked, else dev.
@@ -22,6 +23,10 @@ const AdminShell = (() => {
         poolId: 'us-west-1_EJOoIz82g',
         // DscoAdminDashboard app client (created 2026-07-17; no client secret)
         clientId: '7l6em5bt2hfrg5on1t8591rgrg',
+        region: 'us-west-1',
+        // Pool WebAuthnConfiguration.RelyingPartyId: passkeys work on dsco.dev
+        // and its subdomains only, never localhost.
+        passkeyRpId: 'dsco.dev',
     };
 
     const ENV_CONFIGS = {
@@ -45,6 +50,10 @@ const AdminShell = (() => {
 
     function storageSet(store, key, value) {
         try { window[store].setItem(key, value); } catch (_) { /* private mode */ }
+    }
+
+    function storageRemove(store, key) {
+        try { window[store].removeItem(key); } catch (_) { /* private mode */ }
     }
 
     function resolveEnvName() {
@@ -163,6 +172,7 @@ const AdminShell = (() => {
         download: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>',
         play: '<path d="M7 4.5v15l12.5-7.5z"/>',
         chevron: '<path d="m9 6 6 6-6 6"/>',
+        key: '<circle cx="7.5" cy="15.5" r="5"/><path d="m11 12 9.5-9.5"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/>',
     };
 
     /** Inline SVG icon from the console's one icon family. */
@@ -492,11 +502,13 @@ const AdminShell = (() => {
                             <label for="shell-email">Email</label>
                             <input type="email" id="shell-email" autocomplete="username" required>
                         </div>
-                        <div class="field">
+                        <div class="field" id="shell-password-field">
                             <label for="shell-password">Password</label>
                             <input type="password" id="shell-password" autocomplete="current-password" required>
                         </div>
                         <button class="btn primary" id="shell-login-btn" type="submit">Sign in</button>
+                        <button class="btn" id="shell-passkey-btn" type="button" hidden>${icon('key')}Sign in with passkey</button>
+                        <button class="btn plain block" id="shell-use-password" type="button" hidden>Use your password instead</button>
                         <button class="btn plain block" id="shell-forgot-link" type="button">Forgot password?</button>
                     </form>
 
@@ -557,6 +569,7 @@ const AdminShell = (() => {
                             <div class="account-role" id="shell-account-role"></div>
                         </div>
                     </div>
+                    <button type="button" class="btn sm block" id="shell-passkeys"${passkeysAvailable ? '' : ' hidden'}>${icon('key')}Passkeys</button>
                     <button type="button" class="btn sm block" id="shell-signout">${icon('logout')}Sign out</button>
                 </div>
             </nav>
@@ -577,7 +590,17 @@ const AdminShell = (() => {
         }
 
         const on = (id, ev, fn) => document.getElementById(id).addEventListener(ev, fn);
-        on('shell-login-form', 'submit', (e) => { e.preventDefault(); login(); });
+        on('shell-login-form', 'submit', (e) => {
+            e.preventDefault();
+            if (loginMode === 'passkey') passkeySignIn(document.getElementById('shell-login-btn'));
+            else login();
+        });
+        on('shell-passkey-btn', 'click', (e) => passkeySignIn(e.currentTarget));
+        on('shell-use-password', 'click', () => {
+            setLoginMode('password');
+            document.getElementById('shell-password').focus();
+        });
+        on('shell-passkeys', 'click', openPasskeys);
         on('shell-newpw-form', 'submit', (e) => { e.preventDefault(); completeNewPassword(); });
         on('shell-forgot-form', 'submit', (e) => { e.preventDefault(); sendResetCode(); });
         on('shell-reset-form', 'submit', (e) => { e.preventDefault(); confirmReset(); });
@@ -597,6 +620,12 @@ const AdminShell = (() => {
             if (e.key === 'Escape' && document.body.classList.contains('nav-open')) setNavOpen(false);
         });
 
+        // A browser where a passkey has signed in before leads with it.
+        const saved = passkeysAvailable ? savedPasskey() : null;
+        if (saved) document.getElementById('shell-email').value = saved.username;
+        setLoginMode(saved ? 'passkey' : 'password');
+        on('shell-email', 'input', scheduleSignInWarm);
+
         // Nothing shows until the session check picks sign-in or the app.
         document.querySelectorAll('.container').forEach(el => { el.style.display = 'none'; });
     }
@@ -615,6 +644,7 @@ const AdminShell = (() => {
 
     function showLogin() {
         setAppVisible(false);
+        if (loginMode === 'passkey') signInChallenge.warm(document.getElementById('shell-email').value.trim());
     }
 
     function showApp() {
@@ -785,10 +815,7 @@ const AdminShell = (() => {
             {
                 onSuccess: (session) => {
                     done();
-                    if (!roleFromToken(session.getIdToken().getJwtToken())) {
-                        loginError('Signed in, but this account isn\'t in an admin group. Ask for super_admin, then sign out and back in.');
-                    }
-                    showApp();
+                    if (finishSignIn(session)) offerPasskey();
                 },
                 onFailure: (err) => { done(); loginError(err.message || 'Couldn\'t sign in. Try again.'); },
                 newPasswordRequired: () => { done(); showLoginPane('shell-newpw-form'); },
@@ -813,9 +840,372 @@ const AdminShell = (() => {
         const btn = document.getElementById('shell-newpw-btn');
         btn.disabled = true;
         cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
-            onSuccess: () => { btn.disabled = false; showApp(); },
+            onSuccess: (session) => { btn.disabled = false; if (finishSignIn(session)) offerPasskey(); },
             onFailure: (err) => { btn.disabled = false; loginError(err.message || 'Couldn\'t set the password. Try again.'); },
         });
+    }
+
+    /**
+     * After any sign-in: open the console, and warn (in a notice, since the
+     * sign-in overlay is gone by then) when the account has no admin group.
+     * Returns whether it has one.
+     */
+    function finishSignIn(session) {
+        const isAdmin = !!roleFromToken(session.getIdToken().getJwtToken());
+        showApp();
+        if (!isAdmin) {
+            notice('Signed in, but this account isn\'t in an admin group. Ask for super_admin, then sign out and back in.', { tone: 'bad' });
+        }
+        return isAdmin;
+    }
+
+    // ---- Passkeys (WebAuthn through Cognito choice-based sign-in) ----
+    //
+    // amazon-cognito-identity-js v6 predates USER_AUTH, so passkey calls go
+    // straight to the Cognito API. A passkey sign-in hands its tokens to the
+    // library's session store, so refresh, getValidToken and the role checks
+    // work exactly as after a password sign-in.
+    //
+    // Cognito tokens don't record how you signed in, so leading with the
+    // passkey here is a console preference, not enforcement: the password
+    // still signs in (and stays one click away, so a lost passkey can't lock
+    // anyone out).
+
+    // { username, credentialId } of the last passkey that signed in on this
+    // browser. The login form leads with it until that passkey is removed.
+    const PASSKEY_KEY = 'dscoAdmin.passkey';
+    // The pool's relying party is dsco.dev, so passkeys work nowhere else.
+    const passkeysAvailable = typeof window.PublicKeyCredential === 'function' && !!navigator.credentials
+        && (window.location.hostname === AUTH.passkeyRpId || window.location.hostname.endsWith(`.${AUTH.passkeyRpId}`));
+    let loginMode = 'password';
+
+    function savedPasskey() {
+        try {
+            const saved = JSON.parse(storageGet('localStorage', PASSKEY_KEY) || 'null');
+            return saved && saved.username && saved.credentialId ? saved : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    /** Stop leading with the saved passkey, but only if it belongs to username. */
+    function forgetPasskey(username) {
+        const saved = savedPasskey();
+        if (saved && saved.username === username) storageRemove('localStorage', PASSKEY_KEY);
+    }
+
+    function currentUsername() {
+        const user = userPool.getCurrentUser();
+        return user ? user.getUsername() : '';
+    }
+
+    function setLoginMode(mode) {
+        loginMode = mode;
+        const passkey = mode === 'passkey';
+        document.getElementById('shell-password-field').hidden = passkey;
+        document.getElementById('shell-password').required = !passkey;
+        document.getElementById('shell-login-btn').innerHTML = passkey ? `${icon('key')}Sign in with passkey` : 'Sign in';
+        document.getElementById('shell-passkey-btn').hidden = passkey || !passkeysAvailable;
+        document.getElementById('shell-use-password').hidden = !passkey;
+        document.getElementById('shell-forgot-link').hidden = passkey;
+        loginError('');
+    }
+
+    /** Unsigned Cognito API call: public operations and ones authorized by an access token in the body. */
+    async function cognito(operation, body) {
+        let response;
+        try {
+            response = await fetch(`https://cognito-idp.${AUTH.region}.amazonaws.com/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-amz-json-1.1',
+                    'X-Amz-Target': `AWSCognitoIdentityProviderService.${operation}`,
+                },
+                body: JSON.stringify(body),
+            });
+        } catch (_) {
+            throw new Error('Couldn\'t reach Cognito. Check your connection.');
+        }
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const code = String(data.__type || '').split('#').pop();
+            throw Object.assign(new Error(data.message || `${operation} failed (${response.status})`), { code });
+        }
+        return data;
+    }
+
+    // Safari only opens the passkey sheet close to the click that asked for
+    // it, so the Cognito round trip runs ahead of the click where it can: the
+    // sign-in challenge once the email is known, registration options when a
+    // passkey dialog opens. Cognito auth sessions last 3 minutes; anything
+    // older than 2 is fetched again. Each result is used once.
+    const PREFETCH_MAX_AGE_MS = 120000;
+
+    function prefetcher(load) {
+        let entry = null;
+        const fresh = (key) => entry && entry.key === key && Date.now() - entry.at < PREFETCH_MAX_AGE_MS;
+        return {
+            warm(key) {
+                if (!key || fresh(key)) return;
+                entry = { key, at: Date.now(), promise: load(key) };
+                entry.promise.catch(() => { /* take() refetches */ });
+            },
+            take(key) {
+                const hit = fresh(key) ? entry.promise : null;
+                entry = null;
+                return hit ? hit.catch(() => load(key)) : load(key);
+            },
+        };
+    }
+
+    const signInChallenge = prefetcher(username => cognito('InitiateAuth', {
+        AuthFlow: 'USER_AUTH',
+        ClientId: AUTH.clientId,
+        AuthParameters: { USERNAME: username, PREFERRED_CHALLENGE: 'WEB_AUTHN' },
+    }));
+
+    const registrationOptions = prefetcher(async () => {
+        const { CredentialCreationOptions } = await cognito('StartWebAuthnRegistration', { AccessToken: await getAccessToken() });
+        return CredentialCreationOptions;
+    });
+
+    let warmTimer = null;
+
+    /** Prefetch the sign-in challenge once the typed email looks complete. */
+    function scheduleSignInWarm() {
+        if (!passkeysAvailable) return;
+        clearTimeout(warmTimer);
+        warmTimer = setTimeout(() => {
+            const input = document.getElementById('shell-email');
+            if (input.value.trim() && input.checkValidity()) signInChallenge.warm(input.value.trim());
+        }, 500);
+    }
+
+    /** Request options from Cognito (base64url strings) to what the browser takes (buffers). */
+    function decodeCredentialIds(list) {
+        return (list || []).map(c => ({ ...c, id: fromB64url(c.id) }));
+    }
+
+    /** A PublicKeyCredential as the RegistrationResponseJSON / AuthenticationResponseJSON Cognito expects. */
+    function credentialJson(credential) {
+        const r = credential.response;
+        const response = { clientDataJSON: toB64url(r.clientDataJSON) };
+        if (r.attestationObject) {
+            response.attestationObject = toB64url(r.attestationObject);
+            response.transports = typeof r.getTransports === 'function' ? r.getTransports() : [];
+        } else {
+            response.authenticatorData = toB64url(r.authenticatorData);
+            response.signature = toB64url(r.signature);
+            if (r.userHandle) response.userHandle = toB64url(r.userHandle);
+        }
+        const json = {
+            id: credential.id,
+            rawId: toB64url(credential.rawId),
+            type: credential.type,
+            response,
+            clientExtensionResults: typeof credential.getClientExtensionResults === 'function'
+                ? credential.getClientExtensionResults() : {},
+        };
+        if (credential.authenticatorAttachment) json.authenticatorAttachment = credential.authenticatorAttachment;
+        return json;
+    }
+
+    function passkeyErrorMessage(err, action) {
+        switch (err && err.name) {
+            case 'NotAllowedError': return `${action} was cancelled or timed out.`;
+            case 'SecurityError': return `Passkeys only work on ${AUTH.passkeyRpId}.`;
+            case 'InvalidStateError': return 'This device already has a passkey for this account.';
+            default: return (err && err.message) || `${action} didn't work. Try again.`;
+        }
+    }
+
+    /** Hand tokens from a direct Cognito call to the library, as a password sign-in would. */
+    function storeSession(result) {
+        const C = AmazonCognitoIdentity;
+        const session = new C.CognitoUserSession({
+            IdToken: new C.CognitoIdToken({ IdToken: result.IdToken }),
+            AccessToken: new C.CognitoAccessToken({ AccessToken: result.AccessToken }),
+            RefreshToken: new C.CognitoRefreshToken({ RefreshToken: result.RefreshToken }),
+        });
+        const username = (decodeJwtPayload(result.AccessToken) || {}).username;
+        cognitoUser = new C.CognitoUser({ Username: username, Pool: userPool });
+        cognitoUser.setSignInUserSession(session);
+        return session;
+    }
+
+    async function passkeySignIn(button) {
+        const emailInput = document.getElementById('shell-email');
+        const email = emailInput.value.trim();
+        if (!email) {
+            emailInput.focus();
+            return loginError('Enter your email.');
+        }
+        loginError('');
+        await busy(button, async () => {
+            try {
+                const start = await signInChallenge.take(email);
+                if (start.ChallengeName !== 'WEB_AUTHN') {
+                    forgetPasskey(email);
+                    setLoginMode('password');
+                    return loginError('No passkey for this email yet. Sign in with your password, then add one.');
+                }
+                const options = JSON.parse(start.ChallengeParameters.CREDENTIAL_REQUEST_OPTIONS);
+                // The passkey this browser last used is gone: lead with the
+                // password next time unless another passkey signs in now.
+                const saved = savedPasskey();
+                if (saved && saved.username === email && !(options.allowCredentials || []).some(c => c.id === saved.credentialId)) {
+                    forgetPasskey(email);
+                }
+                const credential = await navigator.credentials.get({
+                    publicKey: {
+                        ...options,
+                        challenge: fromB64url(options.challenge),
+                        allowCredentials: decodeCredentialIds(options.allowCredentials),
+                    },
+                });
+                const done = await cognito('RespondToAuthChallenge', {
+                    ChallengeName: 'WEB_AUTHN',
+                    ClientId: AUTH.clientId,
+                    Session: start.Session,
+                    ChallengeResponses: { USERNAME: email, CREDENTIAL: JSON.stringify(credentialJson(credential)) },
+                });
+                if (!done.AuthenticationResult) throw new Error('Cognito asked for another step this console doesn\'t support.');
+                const session = storeSession(done.AuthenticationResult);
+                storageSet('localStorage', PASSKEY_KEY, JSON.stringify({ username: cognitoUser.getUsername(), credentialId: credential.id }));
+                finishSignIn(session);
+            } catch (err) {
+                loginError(passkeyErrorMessage(err, 'Passkey sign-in'));
+                // The challenge is spent; have the next one ready for a retry.
+                signInChallenge.warm(email);
+            }
+        });
+    }
+
+    /** Access token for the signed-in user (the passkey APIs take it, not the ID token). */
+    function getAccessToken() {
+        return new Promise((resolve, reject) => {
+            const user = userPool.getCurrentUser();
+            if (!user) return reject(new Error('Not signed in'));
+            user.getSession((err, session) => {
+                if (err || !session || !session.isValid()) return reject(err || new Error('Your session expired. Sign in again.'));
+                resolve(session.getAccessToken().getJwtToken());
+            });
+        });
+    }
+
+    async function listPasskeys() {
+        const data = await cognito('ListWebAuthnCredentials', { AccessToken: await getAccessToken(), MaxResults: 20 });
+        return data.Credentials || [];
+    }
+
+    /** Register a passkey on this device. Resolves true once Cognito has it. */
+    async function addPasskey() {
+        try {
+            const options = await registrationOptions.take(currentUsername());
+            const credential = await navigator.credentials.create({
+                publicKey: {
+                    ...options,
+                    challenge: fromB64url(options.challenge),
+                    user: { ...options.user, id: fromB64url(options.user.id) },
+                    excludeCredentials: decodeCredentialIds(options.excludeCredentials),
+                },
+            });
+            await cognito('CompleteWebAuthnRegistration', { AccessToken: await getAccessToken(), Credential: credentialJson(credential) });
+            notice('Passkey added. Next time you sign in, choose Sign in with passkey.', { tone: 'good', timeout: 8000 });
+            return true;
+        } catch (err) {
+            notice(passkeyErrorMessage(err, 'Adding the passkey'), { tone: 'bad' });
+            registrationOptions.warm(currentUsername()); // ready for a retry
+            return false;
+        }
+    }
+
+    /** After a password sign-in, offer a passkey once if the account has none. */
+    async function offerPasskey() {
+        if (!passkeysAvailable) return;
+        let existing;
+        try {
+            existing = await listPasskeys();
+        } catch (_) {
+            return; // the offer is optional; never get in the way of the console
+        }
+        if (existing.length) return;
+        registrationOptions.warm(currentUsername());
+        dialog({
+            title: 'Add a passkey?',
+            body: '<p>Sign in with Touch ID or Face ID next time instead of typing your password.</p>',
+            actions: [
+                { label: 'Not now', onClick: (close) => close() },
+                {
+                    label: 'Add passkey',
+                    kind: 'primary',
+                    onClick: (close, b) => busy(b, async () => { if (await addPasskey()) close(); }),
+                },
+            ],
+        });
+    }
+
+    /** Sidebar Passkeys dialog: list, add and remove this account's passkeys. */
+    function openPasskeys() {
+        const me = currentUsername();
+        registrationOptions.warm(me);
+        const body = document.createElement('div');
+        dialog({
+            title: 'Passkeys',
+            body,
+            actions: [{
+                label: 'Add a passkey',
+                kind: 'primary',
+                onClick: (close, b) => busy(b, async () => {
+                    if (!(await addPasskey())) return;
+                    registrationOptions.warm(me); // for another add from this dialog
+                    render();
+                }),
+            }],
+        });
+
+        async function remove(id, name) {
+            const ok = await confirm({
+                title: `Remove ${name}?`,
+                body: 'It will no longer sign you in to this console.',
+                confirmLabel: 'Remove',
+            });
+            if (!ok) return;
+            try {
+                await cognito('DeleteWebAuthnCredential', { AccessToken: await getAccessToken(), CredentialId: id });
+            } catch (err) {
+                notice(err.message || 'Couldn\'t remove the passkey.', { tone: 'bad' });
+            }
+            render();
+        }
+
+        async function render() {
+            loading(body);
+            let items;
+            try {
+                items = await listPasskeys();
+            } catch (err) {
+                return error(body, { title: 'Couldn\'t load your passkeys', error: err, onRetry: render });
+            }
+            const saved = savedPasskey();
+            const usedHere = saved && saved.username === me ? saved.credentialId : null;
+            if (usedHere && !items.some(c => c.CredentialId === usedHere)) forgetPasskey(me);
+            body.innerHTML = `
+                <p class="muted">Sign in with Touch ID or Face ID. Your password still works too.</p>
+                ${items.length ? `<ul class="passkey-list">${items.map(c => `
+                    <li>
+                        <div class="passkey-name">${esc(c.FriendlyCredentialName || 'Passkey')}
+                            <span class="faint">Added ${esc(time(c.CreatedAt))}${c.CredentialId === usedHere ? ' · signs in on this browser' : ''}</span></div>
+                        <button type="button" class="btn sm danger" data-remove="${esc(c.CredentialId)}"
+                            data-name="${esc(c.FriendlyCredentialName || 'this passkey')}">Remove</button>
+                    </li>`).join('')}</ul>`
+                : '<p class="passkey-empty">No passkeys yet.</p>'}`;
+            body.querySelectorAll('[data-remove]').forEach(btn => {
+                btn.addEventListener('click', () => remove(btn.dataset.remove, btn.dataset.name));
+            });
+        }
+
+        render();
     }
 
     function signOut() {
@@ -870,10 +1260,21 @@ const AdminShell = (() => {
         return current;
     }
 
+    function fromB64url(value) {
+        const b64 = String(value).replace(/-/g, '+').replace(/_/g, '/');
+        const binary = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+        return Uint8Array.from(binary, c => c.charCodeAt(0)).buffer;
+    }
+
+    function toB64url(buffer) {
+        let binary = '';
+        new Uint8Array(buffer).forEach(b => { binary += String.fromCharCode(b); });
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
     function decodeJwtPayload(token) {
         try {
-            const part = token.split('.')[1];
-            return JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/')));
+            return JSON.parse(new TextDecoder().decode(fromB64url(token.split('.')[1])));
         } catch (_) {
             return null;
         }

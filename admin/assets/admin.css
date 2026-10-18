@@ -264,6 +264,8 @@ body.shell-on .container { margin-left: var(--sidebar-w); }
 
 .account-role { font-size: 12px; color: var(--text-3); }
 
+.sidebar-foot .btn:not([hidden]) + .btn { margin-top: 6px; }
+
 /* Env switch. Prod is loud on purpose: an armed prod console must be
    unmistakable (strip across the top, red label, PROD in the tab title). */
 .env-switch { width: 100%; }
@@ -1096,6 +1098,13 @@ dialog.dlg::backdrop { background: var(--scrim); }
 .login-box .field input { width: 100%; }
 .login-box .btn { width: 100%; min-height: 40px; margin-top: 4px; }
 .login-box .btn.plain { min-height: 32px; margin-top: 8px; color: var(--text-2); }
+
+/* Passkeys dialog (sidebar) */
+.passkey-list { list-style: none; margin: 14px 0 4px; padding: 0; border-top: 1px solid var(--border); }
+.passkey-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.passkey-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.passkey-name .faint { display: block; font-size: 12px; }
+.passkey-empty { margin-top: 12px; color: var(--text-2); }
 
 .login-box .login-error {
     display: none;
