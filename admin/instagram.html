@@ -84,6 +84,22 @@
 
         .ig-tz { margin: -4px 0 14px; font-size: 12px; color: var(--text-3); }
 
+        /* Repeats: a checkbox row, the day toggles, and the time inputs (admin.css has no type=time rule). */
+        .field > .check { align-self: flex-start; }
+        .ig-days { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+
+        input[type="time"] {
+            min-height: 34px;
+            padding: 7px 11px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--r);
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.12s;
+        }
+
         @media (max-width: 760px) {
             .ig-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
         }
@@ -151,17 +167,77 @@
                             <div class="hint"><span id="ig-bio-count">0</span> of 500</div>
                         </div>
 
-                        <div class="ig-row">
-                            <div class="field">
-                                <label for="ig-start">Starts <span class="required" aria-hidden="true">*</span></label>
-                                <input type="datetime-local" id="ig-start">
+                        <div id="ig-once">
+                            <div class="ig-row">
+                                <div class="field">
+                                    <label for="ig-start">Starts <span class="required" aria-hidden="true">*</span></label>
+                                    <input type="datetime-local" id="ig-start">
+                                </div>
+                                <div class="field">
+                                    <label for="ig-end">Ends</label>
+                                    <input type="datetime-local" id="ig-end">
+                                </div>
                             </div>
-                            <div class="field">
-                                <label for="ig-end">Ends</label>
-                                <input type="datetime-local" id="ig-end">
-                            </div>
+                            <p class="ig-tz">Times are in your browser time zone: <span class="mono" id="ig-tz"></span></p>
                         </div>
-                        <p class="ig-tz">Times are in your browser time zone: <span class="mono" id="ig-tz"></span></p>
+
+                        <div class="field">
+                            <label class="check" for="ig-repeats">
+                                <input type="checkbox" id="ig-repeats">
+                                Repeats on a schedule
+                            </label>
+                        </div>
+
+                        <div id="ig-repeat" hidden>
+                            <div class="ig-row">
+                                <div class="field">
+                                    <label for="ig-from">From <span class="required" aria-hidden="true">*</span></label>
+                                    <input type="date" id="ig-from">
+                                </div>
+                                <div class="field">
+                                    <label for="ig-until">Until <span class="required" aria-hidden="true">*</span></label>
+                                    <input type="date" id="ig-until">
+                                </div>
+                            </div>
+
+                            <div class="field" role="group" aria-labelledby="ig-days-label">
+                                <span class="field-label" id="ig-days-label">Days <span class="required" aria-hidden="true">*</span></span>
+                                <div class="ig-days">
+                                    <label class="check"><input type="checkbox" id="ig-day-mon" checked> Mon</label>
+                                    <label class="check"><input type="checkbox" id="ig-day-tue" checked> Tue</label>
+                                    <label class="check"><input type="checkbox" id="ig-day-wed" checked> Wed</label>
+                                    <label class="check"><input type="checkbox" id="ig-day-thu" checked> Thu</label>
+                                    <label class="check"><input type="checkbox" id="ig-day-fri" checked> Fri</label>
+                                    <label class="check"><input type="checkbox" id="ig-day-sat" checked> Sat</label>
+                                    <label class="check"><input type="checkbox" id="ig-day-sun" checked> Sun</label>
+                                </div>
+                            </div>
+
+                            <p class="ig-tz" id="ig-hours-kept" hidden>This pin has different hours on different days, set outside the console. Saving keeps them; only From and Until change here.</p>
+
+                            <div class="field">
+                                <label class="check" for="ig-allday">
+                                    <input type="checkbox" id="ig-allday" checked>
+                                    All day
+                                </label>
+                            </div>
+
+                            <div id="ig-hours" hidden>
+                                <div class="ig-row">
+                                    <div class="field">
+                                        <label for="ig-open">Opens <span class="required" aria-hidden="true">*</span></label>
+                                        <input type="time" id="ig-open">
+                                    </div>
+                                    <div class="field">
+                                        <label for="ig-close">Closes <span class="required" aria-hidden="true">*</span></label>
+                                        <input type="time" id="ig-close">
+                                    </div>
+                                </div>
+                                <p class="ig-tz">A closing time earlier than the opening time means it closes after midnight.</p>
+                            </div>
+
+                            <p class="ig-tz">Dates and times are in <span class="mono" id="ig-tz-repeat"></span></p>
+                        </div>
 
                         <div class="field">
                             <label for="ig-venue">Venue name</label>
@@ -219,6 +295,12 @@
         let posterColorPromise = Promise.resolve(null);
         let fetchSeq = 0;               // drops responses from a superseded fetch
         let submitting = false;
+        let ruleTz = '';
+        let ruleHours = null;           // a saved per-day hours list the form can't show; sent back as-is                // time zone of a saved schedule, kept when it is saved again
+
+        const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+        const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
         // ---- Small helpers ----
 
@@ -421,6 +503,53 @@
             $('ig-bio-count').textContent = String($('ig-bio').value.length);
         }
 
+        // ---- Repeats ----
+
+        /** The zone the server reads the dates and times in. A saved schedule keeps its own. */
+        function eventZone() {
+            return ($('ig-repeats').checked && ruleTz) || TIME_ZONE || null;
+        }
+
+        /** Show the single-time or the schedule fields to match the checkboxes. */
+        function syncRepeatUi() {
+            const on = $('ig-repeats').checked;
+            $('ig-once').hidden = on;
+            $('ig-repeat').hidden = !on;
+            $('ig-hours').hidden = $('ig-allday').checked;
+            $('ig-tz-repeat').textContent = eventZone() || 'unknown';
+        }
+
+        /** Fill the Repeats section from a pin's session_rule, or reset it when there is none. */
+        function fillRepeat(rule) {
+            const r = rule && typeof rule === 'object' && !Array.isArray(rule) ? rule : null;
+            const days = r && Array.isArray(r.days) ? r.days.map((d) => String(d).toLowerCase()) : DAYS;
+            const datePart = (v) => (DATE_RE.test(String(v ?? '').slice(0, 10)) ? String(v).slice(0, 10) : '');
+            const timePart = (v) => (/^\d{2}:\d{2}/.test(String(v ?? '')) ? String(v).slice(0, 5) : '');
+
+            const open = r ? timePart(r.open) : '';
+            const close = r ? timePart(r.close) : '';
+            const allDay = !r || (!open && !close) || (open === '00:00' && close === '24:00');
+
+            ruleTz = r && typeof r.tz === 'string' ? r.tz : '';
+            // A multi-hours schedule (different hours per day, holiday overrides)
+            // has no single days/open/close for this form. Keep it whole and lock
+            // the fields, so saving from here can't flatten it to "daily, all day".
+            ruleHours = r && Array.isArray(r.hours) && r.hours.length ? r.hours : null;
+            $('ig-hours-kept').hidden = !ruleHours;
+            for (const el of document.querySelectorAll('#ig-repeat [id^="ig-day-"], #ig-allday, #ig-open, #ig-close')) {
+                el.disabled = !!ruleHours;
+            }
+            $('ig-repeats').checked = !!r;
+            $('ig-from').value = r ? datePart(r.from) : '';
+            $('ig-until').value = r ? datePart(r.until) : '';
+            for (const d of DAYS) $(`ig-day-${d}`).checked = days.includes(d);
+            $('ig-allday').checked = allDay;
+            // A time input can't hold 24:00; after an evening opening it means the same as 00:00.
+            $('ig-open').value = allDay ? '' : open;
+            $('ig-close').value = allDay ? '' : (close === '24:00' ? '00:00' : close);
+            syncRepeatUi();
+        }
+
         function showReview(data) {
             preview = data;
             const pin = data.existing_pin || null;
@@ -462,6 +591,7 @@
             $('ig-address').value = address;
             $('ig-coords').value = coords;
             updateBioCount();
+            fillRepeat(pin ? pin.session_rule : null);
 
             $('existing-notice').hidden = !pin;
             resultPanel.hidden = true;
@@ -494,10 +624,36 @@
 
         const COORDS_RE = /^(-?\d+(?:\.\d+)?)\s*(?:,|\s)\s*(-?\d+(?:\.\d+)?)$/;
 
+        const fail = (id, message) => ({ error: { id, message } });
+
+        /** { repeat } for the seed call, or { error } for the first bad schedule field. */
+        function readRepeat() {
+            const from = $('ig-from').value;
+            if (!from) return fail('ig-from', 'Enter a From date.');
+            if (!DATE_RE.test(from)) return fail('ig-from', "That From date isn't valid.");
+            const until = $('ig-until').value;
+            if (!until) return fail('ig-until', 'Enter an Until date.');
+            if (!DATE_RE.test(until)) return fail('ig-until', "That Until date isn't valid.");
+            if (until < from) return fail('ig-until', 'Until must be on or after From.');
+            if (ruleHours) return { repeat: { from, until, hours: ruleHours } };
+
+            const days = DAYS.filter((d) => $(`ig-day-${d}`).checked);
+            if (!days.length) return fail('ig-day-mon', 'Pick at least one day.');
+
+            let open = '00:00';
+            let close = '24:00';
+            if (!$('ig-allday').checked) {
+                open = $('ig-open').value;
+                if (!TIME_RE.test(open)) return fail('ig-open', 'Enter an opening time.');
+                close = $('ig-close').value;
+                if (!TIME_RE.test(close)) return fail('ig-close', 'Enter a closing time.');
+            }
+
+            return { repeat: { from, until, days, open, close } };
+        }
+
         /** { body } for the seed call, or { error: { id, message } } for the first bad field. */
         function readForm() {
-            const fail = (id, message) => ({ error: { id, message } });
-
             const emoji = $('ig-emoji').value.trim();
             if (!emoji) return fail('ig-emoji', 'Enter one emoji.');
             if (!isSingleEmoji(emoji)) return fail('ig-emoji', 'Use a single emoji.');
@@ -509,18 +665,27 @@
             const bio = $('ig-bio').value.trim();
             if (bio.length > BIO_MAX) return fail('ig-bio', `Keep the bio to ${BIO_MAX} characters.`);
 
-            // A datetime-local value parses as browser-local time.
-            const startValue = $('ig-start').value;
-            if (!startValue) return fail('ig-start', 'Enter a start time.');
-            const start = new Date(startValue);
-            if (Number.isNaN(start.getTime())) return fail('ig-start', "That start time isn't valid.");
-
+            // Either one start/end, or a repeating schedule (which skips Starts / Ends).
+            let start = null;
             let end = null;
-            const endValue = $('ig-end').value;
-            if (endValue) {
-                end = new Date(endValue);
-                if (Number.isNaN(end.getTime())) return fail('ig-end', "That end time isn't valid.");
-                if (end.getTime() <= start.getTime()) return fail('ig-end', 'The end must be after the start.');
+            let repeat = null;
+            if ($('ig-repeats').checked) {
+                const schedule = readRepeat();
+                if (schedule.error) return schedule;
+                repeat = schedule.repeat;
+            } else {
+                // A datetime-local value parses as browser-local time.
+                const startValue = $('ig-start').value;
+                if (!startValue) return fail('ig-start', 'Enter a start time.');
+                start = new Date(startValue);
+                if (Number.isNaN(start.getTime())) return fail('ig-start', "That start time isn't valid.");
+
+                const endValue = $('ig-end').value;
+                if (endValue) {
+                    end = new Date(endValue);
+                    if (Number.isNaN(end.getTime())) return fail('ig-end', "That end time isn't valid.");
+                    if (end.getTime() <= start.getTime()) return fail('ig-end', 'The end must be after the start.');
+                }
             }
 
             const venue = $('ig-venue').value.trim();
@@ -539,22 +704,20 @@
             }
             if (!address && latitude == null) return fail('ig-address', 'Enter an address or coordinates.');
 
-            return {
-                body: {
-                    url: preview.post_url,
-                    title,
-                    emoji,
-                    bio,
-                    start_time: start.toISOString(),
-                    end_time: end ? end.toISOString() : null,
-                    event_timezone: TIME_ZONE || null,
-                    venue_name: venue || null,
-                    address: address || null,
-                    latitude,
-                    longitude,
-                    poster_color: posterColor,
-                },
-            };
+            const body = { url: preview.post_url, title, emoji, bio };
+            if (repeat) {
+                body.repeat = repeat;
+            } else {
+                body.start_time = start.toISOString();
+                body.end_time = end ? end.toISOString() : null;
+            }
+            body.event_timezone = eventZone();
+            body.venue_name = venue || null;
+            body.address = address || null;
+            body.latitude = latitude;
+            body.longitude = longitude;
+            body.poster_color = posterColor;
+            return { body };
         }
 
         // ---- Step 3: seed ----
@@ -583,6 +746,14 @@
             if (from || until) {
                 rows.push(['Visible', from && until ? `${esc(from)} to ${esc(until)}` : from ? `From ${esc(from)}` : `Until ${esc(until)}`]);
             }
+
+            // Repeating seeds also report the next session and when the run ends.
+            const next = data.next_session && typeof data.next_session === 'object' ? data.next_session : null;
+            const nextStart = next && next.start ? ui.time(next.start) : '';
+            const nextEnd = next && next.end ? ui.time(next.end) : '';
+            if (nextStart) rows.push(['Next session', nextEnd ? `${esc(nextStart)} to ${esc(nextEnd)}` : esc(nextStart)]);
+            const runsUntil = data.run_until ? ui.time(data.run_until) : '';
+            if (runsUntil) rows.push(['Runs until', esc(runsUntil)]);
 
             $('result-kv').innerHTML = rows.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${value}</dd>`).join('');
 
@@ -648,6 +819,9 @@
             seedPin(e.currentTarget);
         });
         $('ig-bio').addEventListener('input', updateBioCount);
+        $('ig-repeats').addEventListener('change', syncRepeatUi);
+        $('ig-allday').addEventListener('change', syncRepeatUi);
+        syncRepeatUi();
         $('seed-another').addEventListener('click', startOver);
 
         AdminShell.init({ active: 'instagram.html', title: 'Instagram events', onReady: () => $('ig-url').focus() });
