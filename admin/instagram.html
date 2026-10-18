@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Instagram events · DSCO admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <link rel="stylesheet" href="assets/admin.css">
+    <style>
+        /* Page-specific: the link row, the poster well and the review layout. */
+        .ig-url-row { flex-wrap: nowrap; }
+        .ig-url-row input { flex: 1 1 auto; min-width: 0; }
+
+        .ig-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 10px 14px;
+            border-radius: var(--r);
+            background: var(--accent-bg);
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .ig-notice .icon { margin-top: 3px; }
+
+        .ig-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+
+        .ig-poster {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            padding: 8px;
+            border-radius: var(--r);
+            background: var(--surface-2);
+        }
+
+        /* Contained, never cropped. */
+        .ig-poster img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 420px;
+            object-fit: contain;
+            border-radius: var(--r-sm);
+        }
+
+        .ig-poster .no-poster { padding: 24px 8px; font-size: 13px; color: var(--text-3); text-align: center; }
+
+        .ig-source { margin-top: 12px; font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
+        .ig-source .handle { font-weight: 600; color: var(--text); }
+        .ig-source .btn { margin-top: 10px; }
+
+        .ig-color { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--text-2); }
+
+        .ig-swatch {
+            width: 18px;
+            height: 18px;
+            flex: none;
+            border-radius: 50%;
+            border: 1px solid var(--border-strong);
+        }
+
+        .ig-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 0 14px;
+        }
+
+        .ig-row.emoji-title { grid-template-columns: 88px minmax(0, 1fr); }
+        #ig-emoji { font-size: 18px; text-align: center; }
+
+        .ig-tz { margin: -4px 0 14px; font-size: 12px; color: var(--text-3); }
+
+        @media (max-width: 760px) {
+            .ig-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+        }
+
+        @media (max-width: 520px) {
+            .ig-row { grid-template-columns: minmax(0, 1fr); }
+            .ig-row.emoji-title { grid-template-columns: 72px minmax(0, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="panel">
+            <div class="panel-head">
+                <h2>Post link</h2>
+                <span class="hint">Public posts only</span>
+            </div>
+            <form id="fetch-form" novalidate>
+                <div class="field">
+                    <label for="ig-url">Instagram post link</label>
+                    <div class="btn-row ig-url-row">
+                        <input type="text" id="ig-url" placeholder="https://www.instagram.com/p/…" autocomplete="off" spellcheck="false">
+                        <button type="submit" class="btn primary" id="fetch-btn">Fetch</button>
+                    </div>
+                </div>
+            </form>
+            <div id="fetch-state"></div>
+        </section>
+
+        <section class="panel" id="review-panel" hidden>
+            <div class="panel-head">
+                <h2>Event details</h2>
+                <span class="hint">Fill in the time and place</span>
+            </div>
+
+            <div class="ig-notice" id="existing-notice" hidden></div>
+
+            <form id="seed-form" novalidate>
+                <div class="ig-layout">
+                    <div>
+                        <div class="ig-poster" id="ig-poster"></div>
+                        <div class="ig-source" id="ig-source"></div>
+                        <div class="ig-color">
+                            <span>Poster colour</span>
+                            <span class="ig-swatch" id="ig-swatch" hidden></span>
+                            <span id="ig-color-text"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="ig-row emoji-title">
+                            <div class="field">
+                                <label for="ig-emoji">Emoji <span class="required" aria-hidden="true">*</span></label>
+                                <input type="text" id="ig-emoji" maxlength="16" autocomplete="off">
+                            </div>
+                            <div class="field">
+                                <label for="ig-title">Title <span class="required" aria-hidden="true">*</span></label>
+                                <input type="text" id="ig-title" maxlength="80" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="ig-bio">Bio</label>
+                            <textarea id="ig-bio" maxlength="500"></textarea>
+                            <div class="hint"><span id="ig-bio-count">0</span> of 500</div>
+                        </div>
+
+                        <div class="ig-row">
+                            <div class="field">
+                                <label for="ig-start">Starts <span class="required" aria-hidden="true">*</span></label>
+                                <input type="datetime-local" id="ig-start">
+                            </div>
+                            <div class="field">
+                                <label for="ig-end">Ends</label>
+                                <input type="datetime-local" id="ig-end">
+                            </div>
+                        </div>
+                        <p class="ig-tz">Times are in your browser time zone: <span class="mono" id="ig-tz"></span></p>
+
+                        <div class="field">
+                            <label for="ig-venue">Venue name</label>
+                            <input type="text" id="ig-venue" autocomplete="off">
+                        </div>
+                        <div class="field">
+                            <label for="ig-address">Address</label>
+                            <input type="text" id="ig-address" autocomplete="off">
+                        </div>
+                        <div class="field">
+                            <label for="ig-coords">Coordinates</label>
+                            <input type="text" id="ig-coords" placeholder="34.0901, -118.3617 — paste from Google Maps to skip geocoding" autocomplete="off" spellcheck="false">
+                            <div class="hint">Needs an address or coordinates. Coordinates win if the address isn't found.</div>
+                        </div>
+
+                        <div class="btn-row">
+                            <button type="submit" class="btn primary" id="seed-btn">Seed pin</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel" id="result-panel" hidden>
+            <div class="panel-head">
+                <h2 id="result-title">Seeded</h2>
+                <span class="hint" id="result-name"></span>
+            </div>
+            <dl class="kv" id="result-kv"></dl>
+            <div class="item-actions">
+                <button type="button" class="btn primary" id="seed-another">Seed another</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="assets/admin.js"></script>
+    <script>
+        const { ui } = AdminShell;
+        const { esc } = ui;
+
+        const TITLE_MAX = 80;
+        const BIO_MAX = 500;
+        const TIME_ZONE = (() => {
+            try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) { return ''; }
+        })();
+
+        const $ = (id) => document.getElementById(id);
+
+        const fetchState = $('fetch-state');
+        const reviewPanel = $('review-panel');
+        const resultPanel = $('result-panel');
+
+        let preview = null;             // the last successful preview response
+        let posterColor = null;         // "#RRGGBB" or null, computed from the poster
+        let posterColorPromise = Promise.resolve(null);
+        let fetchSeq = 0;               // drops responses from a superseded fetch
+        let submitting = false;
+
+        // ---- Small helpers ----
+
+        const segmenter = typeof Intl.Segmenter === 'function'
+            ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+            : null;
+
+        function graphemes(text) {
+            return segmenter ? Array.from(segmenter.segment(text), s => s.segment) : Array.from(text);
+        }
+
+        /** One emoji: a single grapheme with something beyond ASCII in it. */
+        function isSingleEmoji(text) {
+            const parts = graphemes(text);
+            const oneOrFew = segmenter ? parts.length === 1 : parts.length >= 1 && parts.length <= 8;
+            return oneOrFew && /[^\x00-\x7F]/.test(text);
+        }
+
+        /** Trim to a length without splitting a surrogate pair. */
+        function clip(text, max) {
+            const s = String(text ?? '').trim();
+            if (s.length <= max) return s;
+            let out = s.slice(0, max);
+            const last = out.charCodeAt(out.length - 1);
+            if (last >= 0xD800 && last <= 0xDBFF) out = out.slice(0, -1);
+            return out.trimEnd();
+        }
+
+        const LEADING_EMOJI_RE = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|[‍️⃣]|\s)+/u;
+
+        /** "🎉  Title" -> { emoji: "🎉", title: "Title" }. */
+        function splitPinName(name) {
+            const text = String(name ?? '');
+            const match = LEADING_EMOJI_RE.exec(text);
+            if (!match) return { emoji: '', title: text.trim() };
+            return {
+                emoji: graphemes(match[0].trim())[0] || '',
+                title: text.slice(match[0].length).trim(),
+            };
+        }
+
+        const pad = (n) => String(n).padStart(2, '0');
+
+        /** ISO instant -> datetime-local value in the browser's time zone. */
+        function toLocalInput(iso) {
+            const d = ui.toDate(iso);
+            if (!d) return '';
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        /** "Apr 30" (year added when it isn't this year). A bare date stays on its day. */
+        function postedLabel(value) {
+            if (!value) return '';
+            const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+            const d = bare ? new Date(Number(bare[1]), Number(bare[2]) - 1, Number(bare[3])) : ui.toDate(value);
+            if (!d) return '';
+            const opts = { month: 'short', day: 'numeric' };
+            if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+            return d.toLocaleDateString([], opts);
+        }
+
+        /** Only Instagram https links become hrefs. */
+        function safePostUrl(url) {
+            return typeof url === 'string' && /^https:\/\/(www\.)?instagram\.com\/\S*$/i.test(url) ? url : null;
+        }
+
+        function invalid(id, message) {
+            $(id).focus();
+            ui.notice(message, { tone: 'bad', timeout: 4000 });
+        }
+
+        // ---- Poster colour ----
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const l = (max + min) / 2;
+            const d = max - min;
+            if (d === 0) return [0, 0, l];
+            const s = d / (1 - Math.abs(2 * l - 1));
+            let h;
+            if (max === r) h = ((g - b) / d) % 6;
+            else if (max === g) h = (b - r) / d + 2;
+            else h = (r - g) / d + 4;
+            h *= 60;
+            if (h < 0) h += 360;
+            return [h, s, l];
+        }
+
+        /**
+         * Dominant vibrant colour of an image (or canvas): sample at 64x64, drop
+         * washed-out, near-black and near-white pixels, bucket the rest into 24
+         * hue bins weighted by saturation, and average the heaviest bin.
+         * Returns "#RRGGBB" or null when no pixel qualifies.
+         */
+        function dominantVibrantColor(source) {
+            const size = 64;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            if (!ctx) return null;
+            ctx.drawImage(source, 0, 0, size, size);
+            let data;
+            try {
+                data = ctx.getImageData(0, 0, size, size).data;
+            } catch (_) {
+                return null;
+            }
+
+            const bins = Array.from({ length: 24 }, () => ({ weight: 0, r: 0, g: 0, b: 0, n: 0 }));
+            for (let i = 0; i < data.length; i += 4) {
+                const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+                if (s < 0.28 || l < 0.12 || l > 0.88) continue;
+                const bin = bins[Math.floor(h / 15) % 24];
+                bin.weight += s;
+                bin.r += data[i];
+                bin.g += data[i + 1];
+                bin.b += data[i + 2];
+                bin.n += 1;
+            }
+
+            let best = null;
+            for (const bin of bins) {
+                if (bin.n && (!best || bin.weight > best.weight)) best = bin;
+            }
+            if (!best) return null;
+            const hex = (sum) => Math.round(sum / best.n).toString(16).padStart(2, '0');
+            return `#${hex(best.r)}${hex(best.g)}${hex(best.b)}`.toUpperCase();
+        }
+
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error("Couldn't read the poster image."));
+                img.src = src;
+            });
+        }
+
+        function renderColor(color) {
+            const swatch = $('ig-swatch');
+            swatch.hidden = !color;
+            if (color) swatch.style.background = color;
+            $('ig-color-text').innerHTML = color
+                ? `<span class="mono">${esc(color)}</span>`
+                : '<span class="faint">None found. The emoji colour is used.</span>';
+        }
+
+        // ---- Rendering the review ----
+
+        function renderPoster(data) {
+            const well = $('ig-poster');
+            well.textContent = '';
+            posterColor = null;
+
+            // The base64 is the only safe way to show the poster: Instagram's CDN
+            // blocks cross-origin image loads, so image_url never goes in an <img>.
+            const base64 = typeof data.image_base64 === 'string' ? data.image_base64.replace(/\s/g, '') : '';
+            if (!base64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
+                well.innerHTML = '<div class="no-poster">No poster image</div>';
+                posterColorPromise = Promise.resolve(null);
+                renderColor(null);
+                return;
+            }
+
+            const src = `data:image/jpeg;base64,${base64}`;
+            const img = document.createElement('img');
+            img.alt = 'Poster from the Instagram post';
+            img.src = src;
+            well.appendChild(img);
+
+            $('ig-swatch').hidden = true;
+            $('ig-color-text').textContent = '';
+            posterColorPromise = loadImage(src)
+                .then(dominantVibrantColor)
+                .catch(() => null)
+                .then((color) => {
+                    if (preview === data) {
+                        posterColor = color;
+                        renderColor(color);
+                    }
+                    return color;
+                });
+        }
+
+        function renderSource(data) {
+            const parts = [];
+            if (data.username) parts.push(`<span class="handle">@${esc(data.username)}</span>`);
+            if (data.display_name && data.display_name !== data.username) parts.push(esc(data.display_name));
+            const posted = postedLabel(data.posted_at);
+            if (posted) parts.push(esc(posted));
+            const link = safePostUrl(data.post_url);
+            $('ig-source').innerHTML = `${parts.length ? `<div>${parts.join(' · ')}</div>` : ''}` +
+                (link ? `<a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Open post${ui.icon('external')}</a>` : '');
+        }
+
+        function updateBioCount() {
+            $('ig-bio-count').textContent = String($('ig-bio').value.length);
+        }
+
+        function showReview(data) {
+            preview = data;
+            const pin = data.existing_pin || null;
+
+            renderPoster(data);
+            renderSource(data);
+
+            let emoji = data.suggested_emoji || '';
+            let title = data.suggested_title || '';
+            let bio = data.caption || '';
+            let start = '';
+            let end = '';
+            let venue = '';
+            let address = '';
+            let coords = '';
+
+            if (pin) {
+                const name = splitPinName(pin.pin_name);
+                emoji = name.emoji || emoji;
+                title = name.title;
+                bio = pin.pin_bio ?? '';
+                start = toLocalInput(pin.start_time);
+                end = toLocalInput(pin.end_time);
+                venue = pin.venue_name || '';
+                address = pin.address || '';
+                const lat = Number(pin.latitude);
+                const lng = Number(pin.longitude);
+                if (pin.latitude != null && pin.longitude != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+                    coords = `${lat}, ${lng}`;
+                }
+            }
+
+            $('ig-emoji').value = emoji;
+            $('ig-title').value = clip(title, TITLE_MAX);
+            $('ig-bio').value = clip(bio, BIO_MAX);
+            $('ig-start').value = start;
+            $('ig-end').value = end;
+            $('ig-venue').value = venue;
+            $('ig-address').value = address;
+            $('ig-coords').value = coords;
+            updateBioCount();
+
+            $('existing-notice').hidden = !pin;
+            resultPanel.hidden = true;
+            reviewPanel.hidden = false;
+        }
+
+        // ---- Step 1: fetch ----
+
+        async function fetchPost(button) {
+            const url = $('ig-url').value.trim();
+            if (!url) return invalid('ig-url', 'Enter an Instagram post link.');
+
+            const seq = ++fetchSeq;
+            preview = null;
+            reviewPanel.hidden = true;
+            resultPanel.hidden = true;
+            ui.loading(fetchState, 'Fetching the post…');
+            try {
+                const data = await ui.busy(button, () => AdminShell.api('map', '/admin/instagram/preview', { url }));
+                if (seq !== fetchSeq) return;
+                fetchState.innerHTML = '';
+                showReview(data);
+            } catch (error) {
+                if (seq !== fetchSeq) return;
+                ui.error(fetchState, { title: "Couldn't fetch that post", error, onRetry: () => fetchPost(button) });
+            }
+        }
+
+        // ---- Step 2: read and validate the form ----
+
+        const COORDS_RE = /^(-?\d+(?:\.\d+)?)\s*(?:,|\s)\s*(-?\d+(?:\.\d+)?)$/;
+
+        /** { body } for the seed call, or { error: { id, message } } for the first bad field. */
+        function readForm() {
+            const fail = (id, message) => ({ error: { id, message } });
+
+            const emoji = $('ig-emoji').value.trim();
+            if (!emoji) return fail('ig-emoji', 'Enter one emoji.');
+            if (!isSingleEmoji(emoji)) return fail('ig-emoji', 'Use a single emoji.');
+
+            const title = $('ig-title').value.trim();
+            if (!title) return fail('ig-title', 'Enter a title.');
+            if (title.length > TITLE_MAX) return fail('ig-title', `Keep the title to ${TITLE_MAX} characters.`);
+
+            const bio = $('ig-bio').value.trim();
+            if (bio.length > BIO_MAX) return fail('ig-bio', `Keep the bio to ${BIO_MAX} characters.`);
+
+            // A datetime-local value parses as browser-local time.
+            const startValue = $('ig-start').value;
+            if (!startValue) return fail('ig-start', 'Enter a start time.');
+            const start = new Date(startValue);
+            if (Number.isNaN(start.getTime())) return fail('ig-start', "That start time isn't valid.");
+
+            let end = null;
+            const endValue = $('ig-end').value;
+            if (endValue) {
+                end = new Date(endValue);
+                if (Number.isNaN(end.getTime())) return fail('ig-end', "That end time isn't valid.");
+                if (end.getTime() <= start.getTime()) return fail('ig-end', 'The end must be after the start.');
+            }
+
+            const venue = $('ig-venue').value.trim();
+            const address = $('ig-address').value.trim();
+
+            let latitude = null;
+            let longitude = null;
+            const coordsValue = $('ig-coords').value.trim();
+            if (coordsValue) {
+                const match = COORDS_RE.exec(coordsValue);
+                if (!match) return fail('ig-coords', 'Enter coordinates as latitude, longitude.');
+                latitude = Number(match[1]);
+                longitude = Number(match[2]);
+                if (latitude < -90 || latitude > 90) return fail('ig-coords', 'Latitude must be between -90 and 90.');
+                if (longitude < -180 || longitude > 180) return fail('ig-coords', 'Longitude must be between -180 and 180.');
+            }
+            if (!address && latitude == null) return fail('ig-address', 'Enter an address or coordinates.');
+
+            return {
+                body: {
+                    url: preview.post_url,
+                    title,
+                    emoji,
+                    bio,
+                    start_time: start.toISOString(),
+                    end_time: end ? end.toISOString() : null,
+                    event_timezone: TIME_ZONE || null,
+                    venue_name: venue || null,
+                    address: address || null,
+                    latitude,
+                    longitude,
+                    poster_color: posterColor,
+                },
+            };
+        }
+
+        // ---- Step 3: seed ----
+
+        function coordText(n) {
+            return String(Number(n.toFixed(6)));
+        }
+
+        function showResult(data) {
+            const created = data.created !== false;
+            $('result-title').textContent = created ? 'Seeded' : 'Updated';
+            $('result-name').textContent = data.pin_name || '';
+
+            const rows = [['Pin id', `<span class="mono">${esc(data.pin_id)}</span>`]];
+
+            const lat = Number(data.latitude);
+            const lng = Number(data.longitude);
+            if (data.latitude != null && data.longitude != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+                const text = `${coordText(lat)}, ${coordText(lng)}`;
+                const href = `https://www.google.com/maps?q=${coordText(lat)},${coordText(lng)}`;
+                rows.push(['Location', `<span class="mono">${esc(text)}</span> · <a href="${esc(href)}" target="_blank" rel="noopener">Open in Google Maps</a>`]);
+            }
+
+            const from = data.visible_from ? ui.time(data.visible_from) : '';
+            const until = data.visible_until ? ui.time(data.visible_until) : '';
+            if (from || until) {
+                rows.push(['Visible', from && until ? `${esc(from)} to ${esc(until)}` : from ? `From ${esc(from)}` : `Until ${esc(until)}`]);
+            }
+
+            $('result-kv').innerHTML = rows.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${value}</dd>`).join('');
+
+            reviewPanel.hidden = true;
+            resultPanel.hidden = false;
+            resultPanel.scrollIntoView({ block: 'nearest' });
+        }
+
+        function seedFailed(error) {
+            const message = (error && error.message) || 'Something went wrong.';
+            if (error && (error.status === 422 || /find that address/i.test(message))) {
+                $('ig-coords').focus();
+                ui.notice(`${message.replace(/[.\s]+$/, '')}. Paste coordinates from Google Maps and try again.`, { tone: 'bad' });
+                return;
+            }
+            ui.notice(`Couldn't seed the pin: ${message}`, { tone: 'bad' });
+        }
+
+        async function seedPin(form) {
+            if (submitting || !preview) return;
+            submitting = true;
+            try {
+                // The colour resolves in milliseconds; wait so a fast click can't skip it.
+                await posterColorPromise;
+
+                const result = readForm();
+                if (result.error) return invalid(result.error.id, result.error.message);
+
+                const button = form.querySelector('button[type="submit"]');
+                try {
+                    const data = await ui.busy(button, () => AdminShell.api('map', '/admin/instagram/seed', result.body));
+                    showResult(data);
+                } catch (error) {
+                    seedFailed(error);
+                }
+            } finally {
+                submitting = false;
+            }
+        }
+
+        function startOver() {
+            fetchSeq += 1;
+            preview = null;
+            reviewPanel.hidden = true;
+            resultPanel.hidden = true;
+            fetchState.innerHTML = '';
+            $('ig-url').value = '';
+            $('ig-url').focus();
+            window.scrollTo({ top: 0 });
+        }
+
+        // ---- Wiring ----
+
+        $('existing-notice').innerHTML = `${ui.icon('info')}<span>Already seeded. Saving updates the existing pin.</span>`;
+        $('ig-tz').textContent = TIME_ZONE || 'unknown';
+
+        $('fetch-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            fetchPost($('fetch-btn'));
+        });
+        $('seed-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            seedPin(e.currentTarget);
+        });
+        $('ig-bio').addEventListener('input', updateBioCount);
+        $('seed-another').addEventListener('click', startOver);
+
+        AdminShell.init({ active: 'instagram.html', title: 'Instagram events', onReady: () => $('ig-url').focus() });
+    </script>
+</body>
+</html>

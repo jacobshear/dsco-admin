@@ -79,6 +79,7 @@ const AdminShell = (() => {
             items: [
                 ['reports.html', 'Reports', 'flag', 'reports'],
                 ['content.html', 'Content', 'image'],
+                ['instagram.html', 'Instagram events', 'pin'],
                 ['appeals.html', 'Appeals', 'scale', 'appeals'],
                 ['users.html', 'Users', 'users'],
             ],
@@ -105,6 +106,7 @@ const AdminShell = (() => {
         'index.html': 'Health and activity across the app.',
         'reports.html': 'Reports people filed, with the evidence captured when they reported.',
         'content.html': 'Reported and recent stories, pins and messages.',
+        'instagram.html': 'Seed a public event pin from an Instagram post.',
         'appeals.html': 'People asking to reverse a moderation action.',
         'users.html': 'Find a person, see their history and act on their account.',
         'crashes.html': 'Crashlytics issues from the last 7 days.',
@@ -1030,7 +1032,7 @@ const AdminShell = (() => {
                 const payload = decodeJwtPayload(token) || {};
                 throw new Error(`${msg}. Signed in as ${payload.email || '?'} with groups ${JSON.stringify(payload['cognito:groups'] || [])}. Sign out and back in if you were just added to a group.`);
             }
-            throw new Error(msg);
+            throw Object.assign(new Error(msg), { status: response.status });
         }
         return data;
     }
