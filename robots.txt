@@ -1,0 +1,4 @@
+# Public pages (landing, privacy, terms, policies) are indexable.
+# The admin console is not — keep it out of search results.
+User-agent: *
+Disallow: /admin/

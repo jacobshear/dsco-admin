@@ -28,6 +28,7 @@
         }
 
         .ig-notice .icon { margin-top: 3px; }
+        .ig-notice.bad { background: var(--bad-bg); color: var(--bad); }
 
         .ig-layout {
             display: grid;
@@ -99,6 +100,13 @@
             font-size: 14px;
             transition: border-color 0.12s;
         }
+
+        /* Seeded posts: one table row per pin. */
+        .ig-event-title { font-weight: 600; }
+        .ig-event-emoji { margin-right: 8px; }
+        .ig-event-sub { max-width: 40ch; margin-top: 2px; font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+        .ig-event-sub.removal { color: var(--text-2); }
+        .ig-pin-actions { justify-content: flex-end; }
 
         @media (max-width: 760px) {
             .ig-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
@@ -271,6 +279,14 @@
                 <button type="button" class="btn primary" id="seed-another">Seed another</button>
             </div>
         </section>
+
+        <section class="panel" id="seeded-panel">
+            <div class="panel-head">
+                <h2>Seeded posts</h2>
+                <span class="hint" id="seeded-hint"></span>
+            </div>
+            <div id="seeded-list"></div>
+        </section>
     </div>
 
     <script src="assets/admin.js"></script>
@@ -289,6 +305,7 @@
         const fetchState = $('fetch-state');
         const reviewPanel = $('review-panel');
         const resultPanel = $('result-panel');
+        const seededList = $('seeded-list');
 
         let preview = null;             // the last successful preview response
         let posterColor = null;         // "#RRGGBB" or null, computed from the poster
@@ -298,9 +315,43 @@
         let ruleTz = '';
         let ruleHours = null;           // a saved per-day hours list the form can't show; sent back as-is                // time zone of a saved schedule, kept when it is saved again
 
+        let seededPins = null;          // null until the first successful list load
+        let seededSeq = 0;              // drops responses from a superseded list load
+
         const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
         const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
         const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+        // The DSA reason codes the removal endpoint takes (same table as the Reports page).
+        const REASON_CODES = [
+            ['HARASSMENT', 'Harassment'],
+            ['HATE_SPEECH', 'Hate speech'],
+            ['SEXUAL_CONTENT', 'Sexual content'],
+            ['MINOR_SAFETY', 'Minor safety'],
+            ['SPAM', 'Spam'],
+            ['IMPERSONATION', 'Impersonation'],
+            ['SELF_HARM', 'Self-harm'],
+            ['VIOLENCE', 'Violence'],
+            ['ILLEGAL_CONTENT', 'Illegal content'],
+            ['PRIVACY_VIOLATION', 'Privacy violation'],
+            ['OTHER', 'Other'],
+        ];
+        const REASON_LABELS = Object.fromEntries(REASON_CODES);
+
+        // Copyright takedowns are filed as illegal content (the DSA counts IP
+        // infringement there); there is no separate code.
+        const TAKEDOWN_DEFAULT = 'ILLEGAL_CONTENT';
+
+        // The form dialog has no default-value option, so the default rides in
+        // the select's empty first option (labelled with it) and is applied on submit.
+        const TAKEDOWN_OPTIONS = REASON_CODES.filter(([code]) => code !== TAKEDOWN_DEFAULT);
+
+        const STATUS_META = {
+            live: { label: 'Live', tone: 'good' },
+            upcoming: { label: 'Upcoming', tone: 'info' },
+            ended: { label: 'Ended', tone: '' },
+            taken_down: { label: 'Taken down', tone: 'bad' },
+        };
 
         // ---- Small helpers ----
 
@@ -550,6 +601,30 @@
             syncRepeatUi();
         }
 
+        /** The reason a removal was filed with: the DSA label for a known code, else the text as saved. */
+        function removalReasonLabel(reason) {
+            const text = String(reason ?? '').trim();
+            return REASON_LABELS[text] || text;
+        }
+
+        function takenDownText(pin) {
+            const when = ui.time(pin.removed_at);
+            const why = removalReasonLabel(pin.removal_reason);
+            return `This post was taken down${when ? ` on ${when}` : ''}${why ? ` (${why})` : ''}. ` +
+                'Restore it from the seeded posts list before changing or seeding it again.';
+        }
+
+        /** The notice above the form: already seeded, or taken down (which blocks saving). */
+        function renderExistingNotice(pin) {
+            const notice = $('existing-notice');
+            const removed = !!(pin && pin.removed_at);
+            notice.hidden = !pin;
+            notice.classList.toggle('bad', removed);
+            if (!pin) return;
+            const text = removed ? takenDownText(pin) : 'Already seeded. Saving updates the existing pin.';
+            notice.innerHTML = `${ui.icon(removed ? 'alert' : 'info')}<span>${esc(text)}</span>`;
+        }
+
         function showReview(data) {
             preview = data;
             const pin = data.existing_pin || null;
@@ -593,7 +668,9 @@
             updateBioCount();
             fillRepeat(pin ? pin.session_rule : null);
 
-            $('existing-notice').hidden = !pin;
+            renderExistingNotice(pin);
+            // A taken-down post can't be seeded or saved until it is restored.
+            $('seed-btn').disabled = !!(pin && pin.removed_at);
             resultPanel.hidden = true;
             reviewPanel.hidden = false;
         }
@@ -764,6 +841,13 @@
 
         function seedFailed(error) {
             const message = (error && error.message) || 'Something went wrong.';
+            // 409 is the taken-down guard (AdminShell.api drops the body's `code`,
+            // so the status is all there is). The server's message says what to do.
+            if (error && error.status === 409) {
+                ui.notice(message, { tone: 'bad' });
+                loadSeeded({ quiet: true });
+                return;
+            }
             if (error && (error.status === 422 || /find that address/i.test(message))) {
                 $('ig-coords').focus();
                 ui.notice(`${message.replace(/[.\s]+$/, '')}. Paste coordinates from Google Maps and try again.`, { tone: 'bad' });
@@ -774,6 +858,7 @@
 
         async function seedPin(form) {
             if (submitting || !preview) return;
+            if (preview.existing_pin && preview.existing_pin.removed_at) return;
             submitting = true;
             try {
                 // The colour resolves in milliseconds; wait so a fast click can't skip it.
@@ -786,6 +871,7 @@
                 try {
                     const data = await ui.busy(button, () => AdminShell.api('map', '/admin/instagram/seed', result.body));
                     showResult(data);
+                    loadSeeded({ quiet: true });
                 } catch (error) {
                     seedFailed(error);
                 }
@@ -805,9 +891,207 @@
             window.scrollTo({ top: 0 });
         }
 
+        // ---- Seeded posts ----
+
+        function humanize(value) {
+            const text = String(value ?? '').replace(/_/g, ' ').toLowerCase();
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        function statusMeta(status) {
+            return STATUS_META[status] || { label: humanize(status) || 'Unknown', tone: '' };
+        }
+
+        /** "🎉  Title" -> { emoji, title }, split on the stored double space. */
+        function listName(pinName) {
+            const text = String(pinName ?? '');
+            const at = text.indexOf('  ');
+            if (at > 0) return { emoji: text.slice(0, at).trim(), title: text.slice(at + 2).trim() };
+            return splitPinName(text);
+        }
+
+        function scheduleHtml(pin) {
+            const start = ui.time(pin.start_time);
+            const end = ui.time(pin.end_time);
+            let when = '<span class="faint">No time set</span>';
+            if (start && end) when = `${esc(start)} to ${esc(end)}`;
+            else if (start) when = `From ${esc(start)}`;
+            return `${when}${pin.session_rule ? '<div class="ig-event-sub">Repeats on a schedule</div>' : ''}`;
+        }
+
+        function removalHtml(pin) {
+            const when = pin.removed_at ? ui.timeTag(pin.removed_at) : '';
+            const why = removalReasonLabel(pin.removal_reason);
+            return `<div class="ig-event-sub removal">Taken down${when ? ` ${when}` : ''}${why ? `: ${esc(why)}` : ''}</div>`;
+        }
+
+        function seededRow(pin) {
+            const removed = pin.status === 'taken_down';
+            const { emoji, title } = listName(pin.pin_name);
+            const meta = statusMeta(pin.status);
+            const link = safePostUrl(pin.post_url);
+            const place = pin.venue_name || pin.address || '';
+            const joined = typeof pin.member_count === 'number'
+                ? `${esc(ui.number(pin.member_count))} joined`
+                : '<span class="faint">–</span>';
+            return `
+                <tr data-pin-id="${esc(pin.pin_id)}">
+                    <td>
+                        <div class="ig-event-title">${emoji ? `<span class="ig-event-emoji">${esc(emoji)}</span>` : ''}${esc(title || 'Untitled')}</div>
+                        ${pin.host_name ? `<div class="ig-event-sub">${esc(pin.host_name)}</div>` : ''}
+                        ${removed ? removalHtml(pin) : ''}
+                    </td>
+                    <td><span class="badge ${meta.tone}">${esc(meta.label)}</span></td>
+                    <td>${scheduleHtml(pin)}</td>
+                    <td>${place ? `<span title="${esc(pin.address || '')}">${esc(place)}</span>` : '<span class="faint">No place set</span>'}</td>
+                    <td class="nowrap">${joined}</td>
+                    <td>
+                        <div class="btn-row ig-pin-actions">
+                            ${link ? `<a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Open post${ui.icon('external')}</a>` : ''}
+                            ${removed
+                                ? '<button type="button" class="btn sm" data-action="restore">Restore</button>'
+                                : `<button type="button" class="btn sm" data-action="edit">Edit</button>
+                                   <button type="button" class="btn sm danger" data-action="takedown">Take down</button>`}
+                        </div>
+                    </td>
+                </tr>`;
+        }
+
+        function renderSeeded() {
+            const pins = seededPins || [];
+            $('seeded-hint').textContent = pins.length ? `${ui.number(pins.length)} ${pins.length === 1 ? 'post' : 'posts'}` : '';
+            if (!pins.length) {
+                ui.empty(seededList, {
+                    title: 'No seeded posts yet',
+                    body: 'Posts you seed from Instagram appear here.',
+                    icon: 'pin',
+                });
+                return;
+            }
+            // Every field comes from Instagram or an admin, so all of it goes
+            // through esc(); actions read data attributes and find the pin by id.
+            seededList.innerHTML = `
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Status</th>
+                                <th>When</th>
+                                <th>Where</th>
+                                <th>Joined</th>
+                                <th><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>${pins.map(seededRow).join('')}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        // A refresh keeps the current rows on screen (the button shows the wait).
+        async function loadSeeded({ quiet = false } = {}) {
+            const seq = ++seededSeq;
+            if (!quiet || seededPins === null) ui.loading(seededList, 'Loading seeded posts…');
+            try {
+                const data = await AdminShell.api('map', '/admin/instagram/list', null, { method: 'GET' });
+                if (seq !== seededSeq) return;
+                seededPins = Array.isArray(data.pins) ? data.pins : [];
+                renderSeeded();
+            } catch (error) {
+                if (seq !== seededSeq) return;
+                seededPins = null;
+                $('seeded-hint').textContent = '';
+                ui.error(seededList, { title: "Couldn't load seeded posts", error, onRetry: () => loadSeeded() });
+            }
+        }
+
+        /** Edit loads the pin through the same preview flow as pasting its link. */
+        function editPin(pin) {
+            if (!pin.post_url) return ui.notice("This pin doesn't have a post link to edit from.", { tone: 'bad' });
+            $('ig-url').value = pin.post_url;
+            window.scrollTo({ top: 0 });
+            fetchPost($('fetch-btn'));
+        }
+
+        /** Reload the open review when it shows this pin, so its notice and Seed button follow the change. */
+        function refreshReviewFor(pin) {
+            const existing = preview && preview.existing_pin;
+            const open = !reviewPanel.hidden && preview
+                && ((existing && existing.pin_id === pin.pin_id) || (pin.post_url && preview.post_url === pin.post_url));
+            if (!open) return;
+            $('ig-url').value = preview.post_url || pin.post_url || '';
+            fetchPost($('fetch-btn'));
+        }
+
+        function moderationFailed(what, error) {
+            ui.notice(`Couldn't ${what}: ${error.message}`, { tone: 'bad' });
+            // 404 and 409 mean the row on screen is out of date.
+            if (error.status === 404 || error.status === 409) loadSeeded({ quiet: true });
+        }
+
+        async function takeDown(pin, button) {
+            const { title } = listName(pin.pin_name);
+            const values = await ui.confirm({
+                title: 'Take down this post?',
+                body: esc(`This takes "${title || 'this event'}" off every map, card and share link, for people who joined too. Its group chat stays. You can restore it from this list.`),
+                confirmLabel: 'Take down',
+                destructive: true,
+                fields: [
+                    {
+                        name: 'reason_code',
+                        label: 'Reason',
+                        type: 'select',
+                        options: TAKEDOWN_OPTIONS,
+                        placeholder: REASON_LABELS[TAKEDOWN_DEFAULT],
+                        hint: 'Copyright takedowns are filed as illegal content.',
+                    },
+                    { name: 'reason_text', label: 'Details', type: 'textarea', required: true, placeholder: 'Copyright notice from jane@example.com, Oct 7' },
+                ],
+            });
+            if (!values) return;
+            try {
+                await ui.busy(button, () => AdminShell.api('realtime', '/admin/content/remove', {
+                    content_type: 'pin',
+                    content_id: pin.pin_id,
+                    reason_code: values.reason_code || TAKEDOWN_DEFAULT,
+                    reason_text: values.reason_text,
+                }));
+            } catch (error) {
+                moderationFailed('take down the post', error);
+                return;
+            }
+            // The row's status is the confirmation.
+            await loadSeeded({ quiet: true });
+            refreshReviewFor(pin);
+        }
+
+        async function restorePin(pin, button) {
+            const { title } = listName(pin.pin_name);
+            const values = await ui.confirm({
+                title: 'Restore this post?',
+                body: esc(`This brings "${title || 'this event'}" back into the app.`),
+                confirmLabel: 'Restore',
+                fields: [
+                    { name: 'reason_text', label: 'Reason', type: 'textarea', required: true, placeholder: 'Counter-notice accepted' },
+                ],
+            });
+            if (!values) return;
+            try {
+                await ui.busy(button, () => AdminShell.api('realtime', '/admin/content/restore', {
+                    content_type: 'pin',
+                    content_id: pin.pin_id,
+                    reason_text: values.reason_text,
+                }));
+            } catch (error) {
+                moderationFailed('restore the post', error);
+                return;
+            }
+            await loadSeeded({ quiet: true });
+            refreshReviewFor(pin);
+        }
+
         // ---- Wiring ----
 
-        $('existing-notice').innerHTML = `${ui.icon('info')}<span>Already seeded. Saving updates the existing pin.</span>`;
         $('ig-tz').textContent = TIME_ZONE || 'unknown';
 
         $('fetch-form').addEventListener('submit', (e) => {
@@ -824,7 +1108,29 @@
         syncRepeatUi();
         $('seed-another').addEventListener('click', startOver);
 
-        AdminShell.init({ active: 'instagram.html', title: 'Instagram events', onReady: () => $('ig-url').focus() });
+        seededList.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-action]');
+            const row = button && button.closest('[data-pin-id]');
+            if (!row) return;
+            const pin = (seededPins || []).find((p) => p.pin_id === row.dataset.pinId);
+            if (!pin) return;
+            if (button.dataset.action === 'edit') editPin(pin);
+            else if (button.dataset.action === 'takedown') takeDown(pin, button);
+            else if (button.dataset.action === 'restore') restorePin(pin, button);
+        });
+
+        AdminShell.init({
+            active: 'instagram.html',
+            title: 'Instagram events',
+            onReady: () => {
+                $('ig-url').focus();
+                loadSeeded();
+            },
+        });
+
+        document.getElementById('page-actions').innerHTML =
+            `<button type="button" class="btn" id="refresh">${ui.icon('refresh')}Refresh</button>`;
+        document.getElementById('refresh').addEventListener('click', (e) => ui.busy(e.currentTarget, () => loadSeeded({ quiet: true })));
     </script>
 </body>
 </html>
